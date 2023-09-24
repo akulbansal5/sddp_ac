@@ -152,7 +152,16 @@ end
 # contained in state.
 function set_incoming_state(node::Node, state::Dict{Symbol,Float64})
     for (state_name, value) in state
-        JuMP.fix(node.states[state_name].in, value)
+        var_ref = node.states[state_name].out
+        value_int = value
+
+        #if condition is added to avoid numerical errors
+        #while passing on solutions to future stages enforce them to be integer
+        #values like 1.000001 are passed as 1.0
+        if JuMP.is_integer(var_ref) || JuMP.is_binary(var_ref)
+            value_int = round(value)
+        end
+        JuMP.fix(node.states[state_name].in, value_int)
     end
     return
 end
