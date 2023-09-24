@@ -669,6 +669,8 @@ struct Log
     total_solves::Int
     duality_key::String
     serious_numerical_issue::Bool
+    cuts_std::Int
+    cuts_nonstd::Int
 end
 
 struct TrainingResults

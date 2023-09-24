@@ -52,6 +52,7 @@ include("plugins/duality_handlers.jl")
 include("plugins/parallel_schemes.jl")
 include("plugins/backward_sampling_schemes.jl")
 include("plugins/forward_passes.jl")
+include("plugins/backward_passes.jl")
 
 # Visualization related code.
 include("visualization/publication_plot.jl")

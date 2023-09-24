@@ -96,10 +96,12 @@ struct Options{T}
     log_file_handle::Any
     log_frequency::Union{Int,Function}
     forward_pass::AbstractForwardPass
+    backward_pass::AbstractBackwardPass
     duality_handler::AbstractDualityHandler
     # A callback called after the forward pass.
     forward_pass_callback::Any
     post_iteration_callback::Any
+    sense_signal::Float64
     last_log_iteration::Ref{Int}
     # Internal function: users should never construct this themselves.
     function Options(
@@ -118,9 +120,11 @@ struct Options{T}
         log_file_handle = IOBuffer(),
         log_frequency::Union{Int,Function} = 1,
         forward_pass::AbstractForwardPass = DefaultForwardPass(),
+        backward_pass::AbstractBackwardPass = DefaultBackwardPass(),
         duality_handler::AbstractDualityHandler = ContinuousConicDuality(),
         forward_pass_callback = x -> nothing,
         post_iteration_callback = result -> nothing,
+        sense_signal = 1.0,
     ) where {T}
         return new{T}(
             initial_state,
@@ -140,9 +144,11 @@ struct Options{T}
             log_file_handle,
             log_frequency,
             forward_pass,
+            backward_pass,
             duality_handler,
             forward_pass_callback,
             post_iteration_callback,
+            sense_signal,
             Ref{Int}(0),  # last_log_iteration
         )
     end
@@ -501,127 +507,127 @@ end
 # scenario_path, refining the bellman function at sampled_states. Assumes that
 # scenario_path does not end in a leaf node (i.e., the forward pass was solved
 # with include_last_node = false)
-function backward_pass(
-    model::PolicyGraph{T},
-    options::Options,
-    scenario_path::Vector{Tuple{T,NoiseType}},
-    sampled_states::Vector{Dict{Symbol,Float64}},
-    objective_states::Vector{NTuple{N,Float64}},
-    belief_states::Vector{Tuple{Int,Dict{T,Float64}}},
-) where {T,NoiseType,N}
-    TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
-        restore_duality =
-            prepare_backward_pass(model, options.duality_handler, options)
-    end
-    # TODO(odow): improve storage type.
-    cuts = Dict{T,Vector{Any}}(index => Any[] for index in keys(model.nodes))
-    for index in length(scenario_path):-1:1
-        outgoing_state = sampled_states[index]
-        objective_state = get(objective_states, index, nothing)
-        partition_index, belief_state = get(belief_states, index, (0, nothing))
-        items = BackwardPassItems(T, Noise)
-        if belief_state !== nothing
-            # Update the cost-to-go function for partially observable model.
-            for (node_index, belief) in belief_state
-                if iszero(belief)
-                    continue
-                end
-                solve_all_children(
-                    model,
-                    model[node_index],
-                    items,
-                    belief,
-                    belief_state,
-                    objective_state,
-                    outgoing_state,
-                    options.backward_sampling_scheme,
-                    scenario_path[1:index],
-                    options.duality_handler,
-                )
-            end
-            # We need to refine our estimate at all nodes in the partition.
-            for node_index in model.belief_partition[partition_index]
-                node = model[node_index]
-                # Update belief state, etc.
-                current_belief = node.belief_state::BeliefState{T}
-                for (idx, belief) in belief_state
-                    current_belief.belief[idx] = belief
-                end
-                new_cuts = refine_bellman_function(
-                    model,
-                    node,
-                    node.bellman_function,
-                    options.risk_measures[node_index],
-                    outgoing_state,
-                    items.duals,
-                    items.supports,
-                    items.probability .* items.belief,
-                    items.objectives,
-                )
-                push!(cuts[node_index], new_cuts)
-            end
-        else
-            node_index, _ = scenario_path[index]
-            node = model[node_index]
-            if length(node.children) == 0
-                continue
-            end
-            solve_all_children(
-                model,
-                node,
-                items,
-                1.0,
-                belief_state,
-                objective_state,
-                outgoing_state,
-                options.backward_sampling_scheme,
-                scenario_path[1:index],
-                options.duality_handler,
-            )
-            new_cuts = refine_bellman_function(
-                model,
-                node,
-                node.bellman_function,
-                options.risk_measures[node_index],
-                outgoing_state,
-                items.duals,
-                items.supports,
-                items.probability,
-                items.objectives,
-            )
-            push!(cuts[node_index], new_cuts)
-            if options.refine_at_similar_nodes
-                # Refine the bellman function at other nodes with the same
-                # children, e.g., in the same stage of a Markovian policy graph.
-                for other_index in options.similar_children[node_index]
-                    copied_probability = similar(items.probability)
-                    other_node = model[other_index]
-                    for (idx, child_index) in enumerate(items.nodes)
-                        copied_probability[idx] =
-                            get(options.Φ, (other_index, child_index), 0.0) *
-                            items.supports[idx].probability
-                    end
-                    new_cuts = refine_bellman_function(
-                        model,
-                        other_node,
-                        other_node.bellman_function,
-                        options.risk_measures[other_index],
-                        outgoing_state,
-                        items.duals,
-                        items.supports,
-                        copied_probability,
-                        items.objectives,
-                    )
-                    push!(cuts[other_index], new_cuts)
-                end
-            end
-        end
-    end
-    TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
-        restore_duality()
-    end
-    return cuts
-end
+# function backward_pass(
+#     model::PolicyGraph{T},
+#     options::Options,
+#     scenario_path::Vector{Tuple{T,NoiseType}},
+#     sampled_states::Vector{Dict{Symbol,Float64}},
+#     objective_states::Vector{NTuple{N,Float64}},
+#     belief_states::Vector{Tuple{Int,Dict{T,Float64}}},
+# ) where {T,NoiseType,N}
+#     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
+#         restore_duality =
+#             prepare_backward_pass(model, options.duality_handler, options)
+#     end
+#     # TODO(odow): improve storage type.
+#     cuts = Dict{T,Vector{Any}}(index => Any[] for index in keys(model.nodes))
+#     for index in length(scenario_path):-1:1
+#         outgoing_state = sampled_states[index]
+#         objective_state = get(objective_states, index, nothing)
+#         partition_index, belief_state = get(belief_states, index, (0, nothing))
+#         items = BackwardPassItems(T, Noise)
+#         if belief_state !== nothing
+#             # Update the cost-to-go function for partially observable model.
+#             for (node_index, belief) in belief_state
+#                 if iszero(belief)
+#                     continue
+#                 end
+#                 solve_all_children(
+#                     model,
+#                     model[node_index],
+#                     items,
+#                     belief,
+#                     belief_state,
+#                     objective_state,
+#                     outgoing_state,
+#                     options.backward_sampling_scheme,
+#                     scenario_path[1:index],
+#                     options.duality_handler,
+#                 )
+#             end
+#             # We need to refine our estimate at all nodes in the partition.
+#             for node_index in model.belief_partition[partition_index]
+#                 node = model[node_index]
+#                 # Update belief state, etc.
+#                 current_belief = node.belief_state::BeliefState{T}
+#                 for (idx, belief) in belief_state
+#                     current_belief.belief[idx] = belief
+#                 end
+#                 new_cuts = refine_bellman_function(
+#                     model,
+#                     node,
+#                     node.bellman_function,
+#                     options.risk_measures[node_index],
+#                     outgoing_state,
+#                     items.duals,
+#                     items.supports,
+#                     items.probability .* items.belief,
+#                     items.objectives,
+#                 )
+#                 push!(cuts[node_index], new_cuts)
+#             end
+#         else
+#             node_index, _ = scenario_path[index]
+#             node = model[node_index]
+#             if length(node.children) == 0
+#                 continue
+#             end
+#             solve_all_children(
+#                 model,
+#                 node,
+#                 items,
+#                 1.0,
+#                 belief_state,
+#                 objective_state,
+#                 outgoing_state,
+#                 options.backward_sampling_scheme,
+#                 scenario_path[1:index],
+#                 options.duality_handler,
+#             )
+#             new_cuts = refine_bellman_function(
+#                 model,
+#                 node,
+#                 node.bellman_function,
+#                 options.risk_measures[node_index],
+#                 outgoing_state,
+#                 items.duals,
+#                 items.supports,
+#                 items.probability,
+#                 items.objectives,
+#             )
+#             push!(cuts[node_index], new_cuts)
+#             if options.refine_at_similar_nodes
+#                 # Refine the bellman function at other nodes with the same
+#                 # children, e.g., in the same stage of a Markovian policy graph.
+#                 for other_index in options.similar_children[node_index]
+#                     copied_probability = similar(items.probability)
+#                     other_node = model[other_index]
+#                     for (idx, child_index) in enumerate(items.nodes)
+#                         copied_probability[idx] =
+#                             get(options.Φ, (other_index, child_index), 0.0) *
+#                             items.supports[idx].probability
+#                     end
+#                     new_cuts = refine_bellman_function(
+#                         model,
+#                         other_node,
+#                         other_node.bellman_function,
+#                         options.risk_measures[other_index],
+#                         outgoing_state,
+#                         items.duals,
+#                         items.supports,
+#                         copied_probability,
+#                         items.objectives,
+#                     )
+#                     push!(cuts[other_index], new_cuts)
+#                 end
+#             end
+#         end
+#     end
+#     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
+#         restore_duality()
+#     end
+#     return cuts
+# end
 
 struct BackwardPassItems{T,U}
     "Given a (node, noise) tuple, index the element in the array."
@@ -818,13 +824,15 @@ function iteration(model::PolicyGraph{T}, options::Options) where {T}
         options.forward_pass_callback(forward_trajectory)
     end
     TimerOutputs.@timeit model.timer_output "backward_pass" begin
-        cuts = backward_pass(
+        cuts, cuts_std, cuts_nonstd = backward_pass(
             model,
             options,
+            options.backward_pass,
             forward_trajectory.scenario_path,
             forward_trajectory.sampled_states,
             forward_trajectory.objective_states,
             forward_trajectory.belief_states,
+            forward_trajectory.costtogo
         )
     end
     TimerOutputs.@timeit model.timer_output "calculate_bound" begin
@@ -841,6 +849,8 @@ function iteration(model::PolicyGraph{T}, options::Options) where {T}
             model.ext[:total_solves],
             duality_log_key(options.duality_handler),
             model.ext[:numerical_issue],
+            cuts_std,
+            cuts_nonstd,
         ),
     )
     has_converged, status =
@@ -968,11 +978,13 @@ function train(
     dashboard::Bool = false,
     parallel_scheme::AbstractParallelScheme = Serial(),
     forward_pass::AbstractForwardPass = DefaultForwardPass(),
+    backward_pass::AbstractBackwardPass = DefaultBackwardPass(),
     forward_pass_resampling_probability::Union{Nothing,Float64} = nothing,
     add_to_existing_cuts::Bool = false,
     duality_handler::AbstractDualityHandler = SDDP.ContinuousConicDuality(),
     forward_pass_callback::Function = (x) -> nothing,
     post_iteration_callback = result -> nothing,
+    mipgap::Float64 = 1e-4,
 )
     function log_frequency_f(log::Vector{Log})
         if mod(length(log), log_frequency) != 0
@@ -1085,6 +1097,12 @@ function train(
     else
         (::Any, ::Any) -> nothing
     end
+
+    if model.objective_sense == MOI.MIN_SENSE
+        sense_signal = 1.0
+    else
+        sense_signal = -1.0
+    end
     options = Options(
         model,
         model.initial_root_state;
@@ -1101,9 +1119,11 @@ function train(
         log_file_handle,
         log_frequency = log_frequency_f,
         forward_pass,
+        backward_pass,
         duality_handler,
         forward_pass_callback,
         post_iteration_callback,
+        sense_signal,
     )
     status = :not_solved
     try
@@ -1121,9 +1141,14 @@ function train(
         dashboard_callback(nothing, true)
     end
 
-    #println(" ------------> finished master loop")
+
     training_results = TrainingResults(status, log)
     model.most_recent_training_results = training_results
+    best_bound = training_results.log[end].bound
+    μ, σ = confidence_interval(map(l -> l.simulation_value, training_results.log))
+    cuts_std = sum(map(l -> l.cuts_std, training_results.log))
+    cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log))
+    
     if print_level > 0
         log_iteration(options; force_if_needed = true)
         print_helper(print_footer, log_file_handle, training_results)
@@ -1138,10 +1163,9 @@ function train(
             print_helper(println, log_file_handle)
         end
     end
-    #println(" ----------> finished printing step")
+
     close(log_file_handle)
-    #println(" ----------> closed the log file handle")
-    return
+    return best_bound, μ - σ, μ + σ, cuts_std, cuts_nonstd, length(options.log)
 end
 
 # Internal function: helper to conduct a single simulation. Users should use the

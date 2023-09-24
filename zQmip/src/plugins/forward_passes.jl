@@ -37,6 +37,8 @@ function forward_pass(
     end
     # Storage for the list of outgoing states that we visit on the forward pass.
     sampled_states = Dict{Symbol,Float64}[]
+    #storage for objective function on forward pass
+    costtogo = Dict{Int64, Float64}()
     # Storage for the belief states: partition index and the belief dictionary.
     belief_states = Tuple{Int,Dict{T,Float64}}[]
     current_belief = initialize_belief(model)
@@ -112,6 +114,7 @@ function forward_pass(
         # Add the outgoing state variable to the list of states we have sampled
         # on this forward pass.
         push!(sampled_states, incoming_state_value)
+        costtogo[node_index] = JuMP.value(node.bellman_function.global_theta.theta)
     end
     if terminated_due_to_cycle
         # We terminated due to a cycle. Here is the list of possible starting
@@ -138,6 +141,7 @@ function forward_pass(
         objective_states = objective_states,
         belief_states = belief_states,
         cumulative_value = cumulative_value,
+        costtogo = costtogo,
     )
 end
 
