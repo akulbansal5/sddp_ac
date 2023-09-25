@@ -78,7 +78,30 @@ function prepare_backward_pass(
     end
     return undo_relax
 end
+function prepare_backward_pass_node(
+    model::PolicyGraph,
+    node::Node,
+    duality_handler::AbstractDualityHandler,
+    options::Options,
+)
+    undo = Function[]
 
+    #defined for all nodes
+    for child in node.children
+        child_node = model[child.term]
+        push!(undo, prepare_backward_pass(child_node, duality_handler, options))
+    end
+    
+
+    function undo_relax()
+        for f in undo
+            f()
+        end
+        return
+    end
+    
+    return undo_relax
+end
 function get_dual_solution(node::Node, ::Nothing)
     return JuMP.objective_value(node.subproblem), Dict{Symbol,Float64}()
 end
@@ -146,7 +169,21 @@ function prepare_backward_pass(node::Node, ::ContinuousConicDuality, ::Options)
 end
 
 duality_log_key(::ContinuousConicDuality) = " "
+# ========================= Angulo Duality =======================================================
 
+# struct AnguloDuality <: AbstractDualityHandler end
+struct LaporteLouveauxDuality <: AbstractDualityHandler end
+
+
+function get_dual_solution(node::Node, ::LaporteLouveauxDuality)
+    #TODO (akul): unlike other functions perform feasibility checks 
+    λ = Dict{Symbol,Float64}()
+    return objective_value(node.subproblem), λ
+end
+
+
+
+duality_log_key(::LaporteLouveauxDuality) = "LL"
 # =========================== LagrangianDuality ============================== #
 
 """

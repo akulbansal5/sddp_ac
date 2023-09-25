@@ -402,6 +402,7 @@ end
 function refine_bellman_function(
     model::PolicyGraph{T},
     node::Node{T},
+    duality_handler::Union{ContinuousConicDuality, LagrangianDuality},
     bellman_function::BellmanFunction,
     risk_measure::AbstractRiskMeasure,
     outgoing_state::Dict{Symbol,Float64},
@@ -409,6 +410,7 @@ function refine_bellman_function(
     noise_supports::Vector,
     nominal_probability::Vector{Float64},
     objective_realizations::Vector{Float64},
+    objofchildren::Union{Nothing, Float64} = nothing; 
 ) where {T}
     # Sanity checks.
     @assert length(dual_variables) ==
@@ -449,6 +451,164 @@ function refine_bellman_function(
     end
 end
 
+function refine_bellman_function(
+    model::PolicyGraph{T},
+    node::Node{T},
+    duality_handler::LaporteLouveauxDuality,
+    bellman_function::BellmanFunction,
+    risk_measure::AbstractRiskMeasure,
+    outgoing_state::Dict{Symbol,Float64},
+    dual_variables::Vector{Dict{Symbol,Float64}},
+    noise_supports::Vector,
+    nominal_probability::Vector{Float64},
+    objective_realizations::Vector{Float64},
+    objofchildren::Union{Nothing, Float64} = nothing;
+) where {T}
+
+    ones = []
+    zeros = []
+
+    # println("inside the refine bellman function")
+    for (name, value) in outgoing_state
+        if isapprox(value, 1.0, atol = 1e-6)
+            push!(ones, name)
+        else
+            push!(zeros, name)             
+        end
+    end
+
+    # println("Get lower/upper bound procedure")
+    model_theta = JuMP.owner_model(node.bellman_function.global_theta.theta)
+    # println("checking the objective sense of the problem: min or max")
+    if JuMP.objective_sense(model_theta) == MOI.MIN_SENSE
+        L = JuMP.lower_bound(node.bellman_function.global_theta.theta)
+    else
+        L = JuMP.upper_bound(node.bellman_function.global_theta.theta)          
+    end
+
+    # println("Compute the cut")
+    if bellman_function.cut_type == SINGLE_CUT
+        return _add_laplou_average_cut(bellman_function.global_theta, node, outgoing_state, objofchildren, L, ones, zeros)
+    else
+        @assert bellman_function.cut_type == MULTI_CUT
+        _add_locals_if_necessary(node, bellman_function, length(objective_realizations))                #assumes that number of scenarios = number of childs*number of noise terms
+        # println("***adding multi-cut version of Angulo***")                                             
+        # readline()
+        return _add_laplou_multi_cut(
+            node,
+            outgoing_state,
+            objective_realizations,
+            L,
+            ones,
+            zeros
+        )
+    end
+end
+
+
+function _add_laplou_multi_cut(
+    node::Node{T},
+    outgoing_state::Dict{Symbol, Float64},
+    objective_realizations::Vector{Float64},
+    L:: Float64,
+    ones::Vector{Any},
+    zeros::Vector{Any},
+) where {T}
+
+    bellman_function = node.bellman_function
+    μᵀy = get_objective_state_component(node)
+    JuMP.add_to_expression!(μᵀy, get_belief_state_component(node))
+    for i in 1:length(objective_realizations)
+        _add_laplou_average_cut(
+            bellman_function.local_thetas[i],
+            node,
+            outgoing_state,
+            objective_realizations[i],
+            L,
+            ones,
+            zeros                         
+        )
+    end
+    return
+end 
+
+
+function _add_laplou_average_cut(
+    global_theta::ConvexApproximation,
+    node::Node{T}, 
+    outgoing_state::Dict{Symbol,Float64},
+    objofchildren::Float64,
+    L::Float64,
+    ones::Vector{Any},          #TODO (akul): using Vector{Symbol} does not work.
+    zeros::Vector{Any},              
+) where{T}
+
+
+    # println("inside laplou average cut function")
+    model = JuMP.owner_model(node.bellman_function.global_theta.theta)
+
+
+    # if JuMP.objective_sense(model) == MOI.MIN_SENSE
+    #     L = JuMP.lower_bound(node.bellman_function.global_theta.theta)
+    # else
+    #     L = JuMP.upper_bound(node.bellman_function.global_theta.theta)
+    # end
+
+    #determine which variables are equal to one and which variables are not equal to one
+
+
+    # println("step 1")
+    coeff1   = objofchildren - L
+    πᵏ = Dict{Symbol, Float64}()
+
+    for name in ones
+        πᵏ[name] = -coeff1
+    end
+
+    # println("step 2")
+    for name in zeros
+        # println("name", name)
+        πᵏ[name] =  coeff1
+    end
+    
+
+
+    # println("step 3")
+    #add an Angulo's cut
+    onecount = length(ones)
+    constant = objofchildren - coeff1*onecount
+    yᵀμ = JuMP.AffExpr(0.0)
+
+    
+    # println("step 4")
+    expr = @expression(model, global_theta.theta + yᵀμ - sum(coeff1*node.states[name].out for name in ones) + sum(coeff1*node.states[name].out for name in zeros))
+
+    if JuMP.objective_sense(model) == MOI.MIN_SENSE
+        # theta >= (Q(x*) - L)(\sum_{ones} x_i - \sum_{nonones} x_i - |#ones| + Q(x*))
+        # println("   *****ADDING Angulo's cut to the problem*****")
+        @constraint(model, expr >= constant)
+    else
+        # println("   *****ADDING Angulo's cut to the problem*****")
+        @constraint(model, expr <= constant)
+    end
+
+
+    # println("step 5")
+    obj_y =
+    node.objective_state === nothing ? nothing : node.objective_state.state
+    belief_y =
+    node.belief_state === nothing ? nothing : node.belief_state.belief
+
+    # println("starting return statement")
+    return (
+        theta = constant,
+        pi    = πᵏ,                                 # includes x coefficients when x appears on lhs
+        x     = outgoing_state,
+        obj_y = obj_y,
+        belief_y = belief_y,
+    )
+    
+end
 function _add_average_cut(
     node::Node,
     outgoing_state::Dict{Symbol,Float64},
