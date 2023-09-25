@@ -215,3 +215,7 @@ Return a forward pass as a named tuple with the following fields:
 See [`DefaultForwardPass`](@ref) for details.
 """
 function forward_pass end
+
+# ============================= backward pass ============================= #
+
+abstract type AbstractBackwardPass end
