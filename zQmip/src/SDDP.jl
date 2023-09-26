@@ -45,10 +45,11 @@ include("algorithm.jl")
 # Specific plugins.
 include("plugins/risk_measures.jl")
 include("plugins/sampling_schemes.jl")
-include("plugins/bellman_functions.jl")
+
 include("plugins/stopping_rules.jl")
 include("plugins/local_improvement_search.jl")
 include("plugins/duality_handlers.jl")
+include("plugins/bellman_functions.jl")
 include("plugins/parallel_schemes.jl")
 include("plugins/backward_sampling_schemes.jl")
 include("plugins/forward_passes.jl")
