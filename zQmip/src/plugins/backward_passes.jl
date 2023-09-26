@@ -1,5 +1,5 @@
 
-
+using LinearAlgebra: dot
 struct DefaultBackwardPass <: AbstractBackwardPass end
 struct AnguloBackwardPass <:AbstractBackwardPass end
 

@@ -17,7 +17,6 @@ import Random
 import SHA
 import Statistics
 import TimerOutputs
-import LinearAlgebra
 
 # Work-around for https://github.com/JuliaPlots/RecipesBase.jl/pull/55
 # Change this back to `import RecipesBase` once the fix is tagged.
