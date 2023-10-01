@@ -65,6 +65,7 @@ function _simulate(
     _initialize_solver(model; throw_error = false)
     if model.solver_threads !== nothing
         _add_threads_solver(model, threads = model.solver_threads)
+    end
     return map(
         i -> _simulate(model, variables; kwargs...),
         1:number_replications,
