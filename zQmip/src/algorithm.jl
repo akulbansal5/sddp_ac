@@ -310,6 +310,37 @@ function attempt_numerical_recovery(model::PolicyGraph, node::Node)
     return
 end
 
+
+"""
+    _add_threads_solver(node::Node; threads::Int64)
+
+The subproblem is solved by a commercial solver. This functions allows setting
+number of threads to use when solving a subproblem at a particular node. This is helpful when running
+the code on a remote server.
+
+"""
+function _add_threads_solver(node::Node; threads::Int64)
+    JuMP.set_attribute(node.subproblem, "Threads", threads)
+    return
+end
+
+
+"""
+    _add_threads_solver(model::PolicyGraph; threads::Number)
+
+The subproblem is solved by a commercial solver. This functions allows setting
+number of threads to use when solving a subproblem (at all nodes). This is helpful when running
+the code on a remote server.
+
+"""
+function _add_threads_solver(model::PolicyGraph; threads::Number)
+    for (_, node) in model.nodes
+        _add_threads_solver(node; threads = Int64(threads))
+    end
+    return
+end
+
+
 """
     _initialize_solver(node::Node; throw_error::Bool)
 
@@ -398,6 +429,11 @@ function solve_subproblem(
     duality_handler::Union{Nothing,AbstractDualityHandler},
 ) where {T,S}
     _initialize_solver(node; throw_error = false)
+
+    if model.solver_threads !== nothing
+        _add_threads_solver(node; threads = model.solver_threads)
+    end
+
     # Parameterize the model. First, fix the value of the incoming state
     # variables. Then parameterize the model depending on `noise`. Finally,
     # set the objective.

@@ -697,8 +697,10 @@ mutable struct PolicyGraph{T}
     # SDDP.jl to stash things.
     ext::Dict{Symbol,Any}
     timer_output::TimerOutputs.TimerOutput
+    #number of threads to use from within the optimization solver
+    solver_threads::Union{Nothing, Number}
 
-    function PolicyGraph(sense::Symbol, root_node::T) where {T}
+    function PolicyGraph(sense::Symbol, root_node::T, solver_threads::Union{Nothing, Number}) where {T}
         if sense != :Min && sense != :Max
             error(
                 "The optimization sense must be `:Min` or `:Max`. It is $(sense).",
@@ -715,6 +717,7 @@ mutable struct PolicyGraph{T}
             nothing,
             Dict{Symbol,Any}(),
             TimerOutputs.TimerOutput(),
+            solver_threads,
         )
     end
 end
@@ -913,15 +916,17 @@ function PolicyGraph(
     lower_bound = -Inf,
     upper_bound = Inf,
     optimizer = nothing,
+    solver_threads::Union{Nothing, Number} = nothing,
     # These arguments are deprecated
     bellman_function = nothing,
     direct_mode::Bool = false,
+
 ) where {T}
     # Spend a one-off cost validating the graph.
     _validate_graph(graph)
     # Construct a basic policy graph. We will add to it in the remainder of this
     # function.
-    policy_graph = PolicyGraph(sense, graph.root_node)
+    policy_graph = PolicyGraph(sense, graph.root_node, solver_threads)
     # Create a Bellman function if one is not given.
     if bellman_function === nothing
         if sense == :Min && lower_bound === -Inf

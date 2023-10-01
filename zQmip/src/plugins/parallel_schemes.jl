@@ -40,6 +40,10 @@ function master_loop(
     options::Options,
 ) where {T}
     _initialize_solver(model; throw_error = false)
+    if model.solver_threads !== nothing
+        _add_threads_solver(model; threads = model.solver_threads)
+    end
+
     while true
         result = iteration(model, options)
         options.post_iteration_callback(result)
@@ -59,6 +63,8 @@ function _simulate(
     kwargs...,
 )
     _initialize_solver(model; throw_error = false)
+    if model.solver_threads !== nothing
+        _add_threads_solver(model, threads = model.solver_threads)
     return map(
         i -> _simulate(model, variables; kwargs...),
         1:number_replications,
@@ -236,6 +242,9 @@ function master_loop(
         end
     end
     _initialize_solver(model; throw_error = true)
+    if model.solver_threads !== nothing
+        _add_threads_solver(model; threads = model.solver_threads)
+    end
     while true
         # Starting workers has a high overhead. We have to copy the models across, and then
         # precompile all the methods on every process :(. While that's happening, let's
