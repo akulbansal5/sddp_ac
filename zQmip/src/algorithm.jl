@@ -988,6 +988,9 @@ Train the policy for `model`.
    `post_iteration_callback(::IterationResult)` that is evaluated after each
    iteration of the algorithm.
 
+ - 'record_every_seconds::Union{Float64, Nothing}': records the output after these many seconds 
+    Output includes bounds, confidence intervals cuts etc. computes after all iterations terminate.
+
 There is also a special option for infinite horizon problems
 
  - `cycle_discretization_delta`: the maximum distance between states allowed on
@@ -1020,6 +1023,7 @@ function train(
     duality_handler::AbstractDualityHandler = SDDP.ContinuousConicDuality(),
     forward_pass_callback::Function = (x) -> nothing,
     post_iteration_callback = result -> nothing,
+    record_every_seconds::Union{Float64,Nothing} = nothing,
     mipgap::Float64 = 1e-4,
 )
     function log_frequency_f(log::Vector{Log})
@@ -1177,14 +1181,34 @@ function train(
         dashboard_callback(nothing, true)
     end
 
-
+    output_results = []
+    iterations = length(options.log)
     training_results = TrainingResults(status, log)
-    model.most_recent_training_results = training_results
-    best_bound = training_results.log[end].bound
-    μ, σ = confidence_interval(map(l -> l.simulation_value, training_results.log))
-    cuts_std = sum(map(l -> l.cuts_std, training_results.log))
-    cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log))
-    
+    if record_every_seconds !== nothing
+        log_count  = max(1, floor(training_results.log[end].time/record_every_seconds))
+        recCount = 1
+        index = 1
+        while recCount <= log_count
+            iter_end_time = training_results.log[index].time 
+            if iter_end_time > recCount*record_every_seconds && iter_end_time < (recCount+1)*record_every_seconds
+                best_bound_index = training_results.log[index].bound
+                μ_index, σ_index = confidence_interval(map(l -> l.simulation_value, training_results.log[1:index]))
+                cuts_std = sum(map(l -> l.cuts_std, training_results.log[1:index]))
+                cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log[1:index]))
+                push!(output_results, (iter = index, time = iter_end_time, bb = best_bound_index, low = μ_index, high = σ_index, cs = cuts_std, cns = cuts_nonstd))
+                recCount += 1
+            end
+            index += 1
+        end
+    else
+        model.most_recent_training_results = training_results
+        best_bound = training_results.log[end].bound
+        μ, σ = confidence_interval(map(l -> l.simulation_value, training_results.log))
+        cuts_std = sum(map(l -> l.cuts_std, training_results.log))
+        cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log))
+        push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, low = μ, high = σ, cs = cuts_std, cns = cuts_nonstd))
+    end
+        
     if print_level > 0
         log_iteration(options; force_if_needed = true)
         print_helper(print_footer, log_file_handle, training_results)
@@ -1201,7 +1225,8 @@ function train(
     end
 
     close(log_file_handle)
-    return best_bound, μ - σ, μ + σ, cuts_std, cuts_nonstd, length(options.log)
+    # return best_bound, μ - σ, μ + σ, cuts_std, cuts_nonstd, length(options.log)
+    return output_results
 end
 
 # Internal function: helper to conduct a single simulation. Users should use the
