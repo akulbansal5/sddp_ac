@@ -1023,7 +1023,7 @@ function train(
     duality_handler::AbstractDualityHandler = SDDP.ContinuousConicDuality(),
     forward_pass_callback::Function = (x) -> nothing,
     post_iteration_callback = result -> nothing,
-    record_every_seconds::Union{Float64,Nothing} = nothing,
+    record_every_seconds::Union{Number,Nothing} = nothing,
     mipgap::Float64 = 1e-4,
 )
     function log_frequency_f(log::Vector{Log})
