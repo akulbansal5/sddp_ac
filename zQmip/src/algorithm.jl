@@ -315,21 +315,7 @@ function attempt_numerical_recovery(model::PolicyGraph, node::Node)
     return
 end
 
-"""
 
-"""
-function bounds_on_actual_costtogo(items::BackwardPassItems, duality_handler::Union{ContinuousConicDuality, LagrangianDuality, StrengthenedConicDuality, Nothing})
-
-    return dot(items.probability, items.objectives)
-
-end
-
-
-function bounds_on_actual_costtogo(items::BackwardPassItems, duality_handler::LaporteLouveauxDuality)
-
-    return dot(items.probability, items.bounds)
-
-end
 
 
 """
@@ -822,6 +808,22 @@ function solve_all_children(
         pop!(scenario_path)
     end
     return
+end
+
+"""
+    Computes the lower bound on  actual cost to go by solving the problems exactly of with gap
+"""
+function bounds_on_actual_costtogo(items::BackwardPassItems, duality_handler::Union{ContinuousConicDuality, LagrangianDuality, StrengthenedConicDuality, Nothing})
+
+    return dot(items.probability, items.objectives)
+
+end
+
+
+function bounds_on_actual_costtogo(items::BackwardPassItems, duality_handler::LaporteLouveauxDuality)
+
+    return dot(items.probability, items.bounds)
+
 end
 
 """
