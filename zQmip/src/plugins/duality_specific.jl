@@ -14,7 +14,7 @@ Adds the mipgap to the node subproblem if the
 
     
 """
-function _add_mipgap_solver(node::Node; duality_handler::Union{Nothing,ContinuousConicDuality}, mipgap::Number)
+function _add_mipgap_solver(node_subproblem::JuMP.Model; duality_handler::Union{Nothing,ContinuousConicDuality}, mipgap::Number)
     #does nothing for these types of duality handlers
 end
 
@@ -26,9 +26,9 @@ Adds the mipgap to the node subproblem if the
 
 
 """
-function _add_mipgap_solver(node::Node; duality_handler::Union{LaporteLouveauxDuality,LagrangianDuality}, mipgap::Number)
+function _add_mipgap_solver(node_subproblem::JuMP.Model; duality_handler::Union{LaporteLouveauxDuality,LagrangianDuality}, mipgap::Number)
     #set the solver gap here
-    set_optimizer_attribute(node.subproblem, "mip_gap", mipgap)
+    set_optimizer_attribute(node_subproblem, "mip_gap", mipgap)
 end
 
 """
