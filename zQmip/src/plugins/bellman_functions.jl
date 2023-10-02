@@ -410,7 +410,7 @@ function refine_bellman_function(
     noise_supports::Vector,
     nominal_probability::Vector{Float64},
     objective_realizations::Vector{Float64},
-    objofchildren::Union{Nothing, Float64} = nothing; 
+    objofchildren::Union{Nothing, Number} = nothing; 
 ) where {T}
     # Sanity checks.
     @assert length(dual_variables) ==
@@ -462,7 +462,7 @@ function refine_bellman_function(
     noise_supports::Vector,
     nominal_probability::Vector{Float64},
     objective_realizations::Vector{Float64},
-    objofchildren::Union{Nothing, Float64} = nothing;
+    objofchildren::Union{Nothing, Number} = nothing;
 ) where {T}
 
     ones = []

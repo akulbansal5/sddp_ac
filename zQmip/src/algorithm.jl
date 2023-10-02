@@ -9,6 +9,8 @@
 # risk_measure = (node_index) -> node_index == 1 ? Expectation() : WorstCase()
 # It will return a dictionary with a key for each node_index in the policy
 # graph, and a corresponding value of whatever the user provided.
+
+using LinearAlgebra: dot
 function to_nodal_form(model::PolicyGraph{T}, element) where {T}
     # Note: we don't copy element here, so if element is mutable, you should use
     # to_nodal_form(model, x -> new_element()) instead. A good example is
@@ -102,6 +104,7 @@ struct Options{T}
     forward_pass_callback::Any
     post_iteration_callback::Any
     sense_signal::Float64
+    mipgap::Number
     last_log_iteration::Ref{Int}
     # Internal function: users should never construct this themselves.
     function Options(
@@ -125,6 +128,7 @@ struct Options{T}
         forward_pass_callback = x -> nothing,
         post_iteration_callback = result -> nothing,
         sense_signal = 1.0,
+        mipgap = 1e-4,
     ) where {T}
         return new{T}(
             initial_state,
@@ -149,6 +153,7 @@ struct Options{T}
             forward_pass_callback,
             post_iteration_callback,
             sense_signal,
+            mipgap,
             Ref{Int}(0),  # last_log_iteration
         )
     end
@@ -310,6 +315,46 @@ function attempt_numerical_recovery(model::PolicyGraph, node::Node)
     return
 end
 
+"""
+
+"""
+function bounds_on_actual_costtogo(items::BackwardPassItems, duality_handler::Union{ContinuousConicDuality, LagrangianDuality, StrengthenedConicDuality, Nothing})
+
+    return dot(items.probability, items.objectives)
+
+end
+
+
+function bounds_on_actual_costtogo(items::BackwardPassItems, duality_handler::LaporteLouveauxDuality)
+
+    return dot(items.probability, items.bounds)
+
+end
+
+
+"""
+    _add_mipgap_solver(node::Node; duality_handler::Union{Nothing,ContinuousConicDuality}; mipgap::Number)
+
+Adds the mipgap to the node subproblem if the
+
+
+"""
+function _add_mipgap_solver(node::Node; duality_handler::Union{Nothing,ContinuousConicDuality}; mipgap::Number)
+end
+
+
+"""
+    _add_mipgap_solver(node::Node; mipgap::Number)
+
+Adds the mipgap to the node subproblem if the
+
+
+"""
+function _add_mipgap_solver(node::Node; duality_handler::Union{LaporteLouveauxDuality,LagrangianDuality}; mipgap::Number)
+    #set the solver gap here
+    set_optimizer_attribute(node.subproblem, "mip_gap", mipgap)
+end
+
 
 """
     _add_threads_solver(node::Node; threads::Int64)
@@ -335,7 +380,7 @@ the code on a remote server.
 """
 function _add_threads_solver(model::PolicyGraph; threads::Number)
     for (_, node) in model.nodes
-        _add_threads_solver(node; threads = Int64(threads))
+        _add_threads_solver(node, threads = Int64(threads))
     end
     return
 end
@@ -427,12 +472,16 @@ function solve_subproblem(
     noise,
     scenario_path::Vector{Tuple{T,S}};
     duality_handler::Union{Nothing,AbstractDualityHandler},
+    mipgap::Number = 1e-4,
 ) where {T,S}
     _initialize_solver(node; throw_error = false)
 
     if model.solver_threads !== nothing
-        _add_threads_solver(node; threads = model.solver_threads)
+        _add_threads_solver(node, threads = model.solver_threads)
     end
+
+    _add_mipgap_solver(node, duality_handler = duality_handler, mipgap = mipgap)
+
 
     # Parameterize the model. First, fix the value of the incoming state
     # variables. Then parameterize the model depending on `noise`. Finally,
@@ -470,7 +519,7 @@ function solve_subproblem(
     state = get_outgoing_state(node)
     stage_objective = stage_objective_value(node.stage_objective)
     TimerOutputs.@timeit model.timer_output "get_dual_solution" begin
-        objective, dual_values = get_dual_solution(node, duality_handler)
+        objective, dual_values, bound = get_dual_solution(node, duality_handler)
     end
     if node.post_optimize_hook !== nothing
         node.post_optimize_hook(pre_optimize_ret)
@@ -480,6 +529,7 @@ function solve_subproblem(
         duals = dual_values,
         objective = objective,
         stage_objective = stage_objective,
+        bound = bound
     )
 end
 
@@ -673,6 +723,7 @@ struct BackwardPassItems{T,U}
     nodes::Vector{T}
     probability::Vector{Float64}
     objectives::Vector{Float64}
+    bounds::Vector{Number}
     belief::Vector{Float64}
     function BackwardPassItems(T, U)
         return new{T,U}(
@@ -682,6 +733,7 @@ struct BackwardPassItems{T,U}
             T[],
             Float64[],
             Float64[],
+            Number[],
             Float64[],
         )
     end
@@ -698,6 +750,7 @@ function solve_all_children(
     backward_sampling_scheme::AbstractBackwardSamplingScheme,
     scenario_path,
     duality_handler::Union{Nothing,AbstractDualityHandler},
+    mipgap::Number,
 ) where {T}
     length_scenario_path = length(scenario_path)
     for child in node.children
@@ -720,6 +773,7 @@ function solve_all_children(
                 push!(items.probability, items.probability[sol_index])
                 push!(items.objectives, items.objectives[sol_index])
                 push!(items.belief, belief)
+                push!(items.bound, items.bound[sol_index])
             else
                 # Update belief state, etc.
                 if belief_state !== nothing
@@ -746,6 +800,7 @@ function solve_all_children(
                         noise.term,
                         scenario_path,
                         duality_handler = duality_handler,
+                        mipgap = mipgap,
                     )
                 end
                 push!(items.duals, subproblem_results.duals)
@@ -754,6 +809,7 @@ function solve_all_children(
                 push!(items.probability, child.probability * noise.probability)
                 push!(items.objectives, subproblem_results.objective)
                 push!(items.belief, belief)
+                push!(items.bound, subproblem_results.bound)
                 items.cached_solutions[(child.term, noise.term)] =
                     length(items.duals)
             end
@@ -1164,6 +1220,7 @@ function train(
         forward_pass_callback,
         post_iteration_callback,
         sense_signal,
+        mipgap,
     )
     status = :not_solved
     try

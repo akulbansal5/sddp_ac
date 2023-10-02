@@ -41,7 +41,7 @@ function master_loop(
 ) where {T}
     _initialize_solver(model; throw_error = false)
     if model.solver_threads !== nothing
-        _add_threads_solver(model; threads = model.solver_threads)
+        _add_threads_solver(model, threads = model.solver_threads)
     end
 
     while true
@@ -244,7 +244,7 @@ function master_loop(
     end
     _initialize_solver(model; throw_error = true)
     if model.solver_threads !== nothing
-        _add_threads_solver(model; threads = model.solver_threads)
+        _add_threads_solver(model, threads = model.solver_threads)
     end
     while true
         # Starting workers has a high overhead. We have to copy the models across, and then

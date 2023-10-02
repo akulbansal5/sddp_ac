@@ -1,5 +1,5 @@
 
-using LinearAlgebra: dot
+# using LinearAlgebra: dot
 struct DefaultBackwardPass <: AbstractBackwardPass end
 struct AnguloBackwardPass <:AbstractBackwardPass end
 
@@ -56,6 +56,7 @@ function backward_pass(
                     options.backward_sampling_scheme,
                     scenario_path[1:index],
                     options.duality_handler,
+                    options.mipgap,
                 )
             end
             # We need to refine our estimate at all nodes in the partition.
@@ -101,6 +102,7 @@ function backward_pass(
                 options.backward_sampling_scheme,
                 scenario_path[1:index],
                 options.duality_handler,
+                options.mipgap,
             )
             # println("finished solving all children")
             # objofchildren = dot(items.probability, items.objectives)
@@ -108,7 +110,9 @@ function backward_pass(
             # println("adding cuts")
 
             # println("dual variables: ", items.duals)
-            objofchildren_lp = dot(items.probability, items.objectives)
+            #note this may not necessarily be a 
+            # objofchildren_lp = dot(items.probability, items.objectives)
+            objofchildren_lp = bounds_on_actual_costtogo(items, options.duality_handler)
 
             # println("refine bellman function")
             # println("obj of node $(node_index)'s children: $(objofchildren_lp)")
@@ -218,6 +222,7 @@ function backward_pass(
                     options.backward_sampling_scheme,
                     scenario_path[1:index],
                     options.duality_handler,
+                    options.mipgap,
                 )
             end
             # We need to refine our estimate at all nodes in the partition.
@@ -267,8 +272,10 @@ function backward_pass(
                 options.backward_sampling_scheme,
                 scenario_path[1:index],
                 continuous_duality,
+                options.mipgap,
             )
-            objofchildren_lp = dot(items.probability, items.objectives)
+            # objofchildren_lp = dot(items.probability, items.objectives)
+            objofchildren_lp = bounds_on_actual_costtogo(items, continuous_duality)
             
             # println("       solved all children")
             TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
@@ -317,10 +324,13 @@ function backward_pass(
                     options.backward_sampling_scheme,
                     scenario_path[1:index],                      
                     options.duality_handler,
+                    options.mipgap
                     )
                 
                 
-                objofchildren_mip = dot(items.probability, items.objectives)
+                # objofchildren_mip = dot(items.probability, items.objectives)
+                objofchildren_mip = bounds_on_actual_costtogo(items, options.duality_handler)
+
                 # println("       At scenario path index: $index MIP objective: $objofchildren_mip")
                 # println("       costtogo: $(costtogo[node_index]), obj of children mip: $(objofchildren_mip)")
                 if options.sense_signal*(costtogo[node_index] - objofchildren_mip) < 0

@@ -103,7 +103,7 @@ function prepare_backward_pass_node(
     return undo_relax
 end
 function get_dual_solution(node::Node, ::Nothing)
-    return JuMP.objective_value(node.subproblem), Dict{Symbol,Float64}()
+    return JuMP.objective_value(node.subproblem), Dict{Symbol,Float64}(), JuMP.objective_bound(node.subproblem)
 end
 
 # ========================= Continuous relaxation ============================ #
@@ -154,7 +154,9 @@ function get_dual_solution(node::Node, ::ContinuousConicDuality)
         name => dual_sign * JuMP.dual(JuMP.FixRef(state.in)) for
         (name, state) in node.states
     )
-    return objective_value(node.subproblem), λ
+
+    node_obj = objective_value(node.subproblem)
+    return node_obj, λ, node_obj 
 end
 
 function _relax_integrality(node::Node)
@@ -178,7 +180,7 @@ struct LaporteLouveauxDuality <: AbstractDualityHandler end
 function get_dual_solution(node::Node, ::LaporteLouveauxDuality)
     #TODO (akul): unlike other functions perform feasibility checks 
     λ = Dict{Symbol,Float64}()
-    return objective_value(node.subproblem), λ
+    return objective_value(node.subproblem), λ, JuMP.objective_bound(node.subproblem)
 end
 
 
@@ -264,7 +266,7 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
     λ_solution = Dict{Symbol,Float64}(
         name => λ_star[i] for (i, name) in enumerate(keys(node.states))
     )
-    return s * L_star, λ_solution
+    return s * L_star, λ_solution, s * L_star
 end
 
 function _solve_primal_problem(
@@ -344,7 +346,7 @@ function get_dual_solution(node::Node, ::StrengthenedConicDuality)
     # be feasible! Sometimes however, the dual from the LP solver might be
     # numerically infeasible when solved in the primal. That's a shame :(
     # If so, return the conic_obj instead.
-    return something(lagrangian_obj, conic_obj), conic_dual
+    return something(lagrangian_obj, conic_obj), conic_dual, something(lagrangian_obj, conic_obj)
 end
 
 duality_log_key(::StrengthenedConicDuality) = "S"
