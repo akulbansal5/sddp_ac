@@ -49,11 +49,13 @@ include("plugins/sampling_schemes.jl")
 include("plugins/stopping_rules.jl")
 include("plugins/local_improvement_search.jl")
 include("plugins/duality_handlers.jl")
+include("plugins/duality_specific.jl")
 include("plugins/bellman_functions.jl")
 include("plugins/parallel_schemes.jl")
 include("plugins/backward_sampling_schemes.jl")
 include("plugins/forward_passes.jl")
 include("plugins/backward_passes.jl")
+
 
 # Visualization related code.
 include("visualization/publication_plot.jl")

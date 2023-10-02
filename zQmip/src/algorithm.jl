@@ -10,7 +10,7 @@
 # It will return a dictionary with a key for each node_index in the policy
 # graph, and a corresponding value of whatever the user provided.
 
-using LinearAlgebra: dot
+# using LinearAlgebra: dot
 function to_nodal_form(model::PolicyGraph{T}, element) where {T}
     # Note: we don't copy element here, so if element is mutable, you should use
     # to_nodal_form(model, x -> new_element()) instead. A good example is
@@ -318,28 +318,28 @@ end
 
 
 
-"""
-    _add_mipgap_solver(node::Node; duality_handler::Union{Nothing,ContinuousConicDuality}, mipgap::Number)
+# """
+#     _add_mipgap_solver(node::Node; duality_handler::Union{Nothing,ContinuousConicDuality}, mipgap::Number)
 
-Adds the mipgap to the node subproblem if the
-
-
-"""
-function _add_mipgap_solver(node::Node; duality_handler::Union{Nothing,ContinuousConicDuality}, mipgap::Number)
-end
+# Adds the mipgap to the node subproblem if the
 
 
-"""
-    _add_mipgap_solver(node::Node; mipgap::Number)
+# """
+# function _add_mipgap_solver(node::Node; duality_handler::Union{Nothing,ContinuousConicDuality}, mipgap::Number)
+# end
 
-Adds the mipgap to the node subproblem if the
+
+# """
+#     _add_mipgap_solver(node::Node; mipgap::Number)
+
+# Adds the mipgap to the node subproblem if the
 
 
-"""
-function _add_mipgap_solver(node::Node; duality_handler::Union{LaporteLouveauxDuality,LagrangianDuality}, mipgap::Number)
-    #set the solver gap here
-    set_optimizer_attribute(node.subproblem, "mip_gap", mipgap)
-end
+# """
+# function _add_mipgap_solver(node::Node; duality_handler::Union{LaporteLouveauxDuality,LagrangianDuality}, mipgap::Number)
+#     #set the solver gap here
+#     set_optimizer_attribute(node.subproblem, "mip_gap", mipgap)
+# end
 
 
 """
@@ -810,21 +810,21 @@ function solve_all_children(
     return
 end
 
-"""
-    Computes the lower bound on  actual cost to go by solving the problems exactly of with gap
-"""
-function bounds_on_actual_costtogo(items::BackwardPassItems, duality_handler::Union{ContinuousConicDuality, LagrangianDuality, StrengthenedConicDuality, Nothing})
+# """
+#     Computes the lower bound on  actual cost to go by solving the problems exactly of with gap
+# """
+# function bounds_on_actual_costtogo(items::BackwardPassItems, duality_handler::Union{ContinuousConicDuality, LagrangianDuality, StrengthenedConicDuality, Nothing})
 
-    return dot(items.probability, items.objectives)
+#     return dot(items.probability, items.objectives)
 
-end
+# end
 
 
-function bounds_on_actual_costtogo(items::BackwardPassItems, duality_handler::LaporteLouveauxDuality)
+# function bounds_on_actual_costtogo(items::BackwardPassItems, duality_handler::LaporteLouveauxDuality)
 
-    return dot(items.probability, items.bounds)
+#     return dot(items.probability, items.bounds)
 
-end
+# end
 
 """
     SDDP.calculate_bound(
