@@ -466,7 +466,7 @@ function solve_subproblem(
         _add_threads_solver(node, threads = model.solver_threads)
     end
 
-    _add_mipgap_solver(node.subproblem, duality_handler = duality_handler, mipgap = mipgap)
+    _add_mipgap_solver(node.subproblem, mipgap, duality_handler)
 
 
     # Parameterize the model. First, fix the value of the incoming state

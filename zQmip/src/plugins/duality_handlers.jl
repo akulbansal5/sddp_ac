@@ -3,6 +3,9 @@
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+using LinearAlgebra: dot
+
+
 function _deprecate_integrality_handler()
     return error(
         """
@@ -455,4 +458,48 @@ end
 
 function duality_log_key(handler::BanditDuality)
     return duality_log_key(handler.arms[handler.last_arm_index].handler)
+end
+
+
+# ==================================== Duality specific functions ====================================
+
+"""
+    _add_mipgap_solver(node::Node; duality_handler::Union{Nothing,ContinuousConicDuality}, mipgap::Number)
+
+Adds the mipgap to the node subproblem if the
+
+
+    
+"""
+function _add_mipgap_solver(node::Node, mipgap::Number, ::Union{Nothing,ContinuousConicDuality})
+    #does nothing for these types of duality handlers
+end
+
+
+"""
+    _add_mipgap_solver(node::Node; mipgap::Number)
+
+Adds the mipgap to the node subproblem if the
+
+
+"""
+function _add_mipgap_solver(node::Node, mipgap::Number, ::Union{LaporteLouveauxDuality,LagrangianDuality})
+    #set the solver gap here
+    set_optimizer_attribute(node.subproblem, "mip_gap", mipgap)
+end
+
+"""
+    Computes the lower bound on  actual cost to go by solving the problems exactly of with gap
+"""
+function bounds_on_actual_costtogo(items::BackwardPassItems, ::Union{ContinuousConicDuality, LagrangianDuality, StrengthenedConicDuality, Nothing})
+
+    return dot(items.probability, items.objectives)
+
+end
+
+
+function bounds_on_actual_costtogo(items::BackwardPassItems, ::LaporteLouveauxDuality)
+
+    return dot(items.probability, items.bounds)
+
 end
