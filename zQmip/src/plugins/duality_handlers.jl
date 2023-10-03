@@ -239,7 +239,7 @@ end
 function get_dual_solution(node::Node, lagrange::LagrangianDuality)
     undo_relax = _relax_integrality(node)
     optimize!(node.subproblem)
-    conic_obj, conic_dual = get_dual_solution(node, ContinuousConicDuality())
+    conic_obj, conic_dual, conic_bound = get_dual_solution(node, ContinuousConicDuality())
     undo_relax()
     s = JuMP.objective_sense(node.subproblem) == MOI.MIN_SENSE ? -1 : 1
     N = length(node.states)
@@ -256,7 +256,7 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
     # issues.
     L_k = _solve_primal_problem(node.subproblem, λ_star, h_expr, h_k)              #solving the primal problem
     if L_k === nothing
-        return conic_obj, conic_dual
+        return conic_obj, conic_dual, conic_bound
     end
     L_star, λ_star =
         LocalImprovementSearch.minimize(lagrange.method, λ_star) do x
@@ -288,7 +288,7 @@ function _solve_primal_problem(
         model,
         @expression(model, primal_obj - λ' * h_expr),
     )                                                           #the constraint is put in the objective over here
-    JuMP.optimize!(model)                                                                     
+    JuMP.optimize!(model)                                                                   
     if JuMP.termination_status(model) != MOI.OPTIMAL            
         JuMP.set_objective_function(model, primal_obj)          #set the original objective if the problem is infeasible
         return nothing
@@ -330,7 +330,7 @@ mutable struct StrengthenedConicDuality <: AbstractDualityHandler end
 function get_dual_solution(node::Node, ::StrengthenedConicDuality)
     undo_relax = _relax_integrality(node)
     optimize!(node.subproblem)
-    conic_obj, conic_dual = get_dual_solution(node, ContinuousConicDuality())
+    conic_obj, conic_dual, conic_bound = get_dual_solution(node, ContinuousConicDuality())
     undo_relax()
     if !node.has_integrality
         return conic_obj, conic_dual  # If we're linear, return this!
