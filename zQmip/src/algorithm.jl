@@ -1242,14 +1242,21 @@ function train(
         dashboard_callback(nothing, true)
     end
 
+
     output_results = []
     iterations = length(options.log)
+    # println("number of enteries in log: $(iterations)")
     training_results = TrainingResults(status, log)
     if record_every_seconds !== nothing
+        # println("end time: $(training_results.log[end].time)")
+        # println("record every seconds: $(record_every_seconds)")
         log_count  = max(1, floor(training_results.log[end].time/record_every_seconds))
+        # println("log count: $(log_count)")
+        
         recCount = 1
         index = 1
-        while recCount <= log_count
+        while recCount <= log_count && index <= iterations
+            print 
             iter_end_time = training_results.log[index].time 
             if iter_end_time > recCount*record_every_seconds && iter_end_time < (recCount+1)*record_every_seconds
                 best_bound_index = training_results.log[index].bound
@@ -1261,7 +1268,9 @@ function train(
             end
             index += 1
         end
-    else
+    end
+
+    if record_every_seconds === nothing || isempty(output_results)
         model.most_recent_training_results = training_results
         best_bound = training_results.log[end].bound
         μ, σ = confidence_interval(map(l -> l.simulation_value, training_results.log))
