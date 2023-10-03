@@ -486,6 +486,8 @@ function solve_subproblem(
     else
         nothing
     end
+    unset_silent(node.subproblem)
+    println("""GET ATTRIBUTE: SOLVER THREADS = $(get_attribute(node.subproblem, "Threads"))""")
     JuMP.optimize!(node.subproblem)
     if haskey(model.ext, :total_solves)
         model.ext[:total_solves] += 1
