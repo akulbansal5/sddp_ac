@@ -795,7 +795,7 @@ function solve_all_children(
                 push!(items.probability, child.probability * noise.probability)
                 push!(items.objectives, subproblem_results.objective)
                 push!(items.belief, belief)
-                push!(items.bounds, subproblem_results.bounds)
+                push!(items.bounds, subproblem_results.bound)
                 items.cached_solutions[(child.term, noise.term)] =
                     length(items.duals)
             end
