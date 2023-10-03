@@ -247,14 +247,14 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
     λ_star, h_expr, h_k = zeros(N), Vector{AffExpr}(undef, N), zeros(N)
     for (i, (key, state)) in enumerate(node.states)
         x_in_value[i] = JuMP.fix_value(state.in)
-        h_expr[i] = @expression(node.subproblem, state.in - x_in_value[i])
-        JuMP.unfix(state.in)
-        λ_star[i] = conic_dual[key]
+        h_expr[i] = @expression(node.subproblem, state.in - x_in_value[i])          
+        JuMP.unfix(state.in)                                                        #relaxing the copy constraints in the dual
+        λ_star[i] = conic_dual[key]                                                 #initial choice of lagrangian
     end
     # Check that the conic dual is feasible for the subproblem. Sometimes it
     # isn't if the LP dual solution is slightly infeasible due to numerical
     # issues.
-    L_k = _solve_primal_problem(node.subproblem, λ_star, h_expr, h_k)
+    L_k = _solve_primal_problem(node.subproblem, λ_star, h_expr, h_k)              #solving the primal problem
     if L_k === nothing
         return conic_obj, conic_dual
     end
@@ -272,23 +272,28 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
     return s * L_star, λ_solution, s * L_star
 end
 
+
+"""
+
+"""
+
 function _solve_primal_problem(
     model::JuMP.Model,
     λ::Vector{Float64},
     h_expr::Vector{GenericAffExpr{Float64,VariableRef}},
     h_k::Vector{Float64},
 )
-    primal_obj = JuMP.objective_function(model)
+    primal_obj = JuMP.objective_function(model)                 #original objective function
     JuMP.set_objective_function(
         model,
         @expression(model, primal_obj - λ' * h_expr),
-    )
-    JuMP.optimize!(model)
-    if JuMP.termination_status(model) != MOI.OPTIMAL
-        JuMP.set_objective_function(model, primal_obj)
+    )                                                           #the constraint is put in the objective over here
+    JuMP.optimize!(model)                                                                     
+    if JuMP.termination_status(model) != MOI.OPTIMAL            
+        JuMP.set_objective_function(model, primal_obj)          #set the original objective if the problem is infeasible
         return nothing
     end
-    h_k .= -JuMP.value.(h_expr)
+    h_k .= -JuMP.value.(h_expr)                                 
     L_λ = JuMP.objective_value(model)
     JuMP.set_objective_function(model, primal_obj)
     return L_λ
