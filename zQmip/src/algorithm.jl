@@ -1263,7 +1263,7 @@ function train(
                 μ_index, σ_index = confidence_interval(map(l -> l.simulation_value, training_results.log[1:index]))
                 cuts_std = sum(map(l -> l.cuts_std, training_results.log[1:index]))
                 cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log[1:index]))
-                push!(output_results, (iter = index, time = iter_end_time, bb = best_bound_index, low = μ_index, high = σ_index, cs = cuts_std, cns = cuts_nonstd))
+                push!(output_results, (iter = index, time = iter_end_time, bb = best_bound_index, low = μ_index - σ_index, high = μ_index + σ_index, cs = cuts_std, cns = cuts_nonstd))
                 recCount += 1
             end
             index += 1
@@ -1276,7 +1276,7 @@ function train(
         μ, σ = confidence_interval(map(l -> l.simulation_value, training_results.log))
         cuts_std = sum(map(l -> l.cuts_std, training_results.log))
         cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log))
-        push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, low = μ, high = σ, cs = cuts_std, cns = cuts_nonstd))
+        push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, low = μ-σ, high = μ+σ, cs = cuts_std, cns = cuts_nonstd))
     end
         
     if print_level > 0
