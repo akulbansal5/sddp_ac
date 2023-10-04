@@ -1245,12 +1245,14 @@ function train(
 
     output_results = []
     iterations = length(options.log)
+    log_count = training_results.log[end].time
+
     # println("number of enteries in log: $(iterations)")
     training_results = TrainingResults(status, log)
     if record_every_seconds !== nothing
         # println("end time: $(training_results.log[end].time)")
         # println("record every seconds: $(record_every_seconds)")
-        log_count  = max(1, floor(training_results.log[end].time/record_every_seconds))
+        log_count  = max(1, ceil(training_results.log[end].time/record_every_seconds))
         # println("log count: $(log_count)")
         
         recCount = 1
@@ -1258,7 +1260,7 @@ function train(
         while recCount <= log_count && index <= iterations
             print 
             iter_end_time = training_results.log[index].time 
-            if iter_end_time > recCount*record_every_seconds && iter_end_time < (recCount+1)*record_every_seconds
+            if (iter_end_time > recCount*record_every_seconds && iter_end_time < (recCount+1)*record_every_seconds) || index == iterations
                 best_bound_index = training_results.log[index].bound
                 μ_index, σ_index = confidence_interval(map(l -> l.simulation_value, training_results.log[1:index]))
                 cuts_std = sum(map(l -> l.cuts_std, training_results.log[1:index]))
@@ -1270,7 +1272,7 @@ function train(
         end
     end
 
-    if record_every_seconds === nothing || isempty(output_results)
+    if record_every_seconds === nothing || length(output_results) < log_count
         model.most_recent_training_results = training_results
         best_bound = training_results.log[end].bound
         μ, σ = confidence_interval(map(l -> l.simulation_value, training_results.log))
