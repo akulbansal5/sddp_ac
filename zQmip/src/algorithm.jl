@@ -1245,10 +1245,11 @@ function train(
 
     output_results = []
     iterations = length(options.log)
-    log_count = training_results.log[end].time
+    
 
     # println("number of enteries in log: $(iterations)")
     training_results = TrainingResults(status, log)
+    log_count = training_results.log[end].time
     if record_every_seconds !== nothing
         # println("end time: $(training_results.log[end].time)")
         # println("record every seconds: $(record_every_seconds)")
