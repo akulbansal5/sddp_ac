@@ -59,7 +59,7 @@ function _simulate(
     model::PolicyGraph,
     ::Serial,
     number_replications::Int,
-    variables::Vector{Symbol}
+    variables::Vector{Symbol},
     sim_time::Union{Number,Nothing} = nothing;
     kwargs...,
 )
