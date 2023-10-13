@@ -1517,9 +1517,6 @@ function simulate(
     parallel_scheme::AbstractParallelScheme = Serial(),
     incoming_state::Dict{String,Float64} = _initial_state(model),
 )
-    if sim_time !== nothing
-
-
 
     return _simulate(
         model,
@@ -1533,6 +1530,7 @@ function simulate(
         skip_undefined_variables = skip_undefined_variables,
         incoming_state = Dict(Symbol(k) => v for (k, v) in incoming_state),
     )
+
 end
 
 """
