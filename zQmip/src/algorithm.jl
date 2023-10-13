@@ -1508,6 +1508,7 @@ simulation_results[2][1][:constraint_dual]
 function simulate(
     model::PolicyGraph,
     number_replications::Int = 1,
+    sim_time::Union{Nothing, Number} = nothing,
     variables::Vector{Symbol} = Symbol[];
     sampling_scheme::AbstractSamplingScheme = InSampleMonteCarlo(),
     custom_recorders = Dict{Symbol,Function}(),
@@ -1516,11 +1517,16 @@ function simulate(
     parallel_scheme::AbstractParallelScheme = Serial(),
     incoming_state::Dict{String,Float64} = _initial_state(model),
 )
+    if sim_time !== nothing
+
+
+
     return _simulate(
         model,
         parallel_scheme,
         number_replications,
-        variables;
+        variables,
+        sim_time;
         sampling_scheme = sampling_scheme,
         custom_recorders = custom_recorders,
         duality_handler = duality_handler,

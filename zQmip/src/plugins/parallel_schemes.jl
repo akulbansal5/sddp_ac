@@ -59,17 +59,34 @@ function _simulate(
     model::PolicyGraph,
     ::Serial,
     number_replications::Int,
-    variables::Vector{Symbol};
+    variables::Vector{Symbol}
+    sim_time::Union{Number,Nothing} = nothing;
     kwargs...,
 )
     _initialize_solver(model; throw_error = false)
     if model.solver_threads !== nothing
         _add_threads_solver(model, threads = model.solver_threads)
     end
-    return map(
-        i -> _simulate(model, variables; kwargs...),
-        1:number_replications,
-    )
+
+    start_time = time()
+    out = []
+    for i in 1:number_replications
+
+        push!(out, _simulate(model, variables; kwargs...))
+        if sim_time !== nothing
+            elapsed_time = time() - start_time
+            if elapsed_time > sim_time
+                break
+            end
+        end
+    end
+
+    # return map(
+    #     i -> _simulate(model, variables; kwargs...),
+    #     1:number_replications,
+    # )
+
+    return out
 end
 
 struct Asynchronous <: AbstractParallelScheme

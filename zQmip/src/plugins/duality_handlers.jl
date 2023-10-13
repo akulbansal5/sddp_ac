@@ -333,7 +333,7 @@ function get_dual_solution(node::Node, ::StrengthenedConicDuality)
     conic_obj, conic_dual, conic_bound = get_dual_solution(node, ContinuousConicDuality())
     undo_relax()
     if !node.has_integrality
-        return conic_obj, conic_dual  # If we're linear, return this!
+        return conic_obj, conic_dual, conic_bound  # If we're linear, return this!
     end
     num_states = length(node.states)
     λ_k, h_k, x = zeros(num_states), zeros(num_states), zeros(num_states)
@@ -488,7 +488,7 @@ Adds the mipgap to the node subproblem if the
 
 
 """
-function _add_mipgap_solver(node::Node, mipgap::Number, ::Union{LaporteLouveauxDuality,LagrangianDuality})
+function _add_mipgap_solver(node::Node, mipgap::Number, ::Union{LaporteLouveauxDuality,LagrangianDuality,StrengthenedConicDuality})
     #set the solver gap here
     set_optimizer_attribute(node.subproblem, "mip_gap", mipgap)
 end

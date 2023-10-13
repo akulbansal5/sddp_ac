@@ -402,7 +402,7 @@ end
 function refine_bellman_function(
     model::PolicyGraph{T},
     node::Node{T},
-    duality_handler::Union{ContinuousConicDuality, LagrangianDuality},
+    duality_handler::Union{ContinuousConicDuality, LagrangianDuality, StrengthenedConicDuality},
     bellman_function::BellmanFunction,
     risk_measure::AbstractRiskMeasure,
     outgoing_state::Dict{Symbol,Float64},
