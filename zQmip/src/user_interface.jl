@@ -664,6 +664,7 @@ struct Log
     iteration::Int
     bound::Float64
     simulation_value::Float64
+    master_state:: Dict{Symbol,Float64}
     time::Float64
     pid::Int
     total_solves::Int

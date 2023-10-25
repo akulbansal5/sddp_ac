@@ -940,6 +940,7 @@ function iteration(model::PolicyGraph{T}, options::Options) where {T}
             length(options.log) + 1,
             bound,
             forward_trajectory.cumulative_value,
+            forward_trajectory.sampled_states[1],
             time() - options.start_time,
             Distributed.myid(),
             model.ext[:total_solves],
@@ -973,6 +974,25 @@ function termination_status(model::PolicyGraph)
     end
     return model.most_recent_training_results.status
 end
+
+
+"""
+count the number of times the first stage solution changes
+"""
+
+function count_first_stage_changes(log_vector::Vector{Log})
+    count = 0
+    for i in min(2,length(log_vector)):length(log_vector)
+        old = log_vector[i-1].master_state
+        current = log_vector[i].master_state
+        if old == current
+            count += 1
+        end
+    end
+end
+
+
+
 
 """
     SDDP.train(model::PolicyGraph; kwargs...)
@@ -1245,7 +1265,11 @@ function train(
 
     output_results = []
     iterations = length(options.log)
-    
+
+    stage1_state_changes = count_first_stage_changes(options.log)
+    println("--------------stage1 changes successfully recorded-------------")
+
+
 
     # println("number of enteries in log: $(iterations)")
     training_results = TrainingResults(status, log)
@@ -1266,7 +1290,7 @@ function train(
                 μ_index, σ_index = confidence_interval(map(l -> l.simulation_value, training_results.log[1:index]))
                 cuts_std = sum(map(l -> l.cuts_std, training_results.log[1:index]))
                 cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log[1:index]))
-                push!(output_results, (iter = index, time = iter_end_time, bb = best_bound_index, low = μ_index - σ_index, high = μ_index + σ_index, cs = cuts_std, cns = cuts_nonstd))
+                push!(output_results, (iter = index, time = iter_end_time, bb = best_bound_index, low = μ_index - σ_index, high = μ_index + σ_index, cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes))
                 recCount += 1
             end
             index += 1
@@ -1279,7 +1303,7 @@ function train(
         μ, σ = confidence_interval(map(l -> l.simulation_value, training_results.log))
         cuts_std = sum(map(l -> l.cuts_std, training_results.log))
         cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log))
-        push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, low = μ-σ, high = μ+σ, cs = cuts_std, cns = cuts_nonstd))
+        push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, low = μ-σ, high = μ+σ, cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes))
     end
         
     if print_level > 0
