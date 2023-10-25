@@ -1271,7 +1271,7 @@ function train(
 
     stage1_state_changes = count_first_stage_changes(options.log)
 
-    println("--------------stage1 changes successfully recorded-------------")
+    # println("--------------stage1 changes successfully recorded-------------")
 
 
 
