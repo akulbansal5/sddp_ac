@@ -989,6 +989,7 @@ function count_first_stage_changes(log_vector::Vector{Log})
             count += 1
         end
     end
+    return count
 end
 
 
@@ -1267,6 +1268,7 @@ function train(
     iterations = length(options.log)
 
     stage1_state_changes = count_first_stage_changes(options.log)
+
     println("--------------stage1 changes successfully recorded-------------")
 
 
