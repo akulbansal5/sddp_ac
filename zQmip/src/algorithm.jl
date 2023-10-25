@@ -985,7 +985,9 @@ function count_first_stage_changes(log_vector::Vector{Log})
     for i in min(2,length(log_vector)):length(log_vector)
         old = log_vector[i-1].master_state
         current = log_vector[i].master_state
-        if old == current
+        old_int     = Dict(key => round(Int, value) for (key, value) in old)
+        current_int = Dict(key => round(Int, value) for (key, value) in current)
+        if (old_int != current_int)
             count += 1
         end
     end
