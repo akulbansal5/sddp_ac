@@ -407,3 +407,9 @@ function convergence_test(
     end
     return true
 end
+
+
+
+# ========================== Homem-De-Mello Stopping Criterion ========================== #
+
+
