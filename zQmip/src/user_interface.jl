@@ -584,8 +584,8 @@ struct Noise{T}
     id::Int
 
     #adding a unique id for noise
-    function Noise(term::T, probability::Float64, id::Int = 0)
-        new(term, probability, id)
+    function Noise(term::T, probability::Float64, id::Int = 0) where {T}
+        new{T}(term, probability, id)
     end
 end
 
@@ -1144,8 +1144,10 @@ function parameterize(
     if length(node.noise_terms) != 0
         error("Duplicate calls to SDDP.parameterize detected.")
     end
+    id = Int(1)
     for (realization, prob) in zip(realizations, probability)
-        push!(node.noise_terms, Noise(realization, prob))
+        id = id + 1
+        push!(node.noise_terms, Noise(realization, prob, id))
     end
     node.parameterize = modify
     return
