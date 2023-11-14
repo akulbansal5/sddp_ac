@@ -581,6 +581,12 @@ struct Noise{T}
     term::T
     # The probability of sampling the noise term.
     probability::Float64
+    id::Int
+
+    #adding a unique id for noise
+    function Noise(term::T, probability::Float64, id::Int = 0)
+        new(term, probability, id)
+    end
 end
 
 struct State{T}
