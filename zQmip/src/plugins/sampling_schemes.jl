@@ -452,7 +452,7 @@ function sample_scenario(
             )
         end
     end 
-
+    println("======== scenario sampled successfully ============")
     return scenario_paths, false
 end
 
