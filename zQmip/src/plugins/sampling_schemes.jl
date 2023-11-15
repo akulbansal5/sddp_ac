@@ -425,7 +425,7 @@ function sample_scenario(
             if length(children) == 0
                 # 1. Our node has no children, i.e., we are at a leaf node.
                 break
-            elseif 0 < sampling_scheme.max_depth <= length(scenario_path)
+            elseif 0 < sampling_scheme.max_depth <= length(scenario_paths[i])
                 # 3. max_depth > 0 and we have explored max_depth number of nodes.
                 break
             elseif sampling_scheme.terminate_on_dummy_leaf &&
