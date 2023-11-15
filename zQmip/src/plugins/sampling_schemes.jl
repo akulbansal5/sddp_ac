@@ -309,7 +309,7 @@ function get_root_children(
     return sampling_scheme.root_children
 end
 
-function sample_noise(noise_terms::Vector{<:Noise}, defaultRet::Int = 0)
+function sample_noise(noise_terms::Vector{<:Noise})
     if length(noise_terms) == 0
         return nothing
     end
@@ -321,17 +321,35 @@ function sample_noise(noise_terms::Vector{<:Noise}, defaultRet::Int = 0)
     for noise in noise_terms
         rnd -= noise.probability
         if rnd <= 0.0
-            if defaultRet == 0
-                return noise.term
-            else
-                return noise.term, noise.id
-            end
+            return noise.term
         end
     end
     return error(
         "Internal SDDP error: unable to sample noise from $(noise_terms)",
     )
 end
+
+
+function sample_noise_extra(noise_terms::Vector{<:Noise})
+    if length(noise_terms) == 0
+        return nothing
+    end
+    cumulative_probability = sum(noise.probability for noise in noise_terms)
+    if cumulative_probability > 1.0 + 1e-6
+        error("Cumulative probability cannot be greater than 1.0.")
+    end
+    rnd = rand() * cumulative_probability
+    for noise in noise_terms
+        rnd -= noise.probability
+        if rnd <= 0.0
+            return noise.term, noise.id
+        end
+    end
+    return error(
+        "Internal SDDP error: unable to sample noise from $(noise_terms)",
+    )
+end
+
 
 function sample_scenario(
     graph::PolicyGraph{T},
@@ -421,7 +439,7 @@ function sample_scenario(
             node           = graph[node_index]
             noise_terms    = get_noise_terms(sampling_scheme, node, node_index)
             children       = get_children(sampling_scheme, node, node_index)
-            noise, noiseid = sample_noise(noise_terms, defaultRet = 1)
+            noise, noiseid = sample_noise_extra(noise_terms)
 
             println("The sampled noise:     $(noise)")
             println("Type of sampled noise: $(typeof(noise))")

@@ -648,7 +648,7 @@ function backward_pass(
     model::PolicyGraph{T},
     options::Options,
     pass::DefaultMultiBackwardPass,     
-    scenario_paths::Dict{Int, Vector{Tuple{T, Any}}},
+    scenario_paths::Dict{Int, Vector{Tuple{T, Any, Any}}},
     sampled_states::Dict{Int, Vector{Dict{Symbol,Float64}}},
     objective_states::Vector{NTuple{N,Float64}},
     belief_states::Vector{Tuple{Int,Dict{T,Float64}}},
