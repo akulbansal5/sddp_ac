@@ -439,9 +439,9 @@ function sample_scenario(
         end
 
         # Throw an error because we should never end up here.
-        return error(
-            "Internal SDDP error: something went wrong sampling a scenario.",
-        )
+        # return error(
+        #     "Internal SDDP error: something went wrong sampling a scenario.",
+        # )
     end
 
     common = length(scenario_paths[1])
