@@ -208,7 +208,7 @@ function forward_pass(
     # NOTE: No objective state interpolation here
     items = ForwardPassItems(T)
 
-    objective_states = NTuple{N,Float64}[]
+    objective_states = NTuple{0,Float64}[]
 
     #Iterate down the scenario paths
     for i in 1:M
