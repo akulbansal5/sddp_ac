@@ -653,7 +653,7 @@ function backward_pass(
     objective_states::Vector{NTuple{N,Float64}},
     belief_states::Vector{Tuple{Int,Dict{T,Float64}}},
     costtogo::Dict{Int, Dict{Int64, Float64}},
-) where {T,NoiseType,N}
+) where {T,N}
 
     # println("--starting backward pass--")
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
