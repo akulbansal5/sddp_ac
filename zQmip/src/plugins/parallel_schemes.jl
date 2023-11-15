@@ -45,7 +45,7 @@ function master_loop(
     end
 
     while true
-        result = iteration(model, options)
+        result = iteration(model, options, options.iter_pass)
         options.post_iteration_callback(result)
         log_iteration(options)
         if result.has_converged
@@ -193,7 +193,7 @@ function slave_loop(
         async.init_callback(model)
         results_to_add = IterationResult{T}[]
         while true
-            result = iteration(model, options)
+            result = iteration(model, options, options.iter_pass)
             options.post_iteration_callback(result)
             # The next four lines are subject to a race condition: if the master closes
             # `results` _after_ the call to `isopen` and _before_` the call to `put!` has

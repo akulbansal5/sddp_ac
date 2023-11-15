@@ -105,6 +105,7 @@ struct Options{T}
     post_iteration_callback::Any
     sense_signal::Float64
     mipgap::Number
+    iter_pass::Number
     last_log_iteration::Ref{Int}
     # Internal function: users should never construct this themselves.
     function Options(
@@ -129,6 +130,7 @@ struct Options{T}
         post_iteration_callback = result -> nothing,
         sense_signal = 1.0,
         mipgap = 1e-4,
+        iter_pass = 0,
     ) where {T}
         return new{T}(
             initial_state,
@@ -154,6 +156,7 @@ struct Options{T}
             post_iteration_callback,
             sense_signal,
             mipgap,
+            iter_pass,
             Ref{Int}(0),  # last_log_iteration
         )
     end
@@ -727,6 +730,24 @@ struct BackwardPassItems{T,U}
     end
 end
 
+
+struct ForwardPassItems{T}
+    "Given a (node, noise) tuple, index the element in the array."
+    cached_solutions::Dict{Tuple{T,Any},Int}
+    stage_objective::Vector{Float64}
+    incoming_state_value::Vector{Dict{Symbol,Float64}}
+    costtogo::Vector{Float64}
+    function ForwardPassItems(T)
+        return new{T}(
+            Dict{Tuple{T,Any},Int}(),
+            Float64[],
+            Dict{Symbol,Float64}[],
+            Float64[],
+        )
+    end
+end
+
+
 function solve_all_children(
     model::PolicyGraph{T},
     node::Node{T},
@@ -913,6 +934,63 @@ struct IterationResult{T}
     numerical_issue::Bool
 end
 
+
+function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) where {T}
+
+    if iter_pass == 0
+        model.ext[:numerical_issue] = false
+        TimerOutputs.@timeit model.timer_output "forward_pass" begin
+            forward_trajectory = forward_pass(model, options, options.forward_pass)
+            options.forward_pass_callback(forward_trajectory)
+        end
+        TimerOutputs.@timeit model.timer_output "backward_pass" begin
+            cuts, cuts_std, cuts_nonstd = backward_pass(
+                model,
+                options,
+                options.backward_pass,
+                forward_trajectory.scenario_path,
+                forward_trajectory.sampled_states,
+                forward_trajectory.objective_states,
+                forward_trajectory.belief_states,
+                forward_trajectory.costtogo
+            )
+        end
+        TimerOutputs.@timeit model.timer_output "calculate_bound" begin
+            bound = calculate_bound(model)
+        end
+        push!(
+            options.log,
+            Log(
+                length(options.log) + 1,
+                bound,
+                forward_trajectory.cumulative_value,
+                forward_trajectory.sampled_states[1],
+                time() - options.start_time,
+                Distributed.myid(),
+                model.ext[:total_solves],
+                duality_log_key(options.duality_handler),
+                model.ext[:numerical_issue],
+                cuts_std,
+                cuts_nonstd,
+            ),
+        )
+        has_converged, status =
+            convergence_test(model, options.log, options.stopping_rules)
+        return IterationResult(
+            Distributed.myid(),
+            bound,
+            forward_trajectory.cumulative_value,
+            has_converged,
+            status,
+            cuts,
+            model.ext[:numerical_issue],
+        )
+    end
+end
+
+
+
+
 function iteration(model::PolicyGraph{T}, options::Options) where {T}
     model.ext[:numerical_issue] = false
     TimerOutputs.@timeit model.timer_output "forward_pass" begin
@@ -962,6 +1040,7 @@ function iteration(model::PolicyGraph{T}, options::Options) where {T}
         model.ext[:numerical_issue],
     )
 end
+
 
 """
     termination_status(model::PolicyGraph)::Symbol
@@ -1108,6 +1187,7 @@ function train(
     post_iteration_callback = result -> nothing,
     record_every_seconds::Union{Number,Nothing} = nothing,
     mipgap::Float64 = 1e-4,
+    iter_pass::Number = 0;
 )
     function log_frequency_f(log::Vector{Log})
         if mod(length(log), log_frequency) != 0
@@ -1248,6 +1328,7 @@ function train(
         post_iteration_callback,
         sense_signal,
         mipgap,
+        iter_pass,
     )
     status = :not_solved
     try
