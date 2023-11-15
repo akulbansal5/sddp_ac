@@ -214,7 +214,7 @@ function forward_pass(
     for i in 1:M
         scenario_path = scenario_paths[i]
         # Iterate down the scenario.
-        for (depth, (node_index, noise)) in enumerate(scenario_path)
+        for (depth, (node_index, noise, noiseid)) in enumerate(scenario_path)
             node = model[node_index]
             # NOTE: No objective state interpolation here
             # NOTE: No update in belief state etc.
@@ -222,8 +222,8 @@ function forward_pass(
             # NOTE: No termination due to cycle over here
 
             #Takes care of the overlapping scenario paths
-            if haskey(items.cached_solutions, (node_index, noise.id))
-                sol_index               = items.cached_solutions[(node_index, noise.id)]
+            if haskey(items.cached_solutions, (node_index, noiseid))
+                sol_index               = items.cached_solutions[(node_index, noiseid)]
                 cumulative_value[i]     = cumulative_value[i] + items.stage_objective[sol_index]
                 push!(samples_states[i], copy(items.incoming_state_value[sol_index]))
                 costtogo[i][node_index] = items.costtogo[sol_index]
@@ -255,7 +255,7 @@ function forward_pass(
                 push!(items.stage_objective, subproblem_results.stage_objective)
                 push!(items.incoming_state_value, incoming_state_value)
                 push!(items.costtogo, costtogo[i][node_index])
-                items.cached_solutions[(node_index, noise.id)] = length(items.costtogo)
+                items.cached_solutions[(node_index, noiseid)] = length(items.costtogo)
             end
         end
     end

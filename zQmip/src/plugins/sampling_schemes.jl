@@ -309,7 +309,7 @@ function get_root_children(
     return sampling_scheme.root_children
 end
 
-function sample_noise(noise_terms::Vector{<:Noise})
+function sample_noise(noise_terms::Vector{<:Noise}, defaultRet::Int = 0)
     if length(noise_terms) == 0
         return nothing
     end
@@ -321,7 +321,11 @@ function sample_noise(noise_terms::Vector{<:Noise})
     for noise in noise_terms
         rnd -= noise.probability
         if rnd <= 0.0
-            return noise.term
+            if defaultRet == 0
+                return noise.term
+            else
+                return noise.term, noise.id
+            end
         end
     end
     return error(
@@ -398,7 +402,7 @@ function sample_scenario(
     max_depth = min(sampling_scheme.max_depth, sampling_scheme.rollout_limit())
 
     # Storage for multiple scenarios. Each tuple (part of values (lists) in dict) is (node_index, noise.term).
-    scenario_paths = Dict(i => Tuple{T,Any}[] for i in 1:M)
+    scenario_paths = Dict(i => Tuple{T,Any,Any}[] for i in 1:M)
 
     #NO INITIALIZATION FOR VISITED NODES -> ASSUMES NO CYCLES
 
@@ -414,15 +418,15 @@ function sample_scenario(
         
         
         while true
-            node        = graph[node_index]
-            noise_terms = get_noise_terms(sampling_scheme, node, node_index)
-            children    = get_children(sampling_scheme, node, node_index)
-            noise       = sample_noise(noise_terms)
-            
-            println("The sampled noise: $(noise)")
+            node           = graph[node_index]
+            noise_terms    = get_noise_terms(sampling_scheme, node, node_index)
+            children       = get_children(sampling_scheme, node, node_index)
+            noise, noiseid = sample_noise(noise_terms, defaultRet = 1)
+
+            println("The sampled noise:     $(noise)")
             println("Type of sampled noise: $(typeof(noise))")
 
-            push!(scenario_paths[i], (node_index, noise))
+            push!(scenario_paths[i], (node_index, noise, noiseid))
             path_len[i] = path_len[i] + 1
 
             # Termination conditions:
