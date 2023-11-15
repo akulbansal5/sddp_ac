@@ -188,7 +188,7 @@ function forward_pass(
     #     pop!(scenario_path)
     # end
 
-
+    println("forward pass started successfully")
     #number of scenario paths
     M = length(scenario_paths)
     # Storage for the list of outgoing states that we visit on the forward pass.
@@ -200,7 +200,7 @@ function forward_pass(
     belief_states = Dict(i => Tuple{Int,Dict{T,Float64}}[] for i in 1:M)
     
     # Our initial incoming state.
-    incoming_state_value = copy(options.initial_state)
+    
 
     # A cumulator for the stage-objectives.
     cumulative_value = Dict(i => 0.0 for i in 1:M)
@@ -212,6 +212,7 @@ function forward_pass(
 
     #Iterate down the scenario paths
     for i in 1:M
+        incoming_state_value = copy(options.initial_state)
         scenario_path = scenario_paths[i]
         # Iterate down the scenario.
         for (depth, (node_index, noise, noiseid)) in enumerate(scenario_path)
@@ -220,7 +221,7 @@ function forward_pass(
             # NOTE: No update in belief state etc.
             # NOTE: No infinite horizon problem here
             # NOTE: No termination due to cycle over here
-
+            println("Inside forward pass -> Dpeth: $(depth), Node index: $(node_index), Noise ID: $(noiseid)")
             #Takes care of the overlapping scenario paths
             if haskey(items.cached_solutions, (node_index, noiseid))
                 sol_index               = items.cached_solutions[(node_index, noiseid)]
