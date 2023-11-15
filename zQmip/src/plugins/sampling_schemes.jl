@@ -119,7 +119,7 @@ function InSampleMonteCarloMultiple(;
     new_rollout = let i = 0
         () -> (i += 1; rollout_limit(i))
     end
-    return InSampleMonteCarlo(
+    return InSampleMonteCarloMultiple(
         max_depth,
         terminate_on_cycle,
         terminate_on_dummy_leaf,
