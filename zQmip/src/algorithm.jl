@@ -466,6 +466,8 @@ function solve_subproblem(
     duality_handler::Union{Nothing,AbstractDualityHandler},
     mipgap::Number = 1e-4,
 ) where {T,S}
+
+    println("   =========== solve subproblem =========== ")
     _initialize_solver(node; throw_error = false)
 
     if model.solver_threads !== nothing

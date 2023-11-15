@@ -229,6 +229,7 @@ function forward_pass(
                 push!(samples_states[i], copy(items.incoming_state_value[sol_index]))
                 costtogo[i][node_index] = items.costtogo[sol_index]
             else
+                println("   =========== executing solve subproblem")
                 # Solve the subproblem, note that `duality_handler = nothing`.
                 TimerOutputs.@timeit model.timer_output "solve_subproblem" begin
                     subproblem_results = solve_subproblem(
@@ -240,7 +241,7 @@ function forward_pass(
                         duality_handler = nothing,
                     )
                 end
-                
+                println("   =========== ended solve subproblem")
                 # Cumulate the stage_objective.
                 cumulative_value[i] = cumulative_value[i] + subproblem_results.stage_objective
 
