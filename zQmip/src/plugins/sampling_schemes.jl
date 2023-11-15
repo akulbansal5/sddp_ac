@@ -449,7 +449,9 @@ function sample_scenario(
         if length(scenario_paths[i]) != common
             return error(
                 "Internal SDDP error at sample_scenario: scenario paths do not have same length"
-            )    
+            )
+        end
+    end 
 
     return scenario_paths, false
 end
