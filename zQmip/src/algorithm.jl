@@ -1210,6 +1210,11 @@ function train(
         return log[end].time - log[last].time >= seconds
     end
 
+    println("Inside train")
+    println(sampling_scheme)
+    println("--")
+
+
     if !add_to_existing_cuts && model.most_recent_training_results !== nothing
         @warn("""
         Re-training a model with existing cuts!
@@ -1329,6 +1334,14 @@ function train(
         iter_pass,
         M,
     )
+
+
+    println("After options")
+    println(options.sampling_scheme)
+    println("----")
+
+
+
     status = :not_solved
     try
         status = master_loop(parallel_scheme, model, options)
