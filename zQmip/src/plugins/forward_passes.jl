@@ -172,6 +172,11 @@ function forward_pass(
 ) where {T}
     # First up, sample a scenario. Note that if a cycle is detected, this will
     # return the cycle node as well.
+
+
+    println("Inside forward pass")
+    println(options.sampling_scheme)
+    println("----")
     TimerOutputs.@timeit model.timer_output "sample_scenario" begin
         scenario_paths, terminated_due_to_cycle =
             sample_scenario(model, options.sampling_scheme, options.M)
