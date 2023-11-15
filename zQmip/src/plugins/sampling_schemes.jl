@@ -264,7 +264,7 @@ function OutOfSampleMonteCarlo(
 end
 
 function get_noise_terms(
-    sampling_scheme::InSampleMonteCarlo,
+    sampling_scheme::Union{InSampleMonteCarlo,InSampleMonteCarloMultiple},
     node::Node{T},
     node_index::T,
 ) where {T}
@@ -280,7 +280,7 @@ function get_noise_terms(
 end
 
 function get_children(
-    sampling_scheme::InSampleMonteCarlo,
+    sampling_scheme::Union{InSampleMonteCarlo,InSampleMonteCarloMultiple},
     node::Node{T},
     node_index::T,
 ) where {T}
@@ -296,7 +296,7 @@ function get_children(
 end
 
 function get_root_children(
-    sampling_scheme::InSampleMonteCarlo,
+    sampling_scheme::Union{InSampleMonteCarlo,InSampleMonteCarloMultiple},
     graph::PolicyGraph{T},
 ) where {T}
     return graph.root_children
