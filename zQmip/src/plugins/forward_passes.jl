@@ -188,7 +188,7 @@ function forward_pass(
     #     pop!(scenario_path)
     # end
 
-    println("forward pass started successfully")
+    println("===== forward pass started successfully")
     #number of scenario paths
     M = length(scenario_paths)
     # Storage for the list of outgoing states that we visit on the forward pass.
