@@ -174,7 +174,7 @@ function forward_pass(
     # return the cycle node as well.
     TimerOutputs.@timeit model.timer_output "sample_scenario" begin
         scenario_paths, terminated_due_to_cycle =
-            sample_scenario(model, options.sampling_scheme)
+            sample_scenario(model, options.sampling_scheme, M)
     end
     final_node = scenario_path[end]
     if terminated_due_to_cycle && !pass.include_last_node
@@ -188,7 +188,7 @@ function forward_pass(
     costtogo = Dict(i => Dict{Int64, Float64}() for i in 1:M)
 
     # Storage for the belief states: partition index and the belief dictionary.
-    # belief_states = Dict(i => Tuple{Int,Dict{T,Float64}}[] for i in 1:M)
+    belief_states = Dict(i => Tuple{Int,Dict{T,Float64}}[] for i in 1:M)
     
     # Our initial incoming state.
     incoming_state_value = copy(options.initial_state)
@@ -199,7 +199,7 @@ function forward_pass(
     # NOTE: No objective state interpolation here
     items = ForwardPassItems(T)
 
-    # objective_states = NTuple{N,Float64}[]
+    objective_states = NTuple{N,Float64}[]
 
     #Iterate down the scenario paths
     for i in 1:M
@@ -230,11 +230,13 @@ function forward_pass(
                         duality_handler = nothing,
                     )
                 end
+                
                 # Cumulate the stage_objective.
                 cumulative_value[i] = cumulative_value[i] + subproblem_results.stage_objective
-                # Set the outgoing state value as the incoming state value for the next
-                # node.
+
+                # Set the outgoing state value as the incoming state value for the next #node.
                 incoming_state_value = copy(subproblem_results.state)
+
                 # Add the outgoing state variable to the list of states we have sampled
                 # on this forward pass.
                 push!(sampled_states[i], incoming_state_value)
@@ -249,11 +251,19 @@ function forward_pass(
         end
     end
     
+    # cumulative_value = Dict(i => 0.0 for i in 1:M)
+    cum_paths =  [cumulative_value[i] for i in 1:M]
+    # std_cost  =  Statistics.std(cum_paths)
+    # avg_cost  =  Statistics.mean(cum_paths)
+    stat_ub   =  Statistics.quantile(cum_paths, 0.95)
+
     return (
-        scenario_paths = scenario_paths,
-        sampled_states = sampled_states,
-        cumulative_value = cumulative_value,
-        costtogo = costtogo,
+        scenario_paths   = scenario_paths,
+        sampled_states   = sampled_states,
+        objective_states = objective_states,
+        belief_states    = belief_states,
+        cumulative_value = stat_ub,
+        costtogo         = costtogo,
     )
 end
 

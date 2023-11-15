@@ -106,6 +106,7 @@ struct Options{T}
     sense_signal::Float64
     mipgap::Number
     iter_pass::Number
+    M::Int
     last_log_iteration::Ref{Int}
     # Internal function: users should never construct this themselves.
     function Options(
@@ -131,6 +132,7 @@ struct Options{T}
         sense_signal = 1.0,
         mipgap = 1e-4,
         iter_pass = 0,
+        M = 1,
     ) where {T}
         return new{T}(
             initial_state,
@@ -157,6 +159,7 @@ struct Options{T}
             sense_signal,
             mipgap,
             iter_pass,
+            M,
             Ref{Int}(0),  # last_log_iteration
         )
     end
@@ -985,62 +988,56 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
             cuts,
             model.ext[:numerical_issue],
         )
-    end
-end
-
-
-
-
-function iteration(model::PolicyGraph{T}, options::Options) where {T}
-    model.ext[:numerical_issue] = false
-    TimerOutputs.@timeit model.timer_output "forward_pass" begin
-        forward_trajectory = forward_pass(model, options, options.forward_pass)
-        options.forward_pass_callback(forward_trajectory)
-    end
-    TimerOutputs.@timeit model.timer_output "backward_pass" begin
-        cuts, cuts_std, cuts_nonstd = backward_pass(
-            model,
-            options,
-            options.backward_pass,
-            forward_trajectory.scenario_path,
-            forward_trajectory.sampled_states,
-            forward_trajectory.objective_states,
-            forward_trajectory.belief_states,
-            forward_trajectory.costtogo
+    else
+        model.ext[:numerical_issue] = false
+        TimerOutputs.@timeit model.timer_output "forward_pass" begin
+            forward_trajectory = forward_pass(model, options, options.forward_pass)
+            options.forward_pass_callback(forward_trajectory)
+        end
+        TimerOutputs.@timeit model.timer_output "backward_pass" begin
+            cuts, cuts_std, cuts_nonstd = backward_pass(
+                model,
+                options,
+                options.backward_pass,
+                forward_trajectory.scenario_paths,
+                forward_trajectory.sampled_states,
+                forward_trajectory.objective_states,
+                forward_trajectory.belief_states,
+                forward_trajectory.costtogo
+            )
+        end
+        TimerOutputs.@timeit model.timer_output "calculate_bound" begin
+            bound = calculate_bound(model)
+        end
+        push!(
+            options.log,
+            Log(
+                length(options.log) + 1,
+                bound,
+                forward_trajectory.cumulative_value,
+                forward_trajectory.sampled_states[1][1],
+                time() - options.start_time,
+                Distributed.myid(),
+                model.ext[:total_solves],
+                duality_log_key(options.duality_handler),
+                model.ext[:numerical_issue],
+                cuts_std,
+                cuts_nonstd,
+            ),
         )
-    end
-    TimerOutputs.@timeit model.timer_output "calculate_bound" begin
-        bound = calculate_bound(model)
-    end
-    push!(
-        options.log,
-        Log(
-            length(options.log) + 1,
+        has_converged, status =
+            convergence_test(model, options.log, options.stopping_rules)
+        return IterationResult(
+            Distributed.myid(),
             bound,
             forward_trajectory.cumulative_value,
-            forward_trajectory.sampled_states[1],
-            time() - options.start_time,
-            Distributed.myid(),
-            model.ext[:total_solves],
-            duality_log_key(options.duality_handler),
+            has_converged,
+            status,
+            cuts,
             model.ext[:numerical_issue],
-            cuts_std,
-            cuts_nonstd,
-        ),
-    )
-    has_converged, status =
-        convergence_test(model, options.log, options.stopping_rules)
-    return IterationResult(
-        Distributed.myid(),
-        bound,
-        forward_trajectory.cumulative_value,
-        has_converged,
-        status,
-        cuts,
-        model.ext[:numerical_issue],
-    )
+        ) 
+    end
 end
-
 
 """
     termination_status(model::PolicyGraph)::Symbol
@@ -1187,7 +1184,8 @@ function train(
     post_iteration_callback = result -> nothing,
     record_every_seconds::Union{Number,Nothing} = nothing,
     mipgap::Float64 = 1e-4,
-    iter_pass::Number = 0;
+    iter_pass::Number = 0,
+    M::Int = 1,
 )
     function log_frequency_f(log::Vector{Log})
         if mod(length(log), log_frequency) != 0
@@ -1329,6 +1327,7 @@ function train(
         sense_signal,
         mipgap,
         iter_pass,
+        M,
     )
     status = :not_solved
     try

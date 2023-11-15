@@ -402,6 +402,9 @@ function sample_scenario(
 
     #NO INITIALIZATION FOR VISITED NODES -> ASSUMES NO CYCLES
 
+    
+    path_len = Dict(i => 0 for i in 1:M)
+
     for i in 1:M
         # Begin by sampling a node from the children of the root node.
         node_index = something(
@@ -409,12 +412,15 @@ function sample_scenario(
             sample_noise(get_root_children(sampling_scheme, graph)),
         )::T
         
+        
         while true
             node        = graph[node_index]
             noise_terms = get_noise_terms(sampling_scheme, node, node_index)
             children    = get_children(sampling_scheme, node, node_index)
             noise       = sample_noise(noise_terms)
             push!(scenario_paths[i], (node_index, noise))
+            path_len[i] = path_len[i] + 1
+
             # Termination conditions:
             if length(children) == 0
                 # 1. Our node has no children, i.e., we are at a leaf node.
@@ -437,6 +443,13 @@ function sample_scenario(
             "Internal SDDP error: something went wrong sampling a scenario.",
         )
     end
+
+    common = length(scenario_paths[1])
+    for i in 2:M
+        if length(scenario_paths[i]) != common
+            return error(
+                "Internal SDDP error at sample_scenario: scenario paths do not have same length"
+            )    
 
     return scenario_paths, false
 end
