@@ -236,7 +236,7 @@ function forward_pass(
             if haskey(items.cached_solutions, (node_index, noiseid))
                 sol_index               = items.cached_solutions[(node_index, noiseid)]
                 cumulative_value[i]     = cumulative_value[i] + items.stage_objective[sol_index]
-                push!(samples_states[i], copy(items.incoming_state_value[sol_index]))
+                push!(sampled_states[i], copy(items.incoming_state_value[sol_index]))
                 costtogo[i][node_index] = items.costtogo[sol_index]
             else
                 println("   =========== executing solve subproblem")
