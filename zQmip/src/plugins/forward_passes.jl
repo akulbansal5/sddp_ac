@@ -174,9 +174,9 @@ function forward_pass(
     # return the cycle node as well.
 
 
-    println("Inside forward pass")
-    println(options.sampling_scheme)
-    println("----")
+    # println("Inside forward pass")
+    # println(options.sampling_scheme)
+    # println("----")
 
 
     TimerOutputs.@timeit model.timer_output "sample_scenario" begin
@@ -190,7 +190,7 @@ function forward_pass(
     #     pop!(scenario_path)
     # end
 
-    println("===== forward pass started successfully")
+    # println("===== forward pass started successfully")
     #number of scenario paths
     M = length(scenario_paths)
     # Storage for the list of outgoing states that we visit on the forward pass.
@@ -231,7 +231,7 @@ function forward_pass(
             # NOTE: No update in belief state etc.
             # NOTE: No infinite horizon problem here
             # NOTE: No termination due to cycle over here
-            println("Inside forward pass -> Dpeth: $(depth), Node index: $(node_index), Noise ID: $(noiseid)")
+            # println("Inside forward pass -> Dpeth: $(depth), Node index: $(node_index), Noise ID: $(noiseid)")
             #Takes care of the overlapping scenario paths
             if haskey(items.cached_solutions, (node_index, noiseid))
                 sol_index               = items.cached_solutions[(node_index, noiseid)]
@@ -239,7 +239,7 @@ function forward_pass(
                 push!(sampled_states[i], copy(items.incoming_state_value[sol_index]))
                 costtogo[i][node_index] = items.costtogo[sol_index]
             else
-                println("   =========== executing solve subproblem")
+                # println("   =========== executing solve subproblem")
                 # Solve the subproblem, note that `duality_handler = nothing`.
                 TimerOutputs.@timeit model.timer_output "solve_subproblem" begin
                     subproblem_results = solve_subproblem(
@@ -251,7 +251,7 @@ function forward_pass(
                         duality_handler = nothing,
                     )
                 end
-                println("   =========== ended solve subproblem")
+                # println("   =========== ended solve subproblem")
                 # Cumulate the stage_objective.
                 cumulative_value[i] = cumulative_value[i] + subproblem_results.stage_objective
 
@@ -278,7 +278,7 @@ function forward_pass(
     # avg_cost  =  Statistics.mean(cum_paths)
     stat_ub   =  Statistics.quantile(cum_paths, 0.95)
 
-    println(" ======== successfully executed the multi-forward pass ======== ")
+    # println(" ======== successfully executed the multi-forward pass ======== ")
 
     return (
         scenario_paths   = scenario_paths,

@@ -467,7 +467,7 @@ function solve_subproblem(
     mipgap::Number = 1e-4,
 ) where {T,S}
 
-    println("   =========== solve subproblem =========== ")
+    # println("   =========== solve subproblem =========== ")
     _initialize_solver(node; throw_error = false)
 
     if model.solver_threads !== nothing
@@ -540,7 +540,7 @@ function solve_subproblem_extra(
     mipgap::Number = 1e-4,
 ) where {T,S,H}
 
-    println("   =========== solve subproblem =========== ")
+    # println("   =========== solve subproblem =========== ")
     _initialize_solver(node; throw_error = false)
 
     if model.solver_threads !== nothing
@@ -1070,14 +1070,14 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
             forward_trajectory = forward_pass(model, options, options.forward_pass)
             options.forward_pass_callback(forward_trajectory)
         end
-        println("debuggin ....")
-        println(options.backward_pass)
-        println(typeof(forward_trajectory.scenario_paths))
-        println(typeof(forward_trajectory.sampled_states))
-        println(typeof(forward_trajectory.objective_states))
-        println(typeof(forward_trajectory.belief_states))
-        println(typeof(forward_trajectory.costtogo))
-        println("==================")
+        # println("debuggin ....")
+        # println(options.backward_pass)
+        # println(typeof(forward_trajectory.scenario_paths))
+        # println(typeof(forward_trajectory.sampled_states))
+        # println(typeof(forward_trajectory.objective_states))
+        # println(typeof(forward_trajectory.belief_states))
+        # println(typeof(forward_trajectory.costtogo))
+        # println("==================")
         
         TimerOutputs.@timeit model.timer_output "backward_pass" begin
             cuts, cuts_std, cuts_nonstd = backward_pass(
@@ -1295,9 +1295,9 @@ function train(
         return log[end].time - log[last].time >= seconds
     end
 
-    println("Inside train")
-    println(sampling_scheme)
-    println("--")
+    # println("Inside train")
+    # println(sampling_scheme)
+    # println("--")
 
 
     if !add_to_existing_cuts && model.most_recent_training_results !== nothing
@@ -1421,9 +1421,9 @@ function train(
     )
 
 
-    println("After options")
-    println(options.sampling_scheme)
-    println("----")
+    # println("After options")
+    # println(options.sampling_scheme)
+    # println("----")
 
 
 

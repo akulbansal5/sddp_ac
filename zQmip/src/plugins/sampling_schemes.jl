@@ -442,8 +442,8 @@ function sample_scenario(
             children       = get_children(sampling_scheme, node, node_index)
             noise, noiseid = sample_noise_extra(noise_terms)
 
-            println("The sampled noise:     $(noise)")
-            println("Type of sampled noise: $(typeof(noise))")
+            # println("The sampled noise:     $(noise)")
+            # println("Type of sampled noise: $(typeof(noise))")
 
             push!(scenario_paths[i], (node_index, noise))
             push!(scenario_paths_noises[i], noiseid)
@@ -481,7 +481,7 @@ function sample_scenario(
             )
         end
     end 
-    println("======== scenario sampled successfully =========")
+    # println("======== scenario sampled successfully =========")
     return scenario_paths, scenario_paths_noises, false
 end
 
