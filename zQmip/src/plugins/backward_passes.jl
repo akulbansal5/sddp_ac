@@ -741,7 +741,7 @@ function backward_pass(
 
             # println("       node: $(node_index), costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
 
-            if options.sense_signal*(costtogo[node_index] -  objofchildren_lp) < 0
+            if options.sense_signal*(costtogo[j][node_index] -  objofchildren_lp) < 0
                 # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
                 new_cuts = refine_bellman_function(
                     model,
