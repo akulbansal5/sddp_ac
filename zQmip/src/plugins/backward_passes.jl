@@ -666,7 +666,7 @@ function backward_pass(
     
 
     M           = length(scenario_paths)
-    path_len    = length(scenario_paths[0])
+    path_len    = length(scenario_paths[1])
     cuts_std    = 0           
     cuts_nonstd = 0
 
