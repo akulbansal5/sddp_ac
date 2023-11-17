@@ -1447,6 +1447,7 @@ function train(
     output_results = []
     iterations = length(options.log)
 
+
     stage1_state_changes = count_first_stage_changes(options.log)
 
     # println("--------------stage1 changes successfully recorded-------------")
@@ -1455,7 +1456,14 @@ function train(
 
     # println("number of enteries in log: $(iterations)")
     training_results = TrainingResults(status, log)
+
+    bound_list = [training_results.log[i].bound for i in 1:iterations]
+    cumm_list  = [training_results.log[i].simulation_value for i in 1:iterations]
+    time_list  = [training_results.log[i].time for i in 1:iterations]
+
+
     log_count = training_results.log[end].time
+
     if record_every_seconds !== nothing
         # println("end time: $(training_results.log[end].time)")
         # println("record every seconds: $(record_every_seconds)")
@@ -1485,7 +1493,8 @@ function train(
         μ, σ = confidence_interval(map(l -> l.simulation_value, training_results.log))
         cuts_std = sum(map(l -> l.cuts_std, training_results.log))
         cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log))
-        push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, low = μ-σ, high = μ+σ, cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes))
+        push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, low = μ-σ, high = μ+σ, cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes, bound_list = bound_list, cumm_list = cumm_list, time_list = time_list))
+        
     end
         
     if print_level > 0
@@ -1507,6 +1516,9 @@ function train(
     # return best_bound, μ - σ, μ + σ, cuts_std, cuts_nonstd, length(options.log)
     return output_results
 end
+
+
+
 
 # Internal function: helper to conduct a single simulation. Users should use the
 # documented, user-facing function SDDP.simulate instead.
