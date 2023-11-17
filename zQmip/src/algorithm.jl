@@ -1463,8 +1463,10 @@ function train(
 
 
     log_count = training_results.log[end].time
+    record_every_seconds = nothing
 
     if record_every_seconds !== nothing
+        print("WARNING: record is not Nothing")
         # println("end time: $(training_results.log[end].time)")
         # println("record every seconds: $(record_every_seconds)")
         log_count  = max(1, ceil(training_results.log[end].time/record_every_seconds))
@@ -1488,13 +1490,14 @@ function train(
     end
 
     if record_every_seconds === nothing || length(output_results) < log_count
+        println("GOOD: entering the if statement")
         model.most_recent_training_results = training_results
         best_bound = training_results.log[end].bound
         μ, σ = confidence_interval(map(l -> l.simulation_value, training_results.log))
         cuts_std = sum(map(l -> l.cuts_std, training_results.log))
         cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log))
         push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, low = μ-σ, high = μ+σ, cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes, bound_list = bound_list, cumm_list = cumm_list, time_list = time_list))
-        
+
     end
         
     if print_level > 0
