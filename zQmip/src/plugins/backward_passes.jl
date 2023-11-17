@@ -692,9 +692,9 @@ function backward_pass(
             end
             
             if visited_flag == true
-                states_visited[j] = outgoing_state
                 continue
             else
+                states_visited[j] = outgoing_state
                 push!(unique_path_indices, j)
             end
 
