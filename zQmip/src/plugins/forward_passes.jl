@@ -177,8 +177,10 @@ function forward_pass(
     println("Inside forward pass")
     println(options.sampling_scheme)
     println("----")
+
+
     TimerOutputs.@timeit model.timer_output "sample_scenario" begin
-        scenario_paths, terminated_due_to_cycle =
+        scenario_paths, scenario_paths_noises, terminated_due_to_cycle =
             sample_scenario(model, options.sampling_scheme, options.M)
     end
     
@@ -200,7 +202,6 @@ function forward_pass(
     belief_states = Dict(i => Tuple{Int,Dict{T,Float64}}[] for i in 1:M)
     
     # Our initial incoming state.
-    
 
     # A cumulator for the stage-objectives.
     cumulative_value = Dict(i => 0.0 for i in 1:M)
@@ -213,10 +214,19 @@ function forward_pass(
     #Iterate down the scenario paths
     for i in 1:M
         incoming_state_value = copy(options.initial_state)
+        
+        
         scenario_path = scenario_paths[i]
+        scenario_path_noises = scenario_paths_noises[i]
+        
         # Iterate down the scenario.
-        for (depth, (node_index, noise, noiseid)) in enumerate(scenario_path)
-            node = model[node_index]
+        for (depth, (node_index, noise)) in enumerate(scenario_path)
+            
+            
+            node    = model[node_index]
+            noiseid = scenario_path_noises[depth]
+
+
             # NOTE: No objective state interpolation here
             # NOTE: No update in belief state etc.
             # NOTE: No infinite horizon problem here

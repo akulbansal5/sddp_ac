@@ -648,7 +648,7 @@ function backward_pass(
     model::PolicyGraph{T},
     options::Options,
     pass::DefaultMultiBackwardPass,     
-    scenario_paths::Dict{Int, Vector{Tuple{T, Any, Any}}},
+    scenario_paths::Dict{Int, Vector{Tuple{T, Any}}},
     sampled_states::Dict{Int, Vector{Dict{Symbol,Float64}}},
     objective_states::Vector{NTuple{N,Float64}},
     belief_states::Vector{Tuple{Int,Dict{T,Float64}}},
@@ -676,7 +676,9 @@ function backward_pass(
 
         for j in 1:M
             # println("       Index in scenario_path $index")
+            
             outgoing_state = sampled_states[j][index]
+            scenario_path  = scenario_paths[j] 
 
             # flag = false
 

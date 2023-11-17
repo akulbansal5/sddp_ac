@@ -529,6 +529,80 @@ function solve_subproblem(
     )
 end
 
+
+function solve_subproblem_extra(
+    model::PolicyGraph{T},
+    node::Node{T},
+    state::Dict{Symbol,Float64},
+    noise,
+    scenario_path::Vector{Tuple{T,S,H}};
+    duality_handler::Union{Nothing,AbstractDualityHandler},
+    mipgap::Number = 1e-4,
+) where {T,S,H}
+
+    println("   =========== solve subproblem =========== ")
+    _initialize_solver(node; throw_error = false)
+
+    if model.solver_threads !== nothing
+        _add_threads_solver(node, threads = model.solver_threads)
+    end
+
+    _add_mipgap_solver(node, mipgap, duality_handler)
+
+
+    # Parameterize the model. First, fix the value of the incoming state
+    # variables. Then parameterize the model depending on `noise`. Finally,
+    # set the objective.
+    set_incoming_state(node, state)
+    parameterize(node, noise)
+    pre_optimize_ret = if node.pre_optimize_hook !== nothing
+        node.pre_optimize_hook(
+            model,
+            node,
+            state,
+            noise,
+            scenario_path,
+            duality_handler,
+        )
+    else
+        nothing
+    end
+    # unset_silent(node.subproblem)
+    # println("""GET ATTRIBUTE: SOLVER THREADS = $(get_attribute(node.subproblem, "Threads"))""")
+    JuMP.optimize!(node.subproblem)
+    if haskey(model.ext, :total_solves)
+        model.ext[:total_solves] += 1
+    else
+        model.ext[:total_solves] = 1
+    end
+    if JuMP.primal_status(node.subproblem) == JuMP.MOI.INTERRUPTED
+        # If the solver was interrupted, the user probably hit CTRL+C but the
+        # solver gracefully exited. Since we're in the middle of training or
+        # simulation, we need to throw an interrupt exception to keep the
+        # interrupt percolating up to the user.
+        throw(InterruptException())
+    end
+    if JuMP.primal_status(node.subproblem) != JuMP.MOI.FEASIBLE_POINT
+        attempt_numerical_recovery(model, node)
+    end
+    state = get_outgoing_state(node)
+    stage_objective = stage_objective_value(node.stage_objective)
+    TimerOutputs.@timeit model.timer_output "get_dual_solution" begin
+        objective, dual_values, bound = get_dual_solution(node, duality_handler)
+    end
+    if node.post_optimize_hook !== nothing
+        node.post_optimize_hook(pre_optimize_ret)
+    end
+    return (
+        state = state,
+        duals = dual_values,
+        objective = objective,
+        stage_objective = stage_objective,
+        bound = bound
+    )
+end
+
+
 # Internal function to get the objective state at the root node.
 function initialize_objective_state(first_node::Node)
     objective_state = first_node.objective_state

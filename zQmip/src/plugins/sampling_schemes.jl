@@ -420,7 +420,8 @@ function sample_scenario(
     max_depth = min(sampling_scheme.max_depth, sampling_scheme.rollout_limit())
 
     # Storage for multiple scenarios. Each tuple (part of values (lists) in dict) is (node_index, noise.term).
-    scenario_paths = Dict(i => Tuple{T,Any,Any}[] for i in 1:M)
+    scenario_paths = Dict(i => Tuple{T,Any}[] for i in 1:M)
+    scenario_paths_noises = Dict(i => [] for i in 1:M)
 
     #NO INITIALIZATION FOR VISITED NODES -> ASSUMES NO CYCLES
 
@@ -444,7 +445,9 @@ function sample_scenario(
             println("The sampled noise:     $(noise)")
             println("Type of sampled noise: $(typeof(noise))")
 
-            push!(scenario_paths[i], (node_index, noise, noiseid))
+            push!(scenario_paths[i], (node_index, noise))
+            push!(scenario_paths_noises[i], noiseid)
+
             path_len[i] = path_len[i] + 1
 
             # Termination conditions:
@@ -479,7 +482,7 @@ function sample_scenario(
         end
     end 
     println("======== scenario sampled successfully =========")
-    return scenario_paths, false
+    return scenario_paths, scenario_paths_noises, false
 end
 
 
