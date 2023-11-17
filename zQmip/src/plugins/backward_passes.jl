@@ -670,7 +670,7 @@ function backward_pass(
     path_len    = length(scenario_paths[1])
     cuts_std    = 0           
     cuts_nonstd = 0
-    println("=============== initialization done in backward pass")
+    # println("=============== initialization done in backward pass")
 
     for index in path_len:-1:1
 
@@ -679,7 +679,7 @@ function backward_pass(
         unique_path_indices = []
 
         for j in 1:M
-            println("       Index in scenario_path $index, path number: $(j)")
+            # println("       Index in scenario_path $index, path number: $(j)")
 
             outgoing_state = sampled_states[j][index]
             
@@ -818,7 +818,7 @@ function backward_pass(
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
         restore_duality()
     end
-    println("=============== finished backward pass ================== ")
+    # println("=============== finished backward pass ================== ")
     return cuts, cuts_std, cuts_nonstd
 end
 

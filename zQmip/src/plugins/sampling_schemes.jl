@@ -481,7 +481,7 @@ function sample_scenario(
             )
         end
     end 
-    println("======== scenario sampled successfully =========")
+    # println("======== scenario sampled successfully =========")
     return scenario_paths, scenario_paths_noises, false
 end
 
