@@ -651,7 +651,7 @@ function backward_pass(
     scenario_paths::Dict{Int, Vector{Tuple{T, Any}}},
     sampled_states::Dict{Int, Vector{Dict{Symbol,Float64}}},
     objective_states::Vector{NTuple{N,Float64}},
-    belief_states::Vector{Tuple{Int,Dict{T,Float64}}},
+    belief_states::Dict{Int, Vector{Tuple{Int,Dict{T,Float64}}}},
     costtogo::Dict{Int, Dict{Int64, Float64}},
 ) where {T,N}
 
@@ -676,7 +676,7 @@ function backward_pass(
 
         for j in 1:M
             # println("       Index in scenario_path $index")
-            
+
             outgoing_state = sampled_states[j][index]
             scenario_path  = scenario_paths[j] 
 
@@ -700,7 +700,7 @@ function backward_pass(
             objective_state = get(objective_states, index, nothing)
 
             # println("step 2")
-            partition_index, belief_state = get(belief_states, index, (0, nothing))
+            partition_index, belief_state = get(belief_states[j], index, (0, nothing))
             # println("step 3")
             items = BackwardPassItems(T, Noise)
             # println("formalities finished in for loop")
