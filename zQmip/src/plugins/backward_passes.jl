@@ -675,15 +675,15 @@ function backward_pass(
 
         # unique_outgoing_states
         states_visited = Dict{Int, Dict{Symbol,Float64}}()
-
+        unique_path_indices = []
 
         for j in 1:M
             # println("       Index in scenario_path $index")
 
             outgoing_state = sampled_states[j][index]
-            states_visited[j] = outgoing_state
+            
             visited_flag = false
-            for h in 1:j-1
+            for h in unique_path_indices
                 if outgoing_state == states_visited[h]
                     visited_flag = true
                     break
@@ -691,7 +691,10 @@ function backward_pass(
             end
             
             if visited_flag == true
-                break
+                states_visited[j] = outgoing_state
+                continue
+            else
+                push!(unique_path_indices, j)
             end
 
             scenario_path  = scenario_paths[j] 
@@ -846,15 +849,15 @@ function backward_pass(
 
         # unique_outgoing_states = []
         states_visited = Dict{Int, Dict{Symbol,Float64}}()
-
+        unique_path_indices = []
 
         for j in 1:M
             # println("       Index in scenario_path $index")
 
             outgoing_state = sampled_states[j][index]
-            states_visited[j] = outgoing_state
+            
             visited_flag = false
-            for h in 1:j-1
+            for h in unique_path_indices
                 if outgoing_state == states_visited[h]
                     visited_flag = true
                     break
@@ -863,6 +866,9 @@ function backward_pass(
             
             if visited_flag == true
                 continue
+            else
+                states_visited[j] = outgoing_state
+                push!(unique_path_indices, j)
             end
 
             scenario_path  = scenario_paths[j]
