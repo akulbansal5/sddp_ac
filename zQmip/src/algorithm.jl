@@ -1070,6 +1070,15 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
             forward_trajectory = forward_pass(model, options, options.forward_pass)
             options.forward_pass_callback(forward_trajectory)
         end
+        println("debuggin ....")
+        println(options.backward_pass)
+        println(typeof(forward_trajectory.scenario_paths))
+        println(typeof(forward_trajectory.sampled_states))
+        println(typeof(forward_trajectory.objective_states))
+        println(typeof(forward_trajectory.belief_states))
+        println(typeof(forward_trajectory.costtogo))
+        println("==================")
+        
         TimerOutputs.@timeit model.timer_output "backward_pass" begin
             cuts, cuts_std, cuts_nonstd = backward_pass(
                 model,
