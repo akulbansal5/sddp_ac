@@ -204,7 +204,7 @@ function forward_pass(
     # Our initial incoming state.
 
     # A cumulator for the stage-objectives.
-    cumulative_value = Dict(i => 0.0 for i in 1:M)
+    cumulative_values = Dict(i => 0.0 for i in 1:M)
 
     # NOTE: No objective state interpolation here
     items = ForwardPassItems(T)
@@ -235,7 +235,7 @@ function forward_pass(
             #Takes care of the overlapping scenario paths
             if haskey(items.cached_solutions, (node_index, noiseid))
                 sol_index               = items.cached_solutions[(node_index, noiseid)]
-                cumulative_value[i]     = cumulative_value[i] + items.stage_objective[sol_index]
+                cumulative_values[i]     = cumulative_values[i] + items.stage_objective[sol_index]
                 push!(sampled_states[i], copy(items.incoming_state_value[sol_index]))
                 costtogo[i][node_index] = items.costtogo[sol_index]
             else
@@ -253,7 +253,7 @@ function forward_pass(
                 end
                 # println("   =========== ended solve subproblem")
                 # Cumulate the stage_objective.
-                cumulative_value[i] = cumulative_value[i] + subproblem_results.stage_objective
+                cumulative_values[i] = cumulative_values[i] + subproblem_results.stage_objective
 
                 # Set the outgoing state value as the incoming state value for the next #node.
                 incoming_state_value = copy(subproblem_results.state)
@@ -273,7 +273,7 @@ function forward_pass(
     end
     
     # cumulative_value = Dict(i => 0.0 for i in 1:M)
-    cum_paths =  [cumulative_value[i] for i in 1:M]
+    cum_paths =  [cumulative_values[i] for i in 1:M]
     # std_cost  =  Statistics.std(cum_paths)
     # avg_cost  =  Statistics.mean(cum_paths)
     stat_ub   =  Statistics.quantile(cum_paths, 0.95)
