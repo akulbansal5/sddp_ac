@@ -278,7 +278,7 @@ function forward_pass(
     # avg_cost  =  Statistics.mean(cum_paths)
     stat_ub   =  Statistics.quantile(cum_paths, 0.95)
 
-    # println(" ======== successfully executed the multi-forward pass ======== ")
+    println(" ======== successfully executed the multi-forward pass ======== ")
 
     return (
         scenario_paths   = scenario_paths,
