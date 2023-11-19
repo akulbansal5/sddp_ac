@@ -1463,7 +1463,6 @@ function train(
 
 
     log_count = training_results.log[end].time
-    record_every_seconds = nothing
 
     if record_every_seconds !== nothing
         print("WARNING: record is not Nothing")

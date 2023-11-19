@@ -1144,7 +1144,7 @@ function parameterize(
     if length(node.noise_terms) != 0
         error("Duplicate calls to SDDP.parameterize detected.")
     end
-    id = Int(1)
+    id = Int(0)
     for (realization, prob) in zip(realizations, probability)
         id = id + 1
         push!(node.noise_terms, Noise(realization, prob, id))

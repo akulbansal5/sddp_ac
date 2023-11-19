@@ -129,6 +129,73 @@ function InSampleMonteCarloMultiple(;
 end
 
 
+# ========================= Monte Carlo All-Sampling Scheme ====================== #
+
+struct AllSampleMonteCarloMultiple <: AbstractSamplingScheme
+    max_depth::Int
+    terminate_on_cycle::Bool
+    terminate_on_dummy_leaf::Bool
+    rollout_limit::Function
+    initial_node::Any
+end
+
+"""
+    AllSampleMonteCarloMultiple(;
+        max_depth::Int = 0,
+        terminate_on_cycle::Function = false,
+        terminate_on_dummy_leaf::Function = true,
+        rollout_limit::Function = (i::Int) -> typemax(Int),
+        initial_node::Any = nothing,
+    )
+
+
+In this scheme there is no sampling as such. We consider all monte carlo samples together.
+
+A Monte Carlo sampling scheme using the in-sample data from the policy graph
+definition. Multiple means that we sample more than one scenarios.
+
+If `terminate_on_cycle`, terminate the forward pass once a cycle is detected.
+If `max_depth > 0`, return once `max_depth` nodes have been sampled.
+If `terminate_on_dummy_leaf`, terminate the forward pass with 1 - probability of
+sampling a child node.
+
+Note that if `terminate_on_cycle = false` and `terminate_on_dummy_leaf = false`
+then `max_depth` must be set > 0.
+
+Control which node the trajectories start from using `initial_node`. If it is
+left as `nothing`, the root node is used as the starting node.
+
+You can use `rollout_limit` to set iteration specific depth limits. For example:
+
+    InSampleMonteCarloMultiple(rollout_limit = i -> 2 * i)
+"""
+function AllSampleMonteCarloMultiple(;
+    max_depth::Int = 0,
+    terminate_on_cycle::Bool = false,
+    terminate_on_dummy_leaf::Bool = true,
+    rollout_limit::Function = i -> typemax(Int),
+    initial_node::Any = nothing,
+)
+    if !terminate_on_cycle && !terminate_on_dummy_leaf && max_depth == 0
+        error(
+            "terminate_on_cycle and terminate_on_dummy_leaf cannot both be " *
+            "false when max_depth=0.",
+        )
+    end
+    new_rollout = let i = 0
+        () -> (i += 1; rollout_limit(i))
+    end
+    return AllSampleMonteCarloMultiple(
+        max_depth,
+        terminate_on_cycle,
+        terminate_on_dummy_leaf,
+        new_rollout,
+        initial_node,
+    )
+end
+
+
+
 
 
 # ==================== OutOfSampleMonteCarlo Sampling Scheme ================= #
@@ -422,6 +489,199 @@ function sample_scenario(
     # Storage for multiple scenarios. Each tuple (part of values (lists) in dict) is (node_index, noise.term).
     scenario_paths = Dict(i => Tuple{T,Any}[] for i in 1:M)
     scenario_paths_noises = Dict(i => [] for i in 1:M)
+
+    #NO INITIALIZATION FOR VISITED NODES -> ASSUMES NO CYCLES
+
+    
+    path_len = Dict(i => 0 for i in 1:M)
+
+    for i in 1:M
+        # Begin by sampling a node from the children of the root node.
+        node_index = something(
+            sampling_scheme.initial_node,
+            sample_noise(get_root_children(sampling_scheme, graph)),
+        )::T
+        
+        
+        while true
+            node           = graph[node_index]
+            noise_terms    = get_noise_terms(sampling_scheme, node, node_index)
+            children       = get_children(sampling_scheme, node, node_index)
+            noise, noiseid = sample_noise_extra(noise_terms)
+
+            # println("The sampled noise:     $(noise)")
+            # println("Type of sampled noise: $(typeof(noise))")
+
+            push!(scenario_paths[i], (node_index, noise))
+            push!(scenario_paths_noises[i], noiseid)
+
+            path_len[i] = path_len[i] + 1
+
+            # Termination conditions:
+            if length(children) == 0
+                # 1. Our node has no children, i.e., we are at a leaf node.
+                break
+            elseif 0 < sampling_scheme.max_depth <= length(scenario_paths[i])
+                # 3. max_depth > 0 and we have explored max_depth number of nodes.
+                break
+            elseif sampling_scheme.terminate_on_dummy_leaf &&
+                rand() < 1 - sum(child.probability for child in children)
+                # 4. we sample a "dummy" leaf node in the next step due to the
+                # probability of the child nodes summing to less than one.
+                break
+            end
+            # Sample a new node to transition to.
+            node_index = sample_noise(children)::T
+        end
+
+        # Throw an error because we should never end up here.
+        # return error(
+        #     "Internal SDDP error: something went wrong sampling a scenario.",
+        # )
+    end
+
+    common = length(scenario_paths[1])
+    for i in 2:M
+        if length(scenario_paths[i]) != common
+            return error(
+                "Internal SDDP error at sample_scenario: scenario paths do not have same length"
+            )
+        end
+    end 
+    # println("======== scenario sampled successfully =========")
+    return scenario_paths, scenario_paths_noises, false
+end
+
+
+
+"""
+    Function for sampling all scenarios
+
+        function sample_scenario(
+            graph::PolicyGraph{T},
+            sampling_scheme::AllSampleMonteCarloMultiple,
+            M::Int,              #denotes the number of scenarios that we will sample
+        
+"""
+function sample_scenario(
+    graph::PolicyGraph{T},
+    sampling_scheme::AllSampleMonteCarloMultiple,
+) where {T}
+    max_depth = min(sampling_scheme.max_depth, sampling_scheme.rollout_limit())
+
+
+    #get the root node
+    node_index = something(
+        sampling_scheme.initial_node,
+        sample_noise(get_root_children(sampling_scheme, graph)))
+    
+    
+    current_node = graph[node_index]
+    
+    #maintain a global list of paths
+    scenario_paths         = Dict{Int, Vector{Tuple{T, Any}}}()
+    scenario_paths_noiseid = Dict{Int, Vector{Int}}()
+
+    #maintain a lifo
+    lifo = [(node_index, noise.term, noise.id) for noise in current_node.noise_terms]
+
+    #current path
+    current_path         = Tuple{T, Any}[]
+
+    #current noiseid path
+    current_path_noiseid = Int[]
+
+    
+    m = 1
+
+    # while lifo is unempty
+    while length(lifo) > 0
+        
+        #get a node from lifo
+        path_node       = pop!(lifo)
+
+        
+        path_node_index = path_node[1]
+        path_node_term  = path_node[2]
+        path_node_id    = path_node[3]
+        
+        current_path = current_path[1:path_node_index-1]
+        current_path_noiseid = current_path_noiseid[1:path_node_index-1]
+
+        #add the node to the current path
+        push!(current_path, (path_node_index, path_node_term))
+        push!(current_path_noiseid, path_node_id)
+        
+        #add all children of that node to lifo
+        node_now        = graph[path_node_index]
+        node_now_childs =  node_now.children
+        child_count     = length(node_now_childs)
+
+        #if no children of that node then we have hit a leaf node and the current path is complete
+        if child_count == 0
+            scenario_paths[m]         = current_path
+            scenario_paths_noiseid[m] = current_path_noiseid
+            m                         += 1
+        elseif child_count > 1
+            return error("Internal SDDP error: not a linear policy graph")
+        else
+            node_next   = node_now_childs[1]
+            index_next  = node_next.term
+            for noise in node_next.noise_terms 
+                push!(lifo, (index_next, noise.term, noise.id))
+            end
+        end
+    end
+
+    return scenario_paths, scenario_paths_noiseid
+end
+    
+
+
+    
+        
+        
+        
+        
+
+        
+
+
+        
+        
+
+
+
+
+
+    while true
+
+        children = graph[node_index].children
+        if len(graph[node_index].children) > 1
+            return error("Internal SDDP error at sampling: graph is not a linear graph")
+        end 
+
+        if length(children) == 0
+            break
+        end
+
+        node_index = children[1].child
+        push!(allNodes, node_index)
+        current_node = graph[node_index]
+        node_noise_terms[node_index] = [noise.term for noise in current_node.noise_terms]
+        node_noise_ids[node_index]   = [noise.id for noise in current_node.noise_terms]
+        
+    end
+
+    # the cross product of noises will give the entire scenario tree 
+    
+
+
+    # get cross product of noise.terms and noise.ids
+
+    # use that to populate the scenario_paths and scenario_paths_noises
+
+    # 
 
     #NO INITIALIZATION FOR VISITED NODES -> ASSUMES NO CYCLES
 
