@@ -107,6 +107,9 @@ struct Options{T}
     mipgap::Number
     iter_pass::Number
     M::Int
+    scenario_paths::Dict{Int,Vector{Tuple{T, Any}}}
+    scenario_paths_noises::Dict{Int, Vector{Any}}
+    scenario_paths_prob::Dict{Int, Float64}
     last_log_iteration::Ref{Int}
     # Internal function: users should never construct this themselves.
     function Options(
@@ -160,6 +163,9 @@ struct Options{T}
             mipgap,
             iter_pass,
             M,
+            Dict{Int,Vector{Tuple{T, Any}}}(),
+            Dict{Int, Vector{Any}}(),
+            Dict{Int, Float64}(),
             Ref{Int}(0),  # last_log_iteration
         )
     end

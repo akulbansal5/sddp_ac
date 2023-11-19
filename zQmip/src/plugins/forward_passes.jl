@@ -296,6 +296,165 @@ end
 
 
 
+# ==================================================================================== #
+"""
+    DefaultNestedForwardPass(; include_last_node::Bool = true)
+
+The default nested multiple path forward pass.
+
+If `include_last_node = false` and the sample terminated due to a cycle, then
+the last node (which forms the cycle) is omitted. This can be useful option to
+set when training, but it comes at the cost of not knowing which node formed the
+cycle (if there are multiple possibilities).
+"""
+
+struct DefaultNestedForwardPass <: AbstractForwardPass
+    include_last_node::Bool
+    function DefaultNestedForwardPass(; include_last_node::Bool = true)
+        return new(include_last_node)
+    end
+end
+
+
+function forward_pass(
+    model::PolicyGraph{T},
+    options::Options,
+    pass::DefaultNestedForwardPass,
+) where {T}
+    # First up, sample a scenario. Note that if a cycle is detected, this will
+    # return the cycle node as well.
+
+
+    # println("Inside forward pass")
+    # println(options.sampling_scheme)
+    # println("----")
+
+
+    TimerOutputs.@timeit model.timer_output "sample_scenario" begin
+        
+        if length(options.log) < 1
+            scenario_paths, scenario_paths_noises, scenario_paths_prob =
+                sample_scenario(model, options.sampling_scheme)
+
+            options.scenario_paths        = scenario_paths
+            options.scenario_paths_noises = scenario_paths_noises
+            options.scenario_paths_prob   = scenario_paths_prob
+        else
+            scenario_paths                = options.scenario_paths
+            scenario_paths_noises         = options.scenario_paths_noises
+            scenario_paths_prob           = options.scenario_paths_prob
+    end
+    
+    
+    # final_node = scenario_path[end]
+    # if terminated_due_to_cycle && !pass.include_last_node
+    #     pop!(scenario_path)
+    # end
+
+    # println("===== forward pass started successfully")
+    #number of scenario paths
+    M = length(scenario_paths)
+    # Storage for the list of outgoing states that we visit on the forward pass.
+    sampled_states = Dict(i => Dict{Symbol,Float64}[] for i in 1:M)
+    #storage for objective function on forward pass
+    costtogo = Dict(i => Dict{Int64, Float64}() for i in 1:M)
+
+    # Storage for the belief states: partition index and the belief dictionary.
+    belief_states = Dict(i => Tuple{Int,Dict{T,Float64}}[] for i in 1:M)
+    
+    # Our initial incoming state.
+
+    # A cumulator for the stage-objectives.
+    cumulative_values = Dict(i => 0.0 for i in 1:M)
+
+    # NOTE: No objective state interpolation here
+    items = ForwardPassItems(T)
+
+    objective_states = NTuple{0,Float64}[]
+
+    #Iterate down the scenario paths
+    for i in 1:M
+        incoming_state_value = copy(options.initial_state)
+        
+        
+        scenario_path = scenario_paths[i]
+        scenario_path_noises = scenario_paths_noises[i]
+        
+        # Iterate down the scenario.
+        for (depth, (node_index, noise)) in enumerate(scenario_path)
+            
+            
+            node    = model[node_index]
+            noiseid = scenario_path_noises[depth]
+
+
+            # NOTE: No objective state interpolation here
+            # NOTE: No update in belief state etc.
+            # NOTE: No infinite horizon problem here
+            # NOTE: No termination due to cycle over here
+            # println("Inside forward pass -> Dpeth: $(depth), Node index: $(node_index), Noise ID: $(noiseid)")
+            #Takes care of the overlapping scenario paths
+            if haskey(items.cached_solutions, (node_index, noiseid))
+                sol_index               = items.cached_solutions[(node_index, noiseid)]
+                cumulative_values[i]     = cumulative_values[i] + items.stage_objective[sol_index]
+                push!(sampled_states[i], copy(items.incoming_state_value[sol_index]))
+                costtogo[i][node_index] = items.costtogo[sol_index]
+            else
+                # println("   =========== executing solve subproblem")
+                # Solve the subproblem, note that `duality_handler = nothing`.
+                TimerOutputs.@timeit model.timer_output "solve_subproblem" begin
+                    subproblem_results = solve_subproblem(
+                        model,
+                        node,
+                        incoming_state_value,
+                        noise,
+                        scenario_path[1:depth],
+                        duality_handler = nothing,
+                    )
+                end
+
+                # println("   =========== ended solve subproblem")
+                # Cumulate the stage_objective.
+                
+                cumulative_values[i] = cumulative_values[i] + subproblem_results.stage_objective
+
+                # Set the outgoing state value as the incoming state value for the next #node.
+                incoming_state_value = copy(subproblem_results.state)
+
+                # Add the outgoing state variable to the list of states we have sampled
+                # on this forward pass.
+                push!(sampled_states[i], incoming_state_value)
+                costtogo[i][node_index] = JuMP.value(node.bellman_function.global_theta.theta)
+                #update items.cached_solutions
+
+                push!(items.stage_objective, subproblem_results.stage_objective)
+                push!(items.incoming_state_value, incoming_state_value)
+                push!(items.costtogo, costtogo[i][node_index])
+                items.cached_solutions[(node_index, noiseid)] = length(items.costtogo)
+            end
+        end
+    end
+    
+    # cumulative_value = Dict(i => 0.0 for i in 1:M)
+    stat_ub =  sum([cumulative_values[i]*scenario_paths_prob[i] for i in 1:M])
+
+    
+
+    # std_cost  =  Statistics.std(cum_paths)
+    # avg_cost  =  Statistics.mean(cum_paths)
+    # stat_ub   =  Statistics.quantile(cum_paths, 0.95)
+
+    # println(" ======== successfully executed the multi-forward pass ======== ")
+
+    return (
+        scenario_paths   = scenario_paths,
+        sampled_states   = sampled_states,
+        objective_states = objective_states,
+        belief_states    = belief_states,
+        cumulative_value = stat_ub,
+        costtogo         = costtogo,
+    )
+end
 
 
 

@@ -363,7 +363,7 @@ function get_children(
 end
 
 function get_root_children(
-    sampling_scheme::Union{InSampleMonteCarlo,InSampleMonteCarloMultiple},
+    sampling_scheme::Union{InSampleMonteCarlo,InSampleMonteCarloMultiple, AllSampleMonteCarloMultiple},
     graph::PolicyGraph{T},
 ) where {T}
     return graph.root_children
@@ -581,9 +581,10 @@ function sample_scenario(
     #maintain a global list of paths
     scenario_paths         = Dict{Int, Vector{Tuple{T, Any}}}()
     scenario_paths_noiseid = Dict{Int, Vector{Int}}()
+    scenario_paths_prob    = Dict{Int, Float64}()
 
     #maintain a lifo
-    lifo = [(node_index, noise.term, noise.id) for noise in current_node.noise_terms]
+    lifo = [(node_index, noise.term, noise.probability, noise.id) for noise in current_node.noise_terms]
 
     #current path
     current_path         = Tuple{T, Any}[]
@@ -591,7 +592,7 @@ function sample_scenario(
     #current noiseid path
     current_path_noiseid = Int[]
 
-    
+    current_probs        = Float64[]
     m = 1
 
     # while lifo is unempty
@@ -603,14 +604,17 @@ function sample_scenario(
         
         path_node_index = path_node[1]
         path_node_term  = path_node[2]
-        path_node_id    = path_node[3]
+        path_node_prob  = path_node[3]
+        path_node_id    = path_node[4]
         
-        current_path = current_path[1:path_node_index-1]
+        current_path         = current_path[1:path_node_index-1]
         current_path_noiseid = current_path_noiseid[1:path_node_index-1]
+        current_probs        = current_probs[1:path_node_index-1]
 
         #add the node to the current path
         push!(current_path, (path_node_index, path_node_term))
         push!(current_path_noiseid, path_node_id)
+        push!(current_probs, path_node_prob)
         
         #add all children of that node to lifo
         node_now        = graph[path_node_index]
@@ -621,6 +625,7 @@ function sample_scenario(
         if child_count == 0
             scenario_paths[m]         = current_path
             scenario_paths_noiseid[m] = current_path_noiseid
+            scenario_paths_prob[m]    = foldl(*, current_probs)
             m                         += 1
         elseif child_count > 1
             return error("Internal SDDP error: not a linear policy graph")
@@ -633,7 +638,7 @@ function sample_scenario(
         end
     end
 
-    return scenario_paths, scenario_paths_noiseid
+    return scenario_paths, scenario_paths_noiseid, scenario_paths_prob
 end
 
 
