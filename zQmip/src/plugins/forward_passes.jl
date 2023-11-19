@@ -343,6 +343,7 @@ function forward_pass(
             scenario_paths                = options.scenario_paths
             scenario_paths_noises         = options.scenario_paths_noises
             scenario_paths_prob           = options.scenario_paths_prob
+        end
     end
     
     
