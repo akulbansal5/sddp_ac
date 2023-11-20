@@ -639,8 +639,10 @@ function sample_scenario(
             node_next     = node_now_childs[1]
             index_next    = node_next.term
             node_next_obj = graph[index_next]
-
-            for noise in node_next_obj.noise_terms 
+            println("collecting info inside else")
+            for noise in node_next_obj.noise_terms
+                println(typeof(noise))
+                println(typeof(lifo)) 
                 push!(lifo, (index_next, noise.term, noise.probability, noise.id))
             end
         end
