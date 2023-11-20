@@ -707,7 +707,7 @@ mutable struct PolicyGraph{T}
     #number of threads to use from within the optimization solver
     solver_threads::Union{Nothing, Number}
     scenario_paths::Dict{Int, Vector{Tuple{T, Any}}}
-    scenario_scenario_paths_noises::Dict{Int, Vector{Int}}
+    scenario_paths_noises::Dict{Int, Vector{Int}}
     scenario_paths_prob::Dict{Int, Float64}
 
     function PolicyGraph(sense::Symbol, root_node::T, solver_threads::Union{Nothing, Number}) where {T}
