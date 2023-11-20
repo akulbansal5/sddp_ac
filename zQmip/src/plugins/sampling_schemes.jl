@@ -583,6 +583,8 @@ function sample_scenario(
     scenario_paths_noiseid = Dict{Int, Vector{Int}}()
     scenario_paths_prob    = Dict{Int, Float64}()
 
+    println("type of node: $(typeof(current_node))")
+
     #maintain a lifo
     lifo = [(node_index, noise.term, noise.probability, noise.id) for noise in current_node.noise_terms]
 
@@ -600,7 +602,6 @@ function sample_scenario(
         
         #get a node from lifo
         path_node       = pop!(lifo)
-
         
         path_node_index = path_node[1]
         path_node_term  = path_node[2]
@@ -630,9 +631,11 @@ function sample_scenario(
         elseif child_count > 1
             return error("Internal SDDP error: not a linear policy graph")
         else
-            node_next   = node_now_childs[1]
-            index_next  = node_next.term
-            for noise in node_next.noise_terms 
+            node_next     = node_now_childs[1]
+            index_next    = node_next.term
+            node_next_obj = graph[index_next]
+
+            for noise in node_next_obj.noise_terms 
                 push!(lifo, (index_next, noise.term, noise.id))
             end
         end
