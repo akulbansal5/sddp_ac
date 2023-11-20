@@ -583,7 +583,7 @@ function sample_scenario(
     scenario_paths_noiseid = Dict{Int, Vector{Int}}()
     scenario_paths_prob    = Dict{Int, Float64}()
 
-    println("type of node: $(typeof(current_node))")
+    # println("type of node: $(typeof(current_node))")
 
     #maintain a lifo
     lifo = Tuple{Int64, Any, Float64, Int64}[]
@@ -626,12 +626,12 @@ function sample_scenario(
         node_now_childs =  node_now.children
         child_count     = length(node_now_childs)
 
-        println("gathered all the relevant info inside the while loop")
+        # println("gathered all the relevant info inside the while loop")
         
 
         #if no children of that node then we have hit a leaf node and the current path is complete
         if child_count == 0
-            println("the first if statement")
+            # println("the first if statement")
             scenario_paths[m]         = current_path
             scenario_paths_noiseid[m] = current_path_noiseid
             scenario_paths_prob[m]    = foldl(*, current_probs)
@@ -639,22 +639,22 @@ function sample_scenario(
         elseif child_count > 1
             return error("Internal SDDP error: not a linear policy graph")
         else
-            println("the else condition")
+            # println("the else condition")
             node_next     = node_now_childs[1]
-            println("type of node next: $(typeof(node_next))")
+            # println("type of node next: $(typeof(node_next))")
             index_next    = node_next.term
             node_next_obj = graph[index_next]
-            println("collecting info inside else")
+            # println("collecting info inside else")
             for noise in node_next_obj.noise_terms
-                println(typeof(noise))
-                println(typeof(lifo)) 
+                # println(typeof(noise))
+                # println(typeof(lifo)) 
                 push!(lifo, (index_next, noise.term, noise.probability, noise.id))
             end
         end
-        println("End of the while loop iteration")
+        # println("End of the while loop iteration")
     end
     
-    println("scenario sampled successfully")
+    # println("scenario sampled successfully")
     
 
     return scenario_paths, scenario_paths_noiseid, scenario_paths_prob

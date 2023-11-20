@@ -1489,7 +1489,7 @@ function train(
     end
 
     if record_every_seconds === nothing || length(output_results) < log_count
-        println("GOOD: entering the if statement")
+        # println("GOOD: entering the if statement")
         model.most_recent_training_results = training_results
         best_bound = training_results.log[end].bound
         μ, σ = confidence_interval(map(l -> l.simulation_value, training_results.log))

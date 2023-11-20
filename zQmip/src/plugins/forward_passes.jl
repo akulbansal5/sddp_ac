@@ -346,7 +346,7 @@ function forward_pass(
         end
     end
     
-    println("")
+    # println("")
     # final_node = scenario_path[end]
     # if terminated_due_to_cycle && !pass.include_last_node
     #     pop!(scenario_path)
