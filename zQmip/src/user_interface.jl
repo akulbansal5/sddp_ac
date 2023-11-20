@@ -584,7 +584,7 @@ struct Noise{T}
     id::Int
 
     #adding a unique id for noise
-    function Noise(term::T, probability::Float64, id::Int = 0) where {T}
+    function Noise(term::T, probability::Float64, id::Int = 1) where {T}
         new{T}(term, probability, id)
     end
 end
@@ -927,7 +927,6 @@ function PolicyGraph(
     # These arguments are deprecated
     bellman_function = nothing,
     direct_mode::Bool = false,
-
 ) where {T}
     # Spend a one-off cost validating the graph.
     _validate_graph(graph)
@@ -1030,6 +1029,9 @@ function PolicyGraph(
     end
     return policy_graph
 end
+
+
+
 
 # Internal function: set up ::BeliefState for each node.
 function initialize_belief_states(

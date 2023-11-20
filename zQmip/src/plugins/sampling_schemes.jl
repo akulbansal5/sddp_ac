@@ -586,7 +586,11 @@ function sample_scenario(
     println("type of node: $(typeof(current_node))")
 
     #maintain a lifo
-    lifo = [(node_index, noise.term, noise.probability, noise.id) for noise in current_node.noise_terms]
+    lifo = Vector{Tuple{Int64, Any, Float64, Int64}}[]
+
+    for noise in current_node.noise_terms
+        push!(lifo, (node_index, noise.term, noise.probability, noise.id))
+    end
 
     #current path
     current_path         = Tuple{T, Any}[]
@@ -637,6 +641,7 @@ function sample_scenario(
         else
             println("the else condition")
             node_next     = node_now_childs[1]
+            println("type of node next: $(typeof(node_next))")
             index_next    = node_next.term
             node_next_obj = graph[index_next]
             println("collecting info inside else")
@@ -650,6 +655,7 @@ function sample_scenario(
     end
     
     println("scenario sampled successfully")
+    
 
     return scenario_paths, scenario_paths_noiseid, scenario_paths_prob
 end
