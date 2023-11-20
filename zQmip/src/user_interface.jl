@@ -706,6 +706,9 @@ mutable struct PolicyGraph{T}
     timer_output::TimerOutputs.TimerOutput
     #number of threads to use from within the optimization solver
     solver_threads::Union{Nothing, Number}
+    scenario_paths::Dict{Int, Vector{Tuple{T, Any}}}
+    scenario_scenario_paths_noises::Dict{Int, Vector{Int}}
+    scenario_paths_prob::Dict{Int, Float64}
 
     function PolicyGraph(sense::Symbol, root_node::T, solver_threads::Union{Nothing, Number}) where {T}
         if sense != :Min && sense != :Max
@@ -725,6 +728,9 @@ mutable struct PolicyGraph{T}
             Dict{Symbol,Any}(),
             TimerOutputs.TimerOutput(),
             solver_threads,
+            Dict{Int, Vector{Tuple{T, Any}}}(),
+            Dict{Int, Vector{Int}}(),
+            Dict{Int, Float64}()
         )
     end
 end

@@ -336,17 +336,17 @@ function forward_pass(
             scenario_paths, scenario_paths_noises, scenario_paths_prob =
                 sample_scenario(model, options.sampling_scheme)
 
-            options.scenario_paths        = scenario_paths
-            options.scenario_paths_noises = scenario_paths_noises
-            options.scenario_paths_prob   = scenario_paths_prob
+            model.scenario_paths        = scenario_paths
+            model.scenario_paths_noises = scenario_paths_noises
+            model.scenario_paths_prob   = scenario_paths_prob
         else
-            scenario_paths                = options.scenario_paths
-            scenario_paths_noises         = options.scenario_paths_noises
-            scenario_paths_prob           = options.scenario_paths_prob
+            scenario_paths                = model.scenario_paths
+            scenario_paths_noises         = model.scenario_paths_noises
+            scenario_paths_prob           = model.scenario_paths_prob
         end
     end
     
-    
+    println("")
     # final_node = scenario_path[end]
     # if terminated_due_to_cycle && !pass.include_last_node
     #     pop!(scenario_path)
@@ -354,11 +354,11 @@ function forward_pass(
 
     # println("===== forward pass started successfully")
     #number of scenario paths
-    M = length(scenario_paths)
+    M              = length(scenario_paths)
     # Storage for the list of outgoing states that we visit on the forward pass.
     sampled_states = Dict(i => Dict{Symbol,Float64}[] for i in 1:M)
     #storage for objective function on forward pass
-    costtogo = Dict(i => Dict{Int64, Float64}() for i in 1:M)
+    costtogo       = Dict(i => Dict{Int64, Float64}() for i in 1:M)
 
     # Storage for the belief states: partition index and the belief dictionary.
     belief_states = Dict(i => Tuple{Int,Dict{T,Float64}}[] for i in 1:M)
@@ -376,9 +376,7 @@ function forward_pass(
     #Iterate down the scenario paths
     for i in 1:M
         incoming_state_value = copy(options.initial_state)
-        
-        
-        scenario_path = scenario_paths[i]
+        scenario_path        = scenario_paths[i]
         scenario_path_noises = scenario_paths_noises[i]
         
         # Iterate down the scenario.
