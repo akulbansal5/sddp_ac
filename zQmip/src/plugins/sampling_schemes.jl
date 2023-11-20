@@ -586,7 +586,7 @@ function sample_scenario(
     println("type of node: $(typeof(current_node))")
 
     #maintain a lifo
-    lifo = Vector{Tuple{Int64, Any, Float64, Int64}}[]
+    lifo = Tuple{Int64, Any, Float64, Int64}[]
 
     for noise in current_node.noise_terms
         push!(lifo, (node_index, noise.term, noise.probability, noise.id))
