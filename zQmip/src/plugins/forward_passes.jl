@@ -417,7 +417,7 @@ function forward_pass(
                 
                 cumulative_values[i] = cumulative_values[i] + subproblem_results.stage_objective
 
-                println("Iter: $(iterations), path: $(i), stage: $(depth), node: $(node), noise: $(noiseid), 
+                println("Iter: $(iterations), path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), 
                 st_obj: $(subproblem_results.stage_objective), prob: $(scenario_paths_prob[i])")
 
                 # Set the outgoing state value as the incoming state value for the next #node.
