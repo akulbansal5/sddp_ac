@@ -437,12 +437,12 @@ function forward_pass(
             end
             # println("       path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(subproblem_results.stage_objective), prob: $(scenario_paths_prob[i])")
         end
-        println("   path: $(i), cumm_value: $(cumulative_values[i])")
+        # println("   path: $(i), cumm_value: $(cumulative_values[i])")
     end
     
     # cumulative_value = Dict(i => 0.0 for i in 1:M)
     stat_ub =  sum([cumulative_values[i]*scenario_paths_prob[i] for i in 1:M])
-    println("Iter: $(iterations), stat_ub: $(stat_ub)")
+    # println("Iter: $(iterations), stat_ub: $(stat_ub)")
 
 
     # std_cost  =  Statistics.std(cum_paths)

@@ -809,7 +809,7 @@ function LinearPolicyGraph(builder::Function; stages::Int, kwargs...)
     if stages < 1
         error("You must create a LinearPolicyGraph with `stages >= 1`.")
     end
-    println("building Linear policy graph")
+    # println("building Linear policy graph")
     return PolicyGraph(builder, LinearGraph(stages); kwargs...)
 end
 
@@ -940,7 +940,7 @@ function PolicyGraph(
     # Construct a basic policy graph. We will add to it in the remainder of this
     # function.
     policy_graph = PolicyGraph(sense, graph.root_node, solver_threads)
-    println("created policy graph object")
+    # println("created policy graph object")
 
 
     # Create a Bellman function if one is not given.
@@ -964,7 +964,7 @@ function PolicyGraph(
     end
     # Initialize nodes.
     for (node_index, children) in graph.nodes
-        println("   ==== initialization for node $(node_index)")
+        # println("   ==== initialization for node $(node_index)")
         if node_index == graph.root_node
             continue
         end
@@ -1001,7 +1001,7 @@ function PolicyGraph(
         
         builder(subproblem, node_index)
 
-        println("   ==== built for node $(node_index)")
+        # println("   ==== built for node $(node_index)")
         # Add a dummy noise here so that all nodes have at least one noise term.
         if length(node.noise_terms) == 0
             push!(node.noise_terms, Noise(nothing, 1.0))
@@ -1012,7 +1012,7 @@ function PolicyGraph(
             (JuMP.VariableRef, MOI.ZeroOne) in ctypes
     end
 
-    println("   ==== looping back through node childs")
+    # println("   ==== looping back through node childs")
     # Loop back through and add the arcs/children.
     for (node_index, children) in graph.nodes
         if node_index == graph.root_node
@@ -1027,7 +1027,7 @@ function PolicyGraph(
             initialize_bellman_function(bellman_function, policy_graph, node)
     end
 
-    println("   ==== adding root nodes")
+    # println("   ==== adding root nodes")
     # Add root nodes
     for (child, probability) in graph.nodes[graph.root_node]
         push!(policy_graph.root_children, Noise(child, probability))
