@@ -329,10 +329,10 @@ function forward_pass(
     # println(options.sampling_scheme)
     # println("----")
 
-
+    iterations = length(options.log)
     TimerOutputs.@timeit model.timer_output "sample_scenario" begin
         
-        if length(options.log) < 1
+        if iterations < 1
             scenario_paths, scenario_paths_noises, scenario_paths_prob =
                 sample_scenario(model, options.sampling_scheme)
 
@@ -385,7 +385,7 @@ function forward_pass(
             
             node    = model[node_index]
             noiseid = scenario_path_noises[depth]
-
+            
 
             # NOTE: No objective state interpolation here
             # NOTE: No update in belief state etc.
@@ -417,6 +417,9 @@ function forward_pass(
                 
                 cumulative_values[i] = cumulative_values[i] + subproblem_results.stage_objective
 
+                println("Iter: $(iterations), path: $(i), stage: $(depth), node: $(node), noise: $(noiseid), 
+                st_obj: $(subproblem_results.stage_objective), prob: $(scenario_paths_prob[i])")
+
                 # Set the outgoing state value as the incoming state value for the next #node.
                 incoming_state_value = copy(subproblem_results.state)
 
@@ -436,8 +439,8 @@ function forward_pass(
     
     # cumulative_value = Dict(i => 0.0 for i in 1:M)
     stat_ub =  sum([cumulative_values[i]*scenario_paths_prob[i] for i in 1:M])
+    println("Iter: $(iteration), stat_ub: $(stat_ub)")
 
-    
 
     # std_cost  =  Statistics.std(cum_paths)
     # avg_cost  =  Statistics.mean(cum_paths)

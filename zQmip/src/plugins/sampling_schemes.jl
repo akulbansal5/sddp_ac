@@ -612,6 +612,7 @@ function sample_scenario(
         path_node_prob  = path_node[3]
         path_node_id    = path_node[4]
         
+        
         current_path         = current_path[1:path_node_index-1]
         current_path_noiseid = current_path_noiseid[1:path_node_index-1]
         current_probs        = current_probs[1:path_node_index-1]
