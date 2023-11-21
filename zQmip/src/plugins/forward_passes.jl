@@ -276,9 +276,9 @@ function forward_pass(
     
     # cumulative_value = Dict(i => 0.0 for i in 1:M)
     cum_paths =  [cumulative_values[i] for i in 1:M]
-    # std_cost  =  Statistics.std(cum_paths)
-    # avg_cost  =  Statistics.mean(cum_paths)
-    stat_ub   =  Statistics.quantile(cum_paths, 0.95)
+    std_cost  =  Statistics.std(cum_paths)
+    avg_cost  =  Statistics.mean(cum_paths)
+    stat_ub   =  avg_cost + 1.6*std_cost
 
     # println(" ======== successfully executed the multi-forward pass ======== ")
 
@@ -442,11 +442,14 @@ function forward_pass(
     
     # cumulative_value = Dict(i => 0.0 for i in 1:M)
     stat_ub =  sum([cumulative_values[i]*scenario_paths_prob[i] for i in 1:M])
-    # println("Iter: $(iterations), stat_ub: $(stat_ub)")
+
+    # cum_all = [cumulative_values[i] for i in 1:M]
+    # # println("Iter: $(iterations), stat_ub: $(stat_ub)")
 
 
-    # std_cost  =  Statistics.std(cum_paths)
-    # avg_cost  =  Statistics.mean(cum_paths)
+    # std_cost  =  Statistics.std(cum_all)
+    # avg_cost  =  Statistics.mean(cum_all)
+    # stat_ub   =  avg_cost + 1.6*std_cost
     # stat_ub   =  Statistics.quantile(cum_paths, 0.95)
 
     # println(" ======== successfully executed the multi-forward pass ======== ")
