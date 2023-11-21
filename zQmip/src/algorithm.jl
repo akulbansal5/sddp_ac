@@ -1112,8 +1112,10 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
             ),
         )
 
-        println("Iter: $(length(options.log)), bound: $(bound), ub: {forward_trajectory.cumulative_value}, changes: $(count_first_stage_changes(options.log))")
-
+        if length(options.log) > 1
+            println("Iter: $(length(options.log)), bound: $(bound), ub: {forward_trajectory.cumulative_value}, changes: $(count_first_stage_changes(options.log))")
+        end
+        
         has_converged, status =
             convergence_test(model, options.log, options.stopping_rules)
         return IterationResult(
