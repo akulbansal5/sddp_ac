@@ -392,7 +392,9 @@ function forward_pass(
             # NOTE: No infinite horizon problem here
             # NOTE: No termination due to cycle over here
             # println("Inside forward pass -> Dpeth: $(depth), Node index: $(node_index), Noise ID: $(noiseid)")
-            #Takes care of the overlapping scenario paths
+            # Takes care of the overlapping scenario paths
+
+            
             if haskey(items.cached_solutions, (node_index, noiseid))
                 sol_index               = items.cached_solutions[(node_index, noiseid)]
                 cumulative_values[i]     = cumulative_values[i] + items.stage_objective[sol_index]
@@ -417,7 +419,7 @@ function forward_pass(
                 
                 cumulative_values[i] = cumulative_values[i] + subproblem_results.stage_objective
 
-                println("Iter: $(iterations), path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(subproblem_results.stage_objective), prob: $(scenario_paths_prob[i])")
+                
 
                 # Set the outgoing state value as the incoming state value for the next #node.
                 incoming_state_value = copy(subproblem_results.state)
@@ -433,6 +435,7 @@ function forward_pass(
                 push!(items.costtogo, costtogo[i][node_index])
                 items.cached_solutions[(node_index, noiseid)] = length(items.costtogo)
             end
+            println("       path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(subproblem_results.stage_objective), prob: $(scenario_paths_prob[i])")
         end
     end
     
