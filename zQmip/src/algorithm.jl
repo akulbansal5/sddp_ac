@@ -1115,7 +1115,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         if length(options.log) > 1
             println("Iter: $(length(options.log)), bound: $(bound), ub: {forward_trajectory.cumulative_value}, changes: $(count_first_stage_changes(options.log))")
         end
-        
+
         has_converged, status =
             convergence_test(model, options.log, options.stopping_rules)
         return IterationResult(
@@ -1152,11 +1152,17 @@ function count_first_stage_changes(log_vector::Vector{Log})
     for i in min(2,length(log_vector)):length(log_vector)
         old = log_vector[i-1].master_state
         current = log_vector[i].master_state
+
+        # for (key, value) in old
+        #     if haskey(current, key)
+        #         if round(Int, current[key]) != round(Int, I)
+        
         old_int     = Dict(key => round(Int, value) for (key, value) in old)
         current_int = Dict(key => round(Int, value) for (key, value) in current)
         if (old_int != current_int)
             count += 1
         end
+
     end
     return count
 end
