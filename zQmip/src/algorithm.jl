@@ -1094,6 +1094,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         TimerOutputs.@timeit model.timer_output "calculate_bound" begin
             bound = calculate_bound(model)
         end
+
         push!(
             options.log,
             Log(
@@ -1110,6 +1111,9 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
                 cuts_nonstd,
             ),
         )
+
+        println("Iter: $(length(options.log)), bound: $(bound), ub: {forward_trajectory.cumulative_value}, changes: $(count_first_stage_changes(options.log))")
+
         has_converged, status =
             convergence_test(model, options.log, options.stopping_rules)
         return IterationResult(
