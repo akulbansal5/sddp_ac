@@ -435,8 +435,9 @@ function forward_pass(
                 push!(items.costtogo, costtogo[i][node_index])
                 items.cached_solutions[(node_index, noiseid)] = length(items.costtogo)
             end
-            println("       path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(subproblem_results.stage_objective), prob: $(scenario_paths_prob[i])")
+            # println("       path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(subproblem_results.stage_objective), prob: $(scenario_paths_prob[i])")
         end
+        println("   path: $(i), cumm_value: $(cumulative_values[i])")
     end
     
     # cumulative_value = Dict(i => 0.0 for i in 1:M)
