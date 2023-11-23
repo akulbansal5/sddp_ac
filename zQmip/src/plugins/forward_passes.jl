@@ -417,8 +417,15 @@ function forward_pass(
                 # println("   =========== ended solve subproblem")
                 # Cumulate the stage_objective.
                 
-                cumulative_values[i] = cumulative_values[i] + subproblem_results.stage_objective
 
+                theta_val = JuMP.value(node.bellman_function.global_theta.theta)
+                total_obj = subproblem_results.objective
+                stage_OBJ = subproblem_results.stage_objective
+
+                # @assert total_obj - theta_val == stage_OBJ
+                @assert isapprox(total_obj - theta_val, stage_OBJ, atol=1e-1)
+                cumulative_values[i] = cumulative_values[i] + subproblem_results.stage_objective
+                
                 
 
                 # Set the outgoing state value as the incoming state value for the next #node.

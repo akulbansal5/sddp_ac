@@ -1096,6 +1096,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
             println("lower bound: $(bound)")
         end
 
+        
         push!(
             options.log,
             Log(
