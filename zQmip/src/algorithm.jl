@@ -1093,6 +1093,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         end
         TimerOutputs.@timeit model.timer_output "calculate_bound" begin
             bound = calculate_bound(model)
+            println("lower bound: $(bound)")
         end
 
         push!(

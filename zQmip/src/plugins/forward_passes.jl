@@ -336,9 +336,9 @@ function forward_pass(
             scenario_paths, scenario_paths_noises, scenario_paths_prob =
                 sample_scenario(model, options.sampling_scheme)
 
-            model.scenario_paths        = scenario_paths
-            model.scenario_paths_noises = scenario_paths_noises
-            model.scenario_paths_prob   = scenario_paths_prob
+            model.scenario_paths          = scenario_paths
+            model.scenario_paths_noises   = scenario_paths_noises
+            model.scenario_paths_prob     = scenario_paths_prob
         else
             scenario_paths                = model.scenario_paths
             scenario_paths_noises         = model.scenario_paths_noises
@@ -444,7 +444,7 @@ function forward_pass(
     stat_ub =  sum([cumulative_values[i]*scenario_paths_prob[i] for i in 1:M])
 
     # cum_all = [cumulative_values[i] for i in 1:M]
-    # # println("Iter: $(iterations), stat_ub: $(stat_ub)")
+    println("Iter: $(iterations), stat_ub: $(stat_ub)")
 
 
     # std_cost  =  Statistics.std(cum_all)
