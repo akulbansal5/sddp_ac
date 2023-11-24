@@ -1096,7 +1096,12 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
             println("lower bound: $(bound)")
         end
 
-        
+        if length(options.log) > 2
+            if isequal(forward_trajectory.sampled_states, options.log[end].sampled_states])
+                print("paths are exactly same")
+            end
+        end
+
         push!(
             options.log,
             Log(
@@ -1111,6 +1116,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
                 model.ext[:numerical_issue],
                 cuts_std,
                 cuts_nonstd,
+                forward_trajectory.sampled_states,
             ),
         )
 

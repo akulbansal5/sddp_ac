@@ -678,7 +678,35 @@ struct Log
     serious_numerical_issue::Bool
     cuts_std::Int
     cuts_nonstd::Int
+    sampled_states::Dict{Int, Vector{Dict{Symbol,Float64}}}
+    function Log(iteration::Int,
+        bound::Float64,
+        simulation_value::Float64,
+        master_state:: Dict{Symbol,Float64},
+        time::Float64,
+        pid::Int,
+        total_solves::Int,
+        duality_key::String,
+        serious_numerical_issue::Bool,
+        cuts_std::Int,
+        cuts_nonstd::Int,
+        sampled_states::Dict{Int, Vector{Dict{Symbol,Float64}}} = Dict{Int, Vector{Dict{Symbol,Float64}}}())
+        return new(iterations,
+            bound,
+            simulation_value,
+            master_state,
+            time,
+            pid,
+            total_solves,
+            duality_key,
+            serious_numerical_issue,
+            cuts_std,
+            cuts_nonstd,
+            sampled_states)
+    end
 end
+
+
 
 struct TrainingResults
     status::Symbol
