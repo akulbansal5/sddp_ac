@@ -650,10 +650,10 @@ function backward_pass(
     options::Options,
     pass::DefaultMultiBackwardPass,     
     scenario_paths::Dict{Int, Vector{Tuple{T, Any}}},
-    sampled_states::Dict{Int, Vector{Dict{Symbol,Float64}}},
+    sampled_states::Dict{Tuple{T,Int}, Dict{Symbol,Float64}},
     objective_states::Vector{NTuple{N,Float64}},
     belief_states::Dict{Int, Vector{Tuple{Int,Dict{T,Float64}}}},
-    costtogo::Dict{Int, Dict{Int64, Float64}},
+    costtogo::Dict{Int, Dict{Int, Float64}},
     scenario_trajectory::Dict{Tuple{T,Int}, Vector{Tuple{T, Any}}},
 ) where {T,N}
 
