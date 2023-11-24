@@ -678,7 +678,7 @@ struct Log
     serious_numerical_issue::Bool
     cuts_std::Int
     cuts_nonstd::Int
-    sampled_states::Dict{Int, Vector{Dict{Symbol,Float64}}}
+    sampled_states::Dict{Tuple{Int,Int}, Dict{Symbol,Float64}}
     function Log(iteration::Int,
         bound::Float64,
         simulation_value::Float64,
@@ -690,7 +690,7 @@ struct Log
         serious_numerical_issue::Bool,
         cuts_std::Int,
         cuts_nonstd::Int,
-        sampled_states::Dict{Int, Vector{Dict{Symbol,Float64}}} = Dict{Int, Vector{Dict{Symbol,Float64}}}())
+        sampled_states::Dict{Tuple{Int,Int}, Dict{Symbol,Float64}} = Dict{Tuple{Int,Int}, Dict{Symbol,Float64}}())
         return new(iteration,
             bound,
             simulation_value,
