@@ -1109,13 +1109,14 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
             end
         end
 
+        
         push!(
             options.log,
             Log(
                 length(options.log) + 1,
                 bound,
                 forward_trajectory.cumulative_value,
-                forward_trajectory.sampled_states[1][1],
+                forward_trajectory.sampled_states[(1,1)],
                 time() - options.start_time,
                 Distributed.myid(),
                 model.ext[:total_solves],
