@@ -697,6 +697,8 @@ function backward_pass(
         for noise_id in noiseids
             # println("       Index in scenario_path $index, path number: $(j)")
 
+
+            println("accessing key at: node_index: $(node_index), noise_id: $(noise_id)")
             outgoing_state = sampled_states[(node_index, noise_id)]
             
             visited_flag = false
@@ -723,7 +725,7 @@ function backward_pass(
             items = BackwardPassItems(T, Noise)
 
             
-            # println("solving all children")
+            println("solving all children")
             solve_all_children(
                 model,
                 node,
@@ -751,7 +753,7 @@ function backward_pass(
             # println("obj of node $(node_index)'s children: $(objofchildren_lp)")
 
             # println("       node: $(node_index), costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
-
+            println("accessing cost to go dictionary")
             if options.sense_signal*(costtogo[(node_index, noise_id)] -  objofchildren_lp) < 0
                 # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
                 new_cuts = refine_bellman_function(
