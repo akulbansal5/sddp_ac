@@ -711,10 +711,10 @@ function backward_pass(
             end
 
             # println("step 1")
-            objective_state = get(objective_states, index, nothing)
+            objective_state = nothing
 
             # println("step 2")
-            partition_index, belief_state = get(belief_states[j], index, (0, nothing))
+            partition_index, belief_state = (0, nothing)
             # println("step 3")
             items = BackwardPassItems(T, Noise)
 
