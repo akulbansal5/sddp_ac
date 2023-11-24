@@ -658,32 +658,38 @@ function backward_pass(
 ) where {T,N}
 
     # println("--starting backward pass--")
+
+    println("creating restore duality function")
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
         restore_duality =
             prepare_backward_pass(model, options.duality_handler, options)
     end
 
     # TODO(odow): improve storage type.
+    println("creating cuts object for storing cuts")
     cuts = Dict{T,Vector{Any}}(index => Any[] for index in keys(model.nodes))
     
 
+    println("initializing somr values to store")
     M           = length(scenario_paths)
     path_len    = length(scenario_paths[1])
     cuts_std    = 0           
     cuts_nonstd = 0
     # println("=============== initialization done in backward pass")
 
-
+    println("entering the first for loop")
     
-    for node_index in path_len-1:-1:1
+    for index in path_len-1:-1:1
         #note node_index is same as index in case of linear policy gtaphs
+        node_index = index
 
         # unique_outgoing_states
+        
         states_visited       = Dict{Int, Dict{Symbol,Float64}}()
         unique_noise_indices = []
+        noiseids             = keys(costtogo[node_index])
 
-        noiseids = keys(costtogo[node_index])
-
+        println("enterig the next for loop")
         for noise_id in noiseids
             # println("       Index in scenario_path $index, path number: $(j)")
 
