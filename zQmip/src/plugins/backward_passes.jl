@@ -656,7 +656,7 @@ function backward_pass(
     costtogo::Dict{Int, Dict{Int64, Float64}},
 ) where {T,N}
 
-    # println("--starting backward pass--")
+    println("--starting backward pass--")
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
         restore_duality =
             prepare_backward_pass(model, options.duality_handler, options)
@@ -818,6 +818,10 @@ function backward_pass(
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
         restore_duality()
     end
+
+
+
+    println("   number of cuts added: $(cuts_std)")
     # println("=============== finished backward pass ================== ")
     return cuts, cuts_std, cuts_nonstd
 end
