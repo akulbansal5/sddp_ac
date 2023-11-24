@@ -447,6 +447,10 @@ function forward_pass(
                 # on this forward pass.
                 sampled_states[(node_index, noiseid)] = incoming_state_value
                 cost_to_go                            = JuMP.value(node.bellman_function.global_theta.theta)
+
+                
+                println("cost to go nested dictionary: $(costtogo)")
+
                 costtogo[node_index][noiseid]         = cost_to_go
                 scenario_trajectory[(node_index, noiseid)] = scenario_path[1:depth]
                 
