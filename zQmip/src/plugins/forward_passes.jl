@@ -424,10 +424,13 @@ function forward_pass(
 
                 # @assert total_obj - theta_val == stage_OBJ
                 @assert isapprox(total_obj - theta_val, stage_OBJ, atol=1e-1)
+
+
+                println("stage_obj: $(stage_OBJ), calc_obj: $(total_obj - theta_val)")
                 cumulative_values[i] = cumulative_values[i] + subproblem_results.stage_objective
                 
                 
-
+                
                 # Set the outgoing state value as the incoming state value for the next #node.
                 incoming_state_value = copy(subproblem_results.state)
 
