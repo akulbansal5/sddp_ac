@@ -392,7 +392,7 @@ function forward_pass(
             node    = model[node_index]
             noiseid = scenario_path_noises[depth]
             
-            println("verifying: depth $(depth), node_index: $(node_index)")
+            # println("verifying: depth $(depth), node_index: $(node_index)")
             
 
             # NOTE: No objective state interpolation here
@@ -452,24 +452,24 @@ function forward_pass(
                 cost_to_go                            = JuMP.value(node.bellman_function.global_theta.theta)
 
                 
-                println("cost to go nested dictionary: $(costtogo)")
+                # println("cost to go nested dictionary: $(costtogo)")
 
-                println("dictionary accessed at nodeindex: $(node_index), noiseid: $(noiseid)")
+                # println("dictionary accessed at nodeindex: $(node_index), noiseid: $(noiseid)")
 
                 costtogo[node_index][noiseid]         = cost_to_go
 
-                println("cost to go access sucessful")
+                # println("cost to go access sucessful")
                 
                 scenario_trajectory[(node_index, noiseid)] = scenario_path[1:depth]
 
-                println("scenarion trajectory and scenario path successful")
+                # println("scenarion trajectory and scenario path successful")
                 
                 push!(items.stage_objective, stage_OBJ)
                 push!(items.incoming_state_value, incoming_state_value)
                 push!(items.costtogo, cost_to_go)
                 items.cached_solutions[(node_index, noiseid)] = length(items.stage_objective)
             end
-            println("       path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), prob: $(scenario_paths_prob[i])")
+            # println("       path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), prob: $(scenario_paths_prob[i])")
         end
         # println("   path: $(i), cumm_value: $(cumulative_values[i])")
     end
@@ -478,7 +478,7 @@ function forward_pass(
     stat_ub =  sum([cumulative_values[i]*scenario_paths_prob[i] for i in 1:M])
 
     # cum_all = [cumulative_values[i] for i in 1:M]
-    println("Iter: $(iterations), stat_ub: $(stat_ub)")
+    # println("Iter: $(iterations), stat_ub: $(stat_ub)")
 
 
     # std_cost  =  Statistics.std(cum_all)

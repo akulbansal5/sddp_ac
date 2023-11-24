@@ -659,25 +659,25 @@ function backward_pass(
 
     # println("--starting backward pass--")
 
-    println("creating restore duality function")
+    # println("creating restore duality function")
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
         restore_duality =
             prepare_backward_pass(model, options.duality_handler, options)
     end
 
     # TODO(odow): improve storage type.
-    println("creating cuts object for storing cuts")
+    # println("creating cuts object for storing cuts")
     cuts = Dict{T,Vector{Any}}(index => Any[] for index in keys(model.nodes))
     
 
-    println("initializing somr values to store")
+    # println("initializing somr values to store")
     M           = length(scenario_paths)
     path_len    = length(scenario_paths[1])
     cuts_std    = 0           
     cuts_nonstd = 0
     # println("=============== initialization done in backward pass")
 
-    println("entering the first for loop")
+    # println("entering the first for loop")
     
     for index in path_len-1:-1:1
         #note node_index is same as index in case of linear policy gtaphs
@@ -693,12 +693,12 @@ function backward_pass(
         unique_noise_indices = []
         noiseids             = keys(costtogo[node_index])
 
-        println("enterig the next for loop")
+        # println("enterig the next for loop")
         for noise_id in noiseids
             # println("       Index in scenario_path $index, path number: $(j)")
 
 
-            println("accessing key at: node_index: $(node_index), noise_id: $(noise_id)")
+            # println("accessing key at: node_index: $(node_index), noise_id: $(noise_id)")
             outgoing_state = sampled_states[(node_index, noise_id)]
             
             visited_flag = false
@@ -725,7 +725,7 @@ function backward_pass(
             items = BackwardPassItems(T, Noise)
 
             
-            println("solving all children")
+            # println("solving all children")
             solve_all_children(
                 model,
                 node,
@@ -753,7 +753,7 @@ function backward_pass(
             # println("obj of node $(node_index)'s children: $(objofchildren_lp)")
 
             # println("       node: $(node_index), costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
-            println("accessing cost to go dictionary")
+            # println("accessing cost to go dictionary")
             if options.sense_signal*(costtogo[node_index][noise_id] -  objofchildren_lp) < 0
                 # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
                 new_cuts = refine_bellman_function(

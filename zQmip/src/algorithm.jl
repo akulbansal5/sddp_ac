@@ -1066,7 +1066,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         )
     else
         model.ext[:numerical_issue] = false
-        println("=========== start forward pass ===============")
+        # println("=========== start forward pass ===============")
         TimerOutputs.@timeit model.timer_output "forward_pass" begin
             forward_trajectory = forward_pass(model, options, options.forward_pass)
             options.forward_pass_callback(forward_trajectory)
@@ -1080,7 +1080,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         # println(typeof(forward_trajectory.costtogo))
         # println("==================")
                 
-        println("=================== start backward pass ==============")
+        # println("=================== start backward pass ==============")
         TimerOutputs.@timeit model.timer_output "backward_pass" begin
             cuts, cuts_std, cuts_nonstd = backward_pass(
                 model,
@@ -1096,16 +1096,16 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         end
         iterations = length(options.log)
 
-        println("======================== calculate bound ==============")
+        # println("======================== calculate bound ==============")
         TimerOutputs.@timeit model.timer_output "calculate_bound" begin
             bound = calculate_bound(model)
-            println("Iter: $(iterations), lower_bound: $(bound)")
+            # println("Iter: $(iterations), lower_bound: $(bound)")
             # println("lower bound: $(bound)")
         end
 
         if length(options.log) > 2
             if isequal(forward_trajectory.sampled_states, options.log[end].sampled_states)
-                print("paths are exactly same")
+                # print("paths are exactly same")
             end
         end
 
