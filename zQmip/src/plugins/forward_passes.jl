@@ -405,7 +405,8 @@ function forward_pass(
             
             if haskey(items.cached_solutions, (node_index, noiseid))
                 sol_index               = items.cached_solutions[(node_index, noiseid)]
-                cumulative_values[i]     = cumulative_values[i] + items.stage_objective[sol_index]
+                stage_OBJ               = items.stage_objective[sol_index]
+                cumulative_values[i]     = cumulative_values[i] + stage_OBJ
                 # push!(sampled_states[i], copy(items.incoming_state_value[sol_index]))
                 # costtogo[i][(node_index, noiseid)] = items.costtogo[sol_index]
             else
@@ -428,14 +429,16 @@ function forward_pass(
 
                 # theta_val = JuMP.value(node.bellman_function.global_theta.theta)
                 # total_obj = subproblem_results.objective
-                # stage_OBJ = subproblem_results.stage_objective
+                
 
                 # @assert total_obj - theta_val == stage_OBJ
                 # @assert isapprox(total_obj - theta_val, stage_OBJ, atol=1e-1)
 
 
                 # println("stage_obj: $(stage_OBJ), calc_obj: $(total_obj - theta_val)")
-                cumulative_values[i] = cumulative_values[i] + subproblem_results.stage_objective
+
+                stage_OBJ            = subproblem_results.stage_objective
+                cumulative_values[i] = cumulative_values[i] + stage_OBJ
 
                 
                 
@@ -461,12 +464,12 @@ function forward_pass(
 
                 println("scenarion trajectory and scenario path successful")
                 
-                push!(items.stage_objective, subproblem_results.stage_objective)
+                push!(items.stage_objective, stage_OBJ)
                 push!(items.incoming_state_value, incoming_state_value)
                 push!(items.costtogo, cost_to_go)
                 items.cached_solutions[(node_index, noiseid)] = length(items.stage_objective)
             end
-            println("       path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(subproblem_results.stage_objective), cost-to-go: $(costtogo[node_index][noiseid]), prob: $(scenario_paths_prob[i])")
+            println("       path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), prob: $(scenario_paths_prob[i])")
         end
         # println("   path: $(i), cumm_value: $(cumulative_values[i])")
     end
