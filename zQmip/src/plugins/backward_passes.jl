@@ -654,9 +654,10 @@ function backward_pass(
     objective_states::Vector{NTuple{N,Float64}},
     belief_states::Dict{Int, Vector{Tuple{Int,Dict{T,Float64}}}},
     costtogo::Dict{Int, Dict{Int64, Float64}},
+    scenario_trajectory::Dict{Tuple{T,Int}, Vector{Tuple{T, Any}}},
 ) where {T,N}
 
-    println("--starting backward pass--")
+    # println("--starting backward pass--")
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
         restore_duality =
             prepare_backward_pass(model, options.duality_handler, options)
@@ -672,19 +673,24 @@ function backward_pass(
     cuts_nonstd = 0
     # println("=============== initialization done in backward pass")
 
-    for index in path_len:-1:1
+
+    
+    for node_index in path_len-1:-1:1
+        #note node_index is same as index in case of linear policy gtaphs
 
         # unique_outgoing_states
-        states_visited = Dict{Int, Dict{Symbol,Float64}}()
-        unique_path_indices = []
+        states_visited       = Dict{Int, Dict{Symbol,Float64}}()
+        unique_noise_indices = []
 
-        for j in 1:M
+        noiseids = keys(costtogo[node_index])
+
+        for noise_id in noiseids
             # println("       Index in scenario_path $index, path number: $(j)")
 
-            outgoing_state = sampled_states[j][index]
+            outgoing_state = sampled_states[(node_index, noise_id)]
             
             visited_flag = false
-            for h in unique_path_indices
+            for h in unique_noise_indices
                 if outgoing_state == states_visited[h]
                     visited_flag = true
                     break
@@ -694,27 +700,9 @@ function backward_pass(
             if visited_flag == true
                 continue
             else
-                states_visited[j] = outgoing_state
-                push!(unique_path_indices, j)
+                states_visited[noise_id] = outgoing_state
+                push!(unique_noise_indices, noise_id)
             end
-
-            scenario_path  = scenario_paths[j] 
-
-            # flag = false
-
-            # for old_state in unique_outgoing_states
-            #     if outgoing_state == old_state
-            #         flag = true
-            #         break
-            #     else
-            #         push!(old_state, outgoing_state)
-            #     end
-            # end
-
-            # if flag == true
-            #     continue
-            # end
-
 
             # println("step 1")
             objective_state = get(objective_states, index, nothing)
@@ -723,14 +711,7 @@ function backward_pass(
             partition_index, belief_state = get(belief_states[j], index, (0, nothing))
             # println("step 3")
             items = BackwardPassItems(T, Noise)
-            # println("formalities finished in for loop")
 
-            node_index, _ = scenario_path[index]
-            node = model[node_index]
-            if length(node.children) == 0
-                continue
-            end
-            
             
             # println("solving all children")
             solve_all_children(
@@ -742,7 +723,7 @@ function backward_pass(
                 objective_state,
                 outgoing_state,
                 options.backward_sampling_scheme,
-                scenario_path[1:index],
+                scenario_trajectory[(node_index, noise_id)],
                 options.duality_handler,
                 options.mipgap,
             )
@@ -761,7 +742,7 @@ function backward_pass(
 
             # println("       node: $(node_index), costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
 
-            if options.sense_signal*(costtogo[j][node_index] -  objofchildren_lp) < 0
+            if options.sense_signal*(costtogo[(node_index, noise_id)] -  objofchildren_lp) < 0
                 # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
                 new_cuts = refine_bellman_function(
                     model,
@@ -821,7 +802,7 @@ function backward_pass(
 
 
 
-    println("   number of cuts added: $(cuts_std)")
+    # println("   number of cuts added: $(cuts_std)")
     # println("=============== finished backward pass ================== ")
     return cuts, cuts_std, cuts_nonstd
 end

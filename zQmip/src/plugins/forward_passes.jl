@@ -345,6 +345,8 @@ function forward_pass(
             scenario_paths_prob           = model.scenario_paths_prob
         end
     end
+
+
     
     # println("")
     # final_node = scenario_path[end]
@@ -356,9 +358,12 @@ function forward_pass(
     #number of scenario paths
     M              = length(scenario_paths)
     # Storage for the list of outgoing states that we visit on the forward pass.
-    sampled_states = Dict(i => Dict{Symbol,Float64}[] for i in 1:M)
+    sampled_states = Dict{Tuple{T,Int}, Dict{Symbol,Float64}}()
     #storage for objective function on forward pass
-    costtogo       = Dict(i => Dict{Int64, Float64}() for i in 1:M)
+    costtogo       = Dict{T, Dict{Int, Float64}}()
+
+    
+    scenario_trajectory = Dict{Tuple{T,Int}, Vector{Tuple{T, Any}}}()
 
     # Storage for the belief states: partition index and the belief dictionary.
     belief_states = Dict(i => Tuple{Int,Dict{T,Float64}}[] for i in 1:M)
@@ -398,8 +403,8 @@ function forward_pass(
             if haskey(items.cached_solutions, (node_index, noiseid))
                 sol_index               = items.cached_solutions[(node_index, noiseid)]
                 cumulative_values[i]     = cumulative_values[i] + items.stage_objective[sol_index]
-                push!(sampled_states[i], copy(items.incoming_state_value[sol_index]))
-                costtogo[i][node_index] = items.costtogo[sol_index]
+                # push!(sampled_states[i], copy(items.incoming_state_value[sol_index]))
+                # costtogo[i][(node_index, noiseid)] = items.costtogo[sol_index]
             else
                 # println("   =========== executing solve subproblem")
                 # Solve the subproblem, note that `duality_handler = nothing`.
@@ -418,16 +423,17 @@ function forward_pass(
                 # Cumulate the stage_objective.
                 
 
-                theta_val = JuMP.value(node.bellman_function.global_theta.theta)
-                total_obj = subproblem_results.objective
-                stage_OBJ = subproblem_results.stage_objective
+                # theta_val = JuMP.value(node.bellman_function.global_theta.theta)
+                # total_obj = subproblem_results.objective
+                # stage_OBJ = subproblem_results.stage_objective
 
                 # @assert total_obj - theta_val == stage_OBJ
-                @assert isapprox(total_obj - theta_val, stage_OBJ, atol=1e-1)
+                # @assert isapprox(total_obj - theta_val, stage_OBJ, atol=1e-1)
 
 
-                println("stage_obj: $(stage_OBJ), calc_obj: $(total_obj - theta_val)")
+                # println("stage_obj: $(stage_OBJ), calc_obj: $(total_obj - theta_val)")
                 cumulative_values[i] = cumulative_values[i] + subproblem_results.stage_objective
+
                 
                 
                 
@@ -436,16 +442,17 @@ function forward_pass(
 
                 # Add the outgoing state variable to the list of states we have sampled
                 # on this forward pass.
-                push!(sampled_states[i], incoming_state_value)
-                costtogo[i][node_index] = JuMP.value(node.bellman_function.global_theta.theta)
-                #update items.cached_solutions
-
+                sampled_states[(node_index, noiseid)] = incoming_state_value
+                cost_to_go                            = JuMP.value(node.bellman_function.global_theta.theta)
+                costtogo[node_index][noiseid]         = cost_to_go
+                scenario_trajectory[(node_index, noiseid)] = scenario_path[1:depth]
+                
                 push!(items.stage_objective, subproblem_results.stage_objective)
                 push!(items.incoming_state_value, incoming_state_value)
-                push!(items.costtogo, costtogo[i][node_index])
-                items.cached_solutions[(node_index, noiseid)] = length(items.costtogo)
+                push!(items.costtogo, cost_to_go)
+                items.cached_solutions[(node_index, noiseid)] = length(items.stageobjective)
             end
-            # println("       path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(subproblem_results.stage_objective), prob: $(scenario_paths_prob[i])")
+            println("       path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(subproblem_results.stage_objective), cost-to-go: $(costtogo[i][node_index]), prob: $(scenario_paths_prob[i])")
         end
         # println("   path: $(i), cumm_value: $(cumulative_values[i])")
     end
@@ -471,6 +478,7 @@ function forward_pass(
         belief_states    = belief_states,
         cumulative_value = stat_ub,
         costtogo         = costtogo,
+        scenario_trajectory = scenario_trajectory,
     )
 end
 

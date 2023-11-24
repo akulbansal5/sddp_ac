@@ -1078,7 +1078,8 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         # println(typeof(forward_trajectory.belief_states))
         # println(typeof(forward_trajectory.costtogo))
         # println("==================")
-        
+                
+
         TimerOutputs.@timeit model.timer_output "backward_pass" begin
             cuts, cuts_std, cuts_nonstd = backward_pass(
                 model,
@@ -1088,12 +1089,16 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
                 forward_trajectory.sampled_states,
                 forward_trajectory.objective_states,
                 forward_trajectory.belief_states,
-                forward_trajectory.costtogo
+                forward_trajectory.costtogo,
+                forward_trajectory.scenario_trajectory
             )
         end
+        iterations = length(options.log)
+
         TimerOutputs.@timeit model.timer_output "calculate_bound" begin
             bound = calculate_bound(model)
-            println("lower bound: $(bound)")
+            println("Iter: $(iterations), lower_bound: $(bound)")
+            # println("lower bound: $(bound)")
         end
 
         if length(options.log) > 2
