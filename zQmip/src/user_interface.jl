@@ -691,7 +691,7 @@ struct Log
         cuts_std::Int,
         cuts_nonstd::Int,
         sampled_states::Dict{Int, Vector{Dict{Symbol,Float64}}} = Dict{Int, Vector{Dict{Symbol,Float64}}}())
-        return new(iterations,
+        return new(iteration,
             bound,
             simulation_value,
             master_state,
