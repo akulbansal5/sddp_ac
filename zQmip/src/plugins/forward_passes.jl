@@ -357,10 +357,11 @@ function forward_pass(
     # println("===== forward pass started successfully")
     #number of scenario paths
     M              = length(scenario_paths)
+    path_len       = length(scenario_paths[1])
     # Storage for the list of outgoing states that we visit on the forward pass.
     sampled_states = Dict{Tuple{T,Int}, Dict{Symbol,Float64}}()
     #storage for objective function on forward pass
-    costtogo       = Dict{T, Dict{Int, Float64}}()
+    costtogo       = Dict(i => Dict{Int, Float64}() for i in 1:path_len)
 
     
     scenario_trajectory = Dict{Tuple{T,Int}, Vector{Tuple{T, Any}}}()
@@ -390,6 +391,8 @@ function forward_pass(
             
             node    = model[node_index]
             noiseid = scenario_path_noises[depth]
+            
+            println("verifying: depth $(depth), node_index: $(node_index)")
             
 
             # NOTE: No objective state interpolation here
