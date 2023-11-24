@@ -453,7 +453,7 @@ function forward_pass(
                 push!(items.stage_objective, subproblem_results.stage_objective)
                 push!(items.incoming_state_value, incoming_state_value)
                 push!(items.costtogo, cost_to_go)
-                items.cached_solutions[(node_index, noiseid)] = length(items.stageobjective)
+                items.cached_solutions[(node_index, noiseid)] = length(items.stage_objective)
             end
             println("       path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(subproblem_results.stage_objective), cost-to-go: $(costtogo[i][node_index]), prob: $(scenario_paths_prob[i])")
         end
