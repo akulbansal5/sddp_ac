@@ -1097,7 +1097,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         end
 
         if length(options.log) > 2
-            if isequal(forward_trajectory.sampled_states, options.log[end].sampled_states])
+            if isequal(forward_trajectory.sampled_states, options.log[end].sampled_states)
                 print("paths are exactly same")
             end
         end
