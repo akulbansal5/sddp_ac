@@ -451,8 +451,15 @@ function forward_pass(
                 
                 println("cost to go nested dictionary: $(costtogo)")
 
+                println("dictionary accessed at nodeindex: $(node_index), noiseid: $(noiseid)")
+
                 costtogo[node_index][noiseid]         = cost_to_go
+
+                println("cost to go access sucessful")
+                
                 scenario_trajectory[(node_index, noiseid)] = scenario_path[1:depth]
+
+                println("scenarion trajectory and scenario path successful")
                 
                 push!(items.stage_objective, subproblem_results.stage_objective)
                 push!(items.incoming_state_value, incoming_state_value)
