@@ -682,6 +682,10 @@ function backward_pass(
     for index in path_len-1:-1:1
         #note node_index is same as index in case of linear policy gtaphs
         node_index = index
+        node = model[node_index]
+        if length(node.children) == 0
+            continue
+        end
 
         # unique_outgoing_states
         
