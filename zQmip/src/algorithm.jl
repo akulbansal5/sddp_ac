@@ -465,6 +465,11 @@ function solve_subproblem(
     scenario_path::Vector{Tuple{T,S}};
     duality_handler::Union{Nothing,AbstractDualityHandler},
     mipgap::Number = 1e-4,
+    incoming_noise_id::Number = 1,
+    current_noise_id::Number = 1,
+    current_node_index::Number = 1,
+    write_sub::Bool = false,
+    write_string::String = "default",
 ) where {T,S}
 
     # println("   =========== solve subproblem =========== ")
@@ -496,6 +501,13 @@ function solve_subproblem(
     end
     # unset_silent(node.subproblem)
     # println("""GET ATTRIBUTE: SOLVER THREADS = $(get_attribute(node.subproblem, "Threads"))""")
+    
+    
+    if write_sub == true
+        JuMP.write_to_file(node.subproblem, write_string*"$(incoming_noise_id)_$(current_noise_id)_$(current_node_index).lp")
+    end
+
+
     JuMP.optimize!(node.subproblem)
     if haskey(model.ext, :total_solves)
         model.ext[:total_solves] += 1
@@ -839,6 +851,9 @@ function solve_all_children(
     scenario_path,
     duality_handler::Union{Nothing,AbstractDualityHandler},
     mipgap::Number,
+    incoming_noise_id::Number = 1,
+    write_sub::Bool = false,
+    iterations::Number = 1,
 ) where {T}
     length_scenario_path = length(scenario_path)
     for child in node.children
@@ -892,8 +907,19 @@ function solve_all_children(
                         scenario_path,
                         duality_handler = duality_handler,
                         mipgap = mipgap,
+                        incoming_noise_id = incoming_noise_id,
+                        current_noise_id = noise.id,
+                        current_node_index = child_node.index, 
+                        write_sub = write_sub,
+                        write_string = "backward_$(iterations)_", 
                     )
                 end
+
+
+                # incoming_noise_id::Number = 1,
+                # current_noise_id::Number = 1,
+                # current_node_index::Number = 1,
+                # write_sub::Bool = false,
 
                 push!(items.duals, subproblem_results.duals)
                 push!(items.supports, noise)

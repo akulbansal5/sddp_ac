@@ -669,7 +669,7 @@ function backward_pass(
     # TODO(odow): improve storage type.
     # println("creating cuts object for storing cuts")
     cuts = Dict{T,Vector{Any}}(index => Any[] for index in keys(model.nodes))
-    
+    iterations = length(options.log)
 
     # println("initializing somr values to store")
     M           = length(scenario_paths)
@@ -728,6 +728,7 @@ function backward_pass(
 
             
             # println("solving all children")
+            
             solve_all_children(
                 model,
                 node,
@@ -740,7 +741,11 @@ function backward_pass(
                 scenario_trajectory[(node_index, noise_id)],
                 options.duality_handler,
                 options.mipgap,
+                noise_id,
+                true,
+                iterations
             )
+
             # println("finished solving all children")
             # objofchildren = dot(items.probability, items.objectives)
             # println("At node: $node_index objective: $objofchildren")

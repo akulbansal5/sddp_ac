@@ -412,6 +412,14 @@ function forward_pass(
             else
                 # println("   =========== executing solve subproblem")
                 # Solve the subproblem, note that `duality_handler = nothing`.
+
+
+                old_noise = 0
+                if depth > 1
+                    old_noise = scenario_path_noises[depth-1]
+                end
+
+
                 TimerOutputs.@timeit model.timer_output "solve_subproblem" begin
                     subproblem_results = solve_subproblem(
                         model,
@@ -420,8 +428,25 @@ function forward_pass(
                         noise,
                         scenario_path[1:depth],
                         duality_handler = nothing,
+                        incoming_noise_id = old_noise,
+                        current_noise_id = noise_id,
+                        current_node_index = node_index,
+                        write_sub = true, 
+                        write_string = "forward_$(iterations)_",
                     )
                 end
+
+
+                # incoming_noise_id = incoming_noise_id,
+                # current_noise_id = noise.id,
+                # current_node_index = child_node.index, 
+                # write_sub = write_sub,
+                # write_string = "backward"
+
+                # incoming_noise_id::Number = 1,
+                # current_noise_id::Number = 1,
+                # current_node_index::Number = 1,
+                # write_sub::Bool = false,
 
                 # println("   =========== ended solve subproblem")
                 # Cumulate the stage_objective.
@@ -443,7 +468,7 @@ function forward_pass(
                 
                 
                 
-                # Set the outgoing state value as the incoming state value for the next #node.
+                # Set the outgoing state value as the incoming state value for the *next* #node.
                 incoming_state_value = copy(subproblem_results.state)
 
                 # Add the outgoing state variable to the list of states we have sampled
