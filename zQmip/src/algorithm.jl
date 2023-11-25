@@ -504,7 +504,8 @@ function solve_subproblem(
     
     
     if write_sub == true
-        JuMP.write_to_file(node.subproblem, write_string*"$(incoming_noise_id)_$(current_noise_id)_$(current_node_index).lp")
+        filename = "/home/akul/sddp_comp/data/"*write_string
+        JuMP.write_to_file(node.subproblem, filename*"$(incoming_noise_id)_$(current_noise_id)_$(current_node_index).lp")
     end
 
 
