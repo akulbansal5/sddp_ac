@@ -439,7 +439,7 @@ function forward_pass(
 
                 stage_OBJ            = subproblem_results.stage_objective
                 cumulative_values[i] = cumulative_values[i] + stage_OBJ
-                prin
+                
                 
                 
                 
