@@ -514,6 +514,8 @@ function solve_subproblem(
         println("obj at node: $(current_node_index), noise: $(current_noise_id) is $(JuMP.objective_function(node.subproblem))")
         println("stage obj node: $(current_node_index), noise: $(current_noise_id) is $(node.stage_objective)")
         println("theta at node $(current_node_index), noise: $(current_noise_id) is $(JuMP.value(node.bellman_function.global_theta.theta))")
+        println("objective value: $(JuMP.objective_value(node.subproblem))")
+        println("objective value: $(JuMP.value(node.stage_objective))")
     end
 
 
@@ -522,6 +524,7 @@ function solve_subproblem(
     else
         model.ext[:total_solves] = 1
     end
+    
     if JuMP.primal_status(node.subproblem) == JuMP.MOI.INTERRUPTED
         # If the solver was interrupted, the user probably hit CTRL+C but the
         # solver gracefully exited. Since we're in the middle of training or
@@ -529,9 +532,11 @@ function solve_subproblem(
         # interrupt percolating up to the user.
         throw(InterruptException())
     end
+    
     if JuMP.primal_status(node.subproblem) != JuMP.MOI.FEASIBLE_POINT
         attempt_numerical_recovery(model, node)
     end
+    
     state = get_outgoing_state(node)
     stage_objective = stage_objective_value(node.stage_objective)
     TimerOutputs.@timeit model.timer_output "get_dual_solution" begin
