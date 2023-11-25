@@ -381,6 +381,7 @@ function forward_pass(
 
     #Iterate down the scenario paths
     for i in 1:M
+
         incoming_state_value = copy(options.initial_state)
         scenario_path        = scenario_paths[i]
         scenario_path_noises = scenario_paths_noises[i]
@@ -407,6 +408,8 @@ function forward_pass(
                 sol_index               = items.cached_solutions[(node_index, noiseid)]
                 stage_OBJ               = items.stage_objective[sol_index]
                 cumulative_values[i]     = cumulative_values[i] + stage_OBJ
+                incoming_state_value     = items.incoming_state_value[sol_index]
+                
                 # push!(sampled_states[i], copy(items.incoming_state_value[sol_index]))
                 # costtogo[i][(node_index, noiseid)] = items.costtogo[sol_index]
             else
@@ -416,7 +419,8 @@ function forward_pass(
 
                 old_noise = 0
                 if depth > 1
-                    old_noise = scenario_path_noises[depth-1]
+                    old_noise_id = scenario_path_noises[depth-1]
+
                 end
 
 
@@ -428,7 +432,7 @@ function forward_pass(
                         noise,
                         scenario_path[1:depth],
                         duality_handler = nothing,
-                        incoming_noise_id = old_noise,
+                        incoming_noise_id = old_noise_id,
                         current_noise_id = noiseid,
                         current_node_index = node_index,
                         write_sub = true, 
