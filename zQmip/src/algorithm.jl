@@ -846,6 +846,7 @@ function solve_all_children(
             continue
         end
         child_node = model[child.term]
+        sub_obj = nothing
         for noise in
             sample_backward_noise_terms(backward_sampling_scheme, child_node)
             if length(scenario_path) == length_scenario_path
@@ -859,7 +860,9 @@ function solve_all_children(
                 push!(items.supports, items.supports[sol_index])
                 push!(items.nodes, child_node.index)
                 push!(items.probability, items.probability[sol_index])
-                push!(items.objectives, items.objectives[sol_index])
+
+                sub_obj = items.objectives[sol_index]
+                push!(items.objectives, sub_obj)
                 push!(items.belief, belief)
                 push!(items.bounds, items.bounds[sol_index])
             else
@@ -891,16 +894,20 @@ function solve_all_children(
                         mipgap = mipgap,
                     )
                 end
+
                 push!(items.duals, subproblem_results.duals)
                 push!(items.supports, noise)
                 push!(items.nodes, child_node.index)
                 push!(items.probability, child.probability * noise.probability)
-                push!(items.objectives, subproblem_results.objective)
+                sub_obj = subproblem_results.objective
+                push!(items.objectives, sub_obj)
                 push!(items.belief, belief)
                 push!(items.bounds, subproblem_results.bound)
                 items.cached_solutions[(child.term, noise.term)] =
                     length(items.duals)
             end
+
+            println("           child_index: $(child_node.index), noise_id: $(noise.id), obj: $(sub_obj)")
         end
     end
     if length(scenario_path) == length_scenario_path
