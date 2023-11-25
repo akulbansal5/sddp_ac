@@ -429,7 +429,7 @@ function forward_pass(
                         scenario_path[1:depth],
                         duality_handler = nothing,
                         incoming_noise_id = old_noise,
-                        current_noise_id = noise_id,
+                        current_noise_id = noiseid,
                         current_node_index = node_index,
                         write_sub = true, 
                         write_string = "forward_$(iterations)_",
