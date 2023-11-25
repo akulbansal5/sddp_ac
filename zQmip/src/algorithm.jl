@@ -506,6 +506,10 @@ function solve_subproblem(
     if write_sub == true
         filename = "/home/akul/sddp_comp/data/"*write_string
         JuMP.write_to_file(node.subproblem, filename*"$(incoming_noise_id)_$(current_noise_id)_$(current_node_index).lp")
+        println("obj at node: $(current_node_index), noise: $(current_noise_id) is $(JuMP.objective_function(node.subproblem))")
+        println("stage obj node: $(current_node_index), noise: $(current_noise_id) is $(node.stage_objective)")
+
+
     end
 
 
@@ -533,6 +537,9 @@ function solve_subproblem(
     if node.post_optimize_hook !== nothing
         node.post_optimize_hook(pre_optimize_ret)
     end
+
+
+
     return (
         state = state,
         duals = dual_values,
