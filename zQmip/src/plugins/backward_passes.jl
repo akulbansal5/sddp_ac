@@ -711,6 +711,7 @@ function backward_pass(
             end
             
             if visited_flag == true
+                println("       node_index: $(node_index), noise_id: $(noise_id) already cached")
                 continue
             else
                 states_visited[noise_id] = outgoing_state
