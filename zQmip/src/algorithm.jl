@@ -806,6 +806,7 @@ struct BackwardPassItems{T,U}
     nodes::Vector{T}
     probability::Vector{Float64}
     objectives::Vector{Float64}
+    st_objs::Vector{Float64}
     bounds::Vector{Number}
     belief::Vector{Float64}
     function BackwardPassItems(T, U)
@@ -814,6 +815,7 @@ struct BackwardPassItems{T,U}
             Dict{Symbol,Float64}[],
             U[],
             T[],
+            Float64[],
             Float64[],
             Float64[],
             Number[],
@@ -863,6 +865,10 @@ function solve_all_children(
         end
         child_node = model[child.term]
         sub_obj = nothing
+        sub_bound = nothing
+        st_obj = nothing
+
+
         for noise in
             sample_backward_noise_terms(backward_sampling_scheme, child_node)
             if length(scenario_path) == length_scenario_path
@@ -877,10 +883,14 @@ function solve_all_children(
                 push!(items.nodes, child_node.index)
                 push!(items.probability, items.probability[sol_index])
 
+                st_obj = items.st_objs[sol_index]
+                push!(items.st_objs, st_obj)
+
                 sub_obj = items.objectives[sol_index]
                 push!(items.objectives, sub_obj)
                 push!(items.belief, belief)
-                push!(items.bounds, items.bounds[sol_index])
+                sub_bound = items.bounds[sol_index]
+                push!(items.bounds, sub_bound)
             else
                 # Update belief state, etc.
                 if belief_state !== nothing
@@ -916,7 +926,7 @@ function solve_all_children(
                     )
                 end
 
-
+                
                 # incoming_noise_id::Number = 1,
                 # current_noise_id::Number = 1,
                 # current_node_index::Number = 1,
@@ -927,14 +937,18 @@ function solve_all_children(
                 push!(items.nodes, child_node.index)
                 push!(items.probability, child.probability * noise.probability)
                 sub_obj = subproblem_results.objective
+                sub_bound = subproblem_results.bound
+                st_obj    = subproblem_results.stage_objective
                 push!(items.objectives, sub_obj)
                 push!(items.belief, belief)
-                push!(items.bounds, subproblem_results.bound)
+                push!(items.bounds, sub_bound)
+                push!(items.st_objs, st_obj)
                 items.cached_solutions[(child.term, noise.term)] =
                     length(items.duals)
             end
 
-            println("           child_index: $(child_node.index), noise_id: $(noise.id), obj: $(sub_obj)")
+            
+            println("           child_index: $(child_node.index), noise_id: $(noise.id), obj: $(sub_obj), bound = $(sub_bound), st_obj: $(st_obj)")
         end
     end
     if length(scenario_path) == length_scenario_path
