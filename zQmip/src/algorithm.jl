@@ -503,17 +503,20 @@ function solve_subproblem(
     # println("""GET ATTRIBUTE: SOLVER THREADS = $(get_attribute(node.subproblem, "Threads"))""")
     
     
+
+
+
+    JuMP.optimize!(node.subproblem)
+
     if write_sub == true
         filename = "/home/akul/sddp_comp/data/"*write_string
         JuMP.write_to_file(node.subproblem, filename*"$(incoming_noise_id)_$(current_noise_id)_$(current_node_index).lp")
         println("obj at node: $(current_node_index), noise: $(current_noise_id) is $(JuMP.objective_function(node.subproblem))")
         println("stage obj node: $(current_node_index), noise: $(current_noise_id) is $(node.stage_objective)")
-
-
+        println("theta at node $(current_node_index), noise: $(current_noise_id) is $(JuMP.value(node.bellman_function.global_theta.theta))")
     end
 
 
-    JuMP.optimize!(node.subproblem)
     if haskey(model.ext, :total_solves)
         model.ext[:total_solves] += 1
     else
