@@ -655,9 +655,10 @@ function backward_pass(
     belief_states::Dict{Int, Vector{Tuple{Int,Dict{T,Float64}}}},
     costtogo::Dict{Int, Dict{Int, Float64}},
     scenario_trajectory::Dict{Tuple{T,Int}, Vector{Tuple{T, Any}}},
+    tolerance::Float64 = 1e-6,
 ) where {T,N}
 
-    # println("--starting backward pass--")
+    println("   ==starting backward pass==")
 
     # println("creating restore duality function")
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
@@ -755,8 +756,8 @@ function backward_pass(
             # println("       node: $(node_index), costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
             # println("accessing cost to go dictionary")
             cost_to_go = costtogo[node_index][noise_id]
-            println("   node_index: $(node_index), noise_id: $(noise_id), costtogo: $(cost_to_go), objofchilds: $(objofchildren_lp)")
-            if options.sense_signal*(cost_to_go -  objofchildren_lp) < 0
+            println("       node_index: $(node_index), noise_id: $(noise_id), costtogo: $(cost_to_go), objofchilds: $(objofchildren_lp)")
+            if options.sense_signal*(cost_to_go -  objofchildren_lp) < -tolerance
                 # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
                 new_cuts = refine_bellman_function(
                     model,

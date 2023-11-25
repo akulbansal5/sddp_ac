@@ -325,7 +325,7 @@ function forward_pass(
     # return the cycle node as well.
 
 
-    # println("Inside forward pass")
+    println("   ==forward pass")
     # println(options.sampling_scheme)
     # println("----")
 
@@ -439,7 +439,7 @@ function forward_pass(
 
                 stage_OBJ            = subproblem_results.stage_objective
                 cumulative_values[i] = cumulative_values[i] + stage_OBJ
-
+                prin
                 
                 
                 
@@ -469,9 +469,9 @@ function forward_pass(
                 push!(items.costtogo, cost_to_go)
                 items.cached_solutions[(node_index, noiseid)] = length(items.stage_objective)
             end
-            # println("       path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), prob: $(scenario_paths_prob[i])")
+            println("           path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), prob: $(scenario_paths_prob[i])")
         end
-        # println("   path: $(i), cumm_value: $(cumulative_values[i])")
+        println("       path: $(i), cumm_value: $(cumulative_values[i])")
     end
     
     # cumulative_value = Dict(i => 0.0 for i in 1:M)
