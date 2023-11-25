@@ -409,7 +409,7 @@ function forward_pass(
                 stage_OBJ               = items.stage_objective[sol_index]
                 cumulative_values[i]     = cumulative_values[i] + stage_OBJ
                 incoming_state_value     = items.incoming_state_value[sol_index]
-                
+
                 # push!(sampled_states[i], copy(items.incoming_state_value[sol_index]))
                 # costtogo[i][(node_index, noiseid)] = items.costtogo[sol_index]
             else
@@ -417,7 +417,7 @@ function forward_pass(
                 # Solve the subproblem, note that `duality_handler = nothing`.
 
 
-                old_noise = 0
+                old_noise_id = 0
                 if depth > 1
                     old_noise_id = scenario_path_noises[depth-1]
 
