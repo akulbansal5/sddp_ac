@@ -84,6 +84,7 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
         elseif evals[] > bfgs.evaluation_limit
             # We have evaluated the function too many times. Return our current
             # best.
+            print("             number of lg dual evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
         end
         # BFGS update.
@@ -99,6 +100,8 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
         end
         fₖ, ∇fₖ, xₖ = fₖ₊₁, ∇fₖ₊₁, xₖ + sₖ
     end
+    
+    
 end
 
 function _line_search(
