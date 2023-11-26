@@ -408,6 +408,39 @@ function convergence_test(
     return true
 end
 
+# =========================== Nested Benders Stopping Criterion ========================== #
+
+"""
+
+    NestedBendersBoundStalling: convergence when the upper and lower bound obtained from the nested benders 
+                                are within a certain gap.
+
+"""
+
+
+struct NBBoundStalling <: AbstractStoppingRule
+    atol::Float64
+end
+
+stopping_rule_status(::NBBoundStalling) = :nb_bound_stalling
+
+function convergence_test(
+    ::PolicyGraph{T},
+    log::Vector{Log},
+    rule::NBBoundStalling,
+) where {T}
+
+    last_log = log[end]
+
+    gap = abs(last_log.simulation_value - last_log.bound)/(abs(last_log.simulation_value) + 1e-11)
+
+    if gap < rule.atol
+        return true
+    end
+
+    return false
+end
+
 
 
 # ========================== Homem-De-Mello Stopping Criterion ========================== #
