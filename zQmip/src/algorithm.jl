@@ -454,6 +454,7 @@ function _uninitialize_solver(model::PolicyGraph; throw_error::Bool)
     return
 end
 
+
 # Internal function: solve the subproblem associated with node given the
 # incoming state variables state and realization of the stagewise-independent
 # noise term noise.
@@ -502,9 +503,6 @@ function solve_subproblem(
     # unset_silent(node.subproblem)
     # println("""GET ATTRIBUTE: SOLVER THREADS = $(get_attribute(node.subproblem, "Threads"))""")
     
-    
-
-
 
     JuMP.optimize!(node.subproblem)
 
@@ -545,8 +543,6 @@ function solve_subproblem(
     if node.post_optimize_hook !== nothing
         node.post_optimize_hook(pre_optimize_ret)
     end
-
-
 
     return (
         state = state,
@@ -941,12 +937,6 @@ function solve_all_children(
                     )
                 end
 
-                
-                # incoming_noise_id::Number = 1,
-                # current_noise_id::Number = 1,
-                # current_node_index::Number = 1,
-                # write_sub::Bool = false,
-
                 push!(items.duals, subproblem_results.duals)
                 push!(items.supports, noise)
                 push!(items.nodes, child_node.index)
@@ -961,9 +951,7 @@ function solve_all_children(
                 items.cached_solutions[(child.term, noise.term)] =
                     length(items.duals)
             end
-
-            
-            println("           child_index: $(child_node.index), noise_id: $(noise.id), obj: $(sub_obj), bound = $(sub_bound), st_obj: $(st_obj)")
+            # println("           child_index: $(child_node.index), noise_id: $(noise.id), obj: $(sub_obj), bound = $(sub_bound), st_obj: $(st_obj)")
         end
     end
     if length(scenario_path) == length_scenario_path
@@ -1131,21 +1119,13 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         model.ext[:numerical_issue] = false
         iter_count = length(options.log)
 
-        println("starting iteration: $(iter_count)")
+        # println("starting iteration: $(iter_count)")
 
         # println("=========== start forward pass ===============")
         TimerOutputs.@timeit model.timer_output "forward_pass" begin
             forward_trajectory = forward_pass(model, options, options.forward_pass)
             options.forward_pass_callback(forward_trajectory)
         end
-        # println("debuggin ....")
-        # println(options.backward_pass)
-        # println(typeof(forward_trajectory.scenario_paths))
-        # println(typeof(forward_trajectory.sampled_states))
-        # println(typeof(forward_trajectory.objective_states))
-        # println(typeof(forward_trajectory.belief_states))
-        # println(typeof(forward_trajectory.costtogo))
-        # println("==================")
                 
         # println("=================== start backward pass ==============")
         TimerOutputs.@timeit model.timer_output "backward_pass" begin
@@ -1172,11 +1152,11 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
 
         
 
-        if iter_count > 2
-            if isequal(forward_trajectory.sampled_states, options.log[end].sampled_states)
-                println("   paths in iter $(iter_count) and $(iter_count+1) are same")
-            end
-        end
+        # if iter_count > 2
+        #     if isequal(forward_trajectory.sampled_states, options.log[end].sampled_states)
+        #         println("   paths in iter $(iter_count) and $(iter_count+1) are same")
+        #     end
+        # end
 
         
         push!(
@@ -1237,10 +1217,6 @@ function count_first_stage_changes(log_vector::Vector{Log})
     for i in min(2,length(log_vector)):length(log_vector)
         old = log_vector[i-1].master_state
         current = log_vector[i].master_state
-
-        # for (key, value) in old
-        #     if haskey(current, key)
-        #         if round(Int, current[key]) != round(Int, I)
         
         old_int     = Dict(key => round(Int, value) for (key, value) in old)
         current_int = Dict(key => round(Int, value) for (key, value) in current)
@@ -1392,10 +1368,6 @@ function train(
         return log[end].time - log[last].time >= seconds
     end
 
-    # println("Inside train")
-    # println(sampling_scheme)
-    # println("--")
-
 
     if !add_to_existing_cuts && model.most_recent_training_results !== nothing
         @warn("""
@@ -1518,11 +1490,6 @@ function train(
     )
 
 
-    # println("After options")
-    # println(options.sampling_scheme)
-    # println("----")
-
-
 
     status = :not_solved
     try
@@ -1547,9 +1514,6 @@ function train(
 
     stage1_state_changes = count_first_stage_changes(options.log)
 
-    # println("--------------stage1 changes successfully recorded-------------")
-
-
 
     # println("number of enteries in log: $(iterations)")
     training_results = TrainingResults(status, log)
@@ -1562,11 +1526,8 @@ function train(
     log_count = training_results.log[end].time
 
     if record_every_seconds !== nothing
-        print("WARNING: record is not Nothing")
-        # println("end time: $(training_results.log[end].time)")
-        # println("record every seconds: $(record_every_seconds)")
+        println("WARNING: record is not Nothing")
         log_count  = max(1, ceil(training_results.log[end].time/record_every_seconds))
-        # println("log count: $(log_count)")
         
         recCount = 1
         index = 1
@@ -1612,6 +1573,7 @@ function train(
     end
 
     close(log_file_handle)
+
     # return best_bound, μ - σ, μ + σ, cuts_std, cuts_nonstd, length(options.log)
     return output_results
 end

@@ -170,38 +170,29 @@ function forward_pass(
     options::Options,
     pass::DefaultMultiForwardPass,
 ) where {T}
-    # First up, sample a scenario. Note that if a cycle is detected, this will
-    # return the cycle node as well.
 
 
-    # println("Inside forward pass")
-    # println(options.sampling_scheme)
-    # println("----")
 
-
+   # println("==========forward pass=============")
     TimerOutputs.@timeit model.timer_output "sample_scenario" begin
         scenario_paths, scenario_paths_noises, terminated_due_to_cycle =
             sample_scenario(model, options.sampling_scheme, options.M)
     end
-    
-    
-    # final_node = scenario_path[end]
-    # if terminated_due_to_cycle && !pass.include_last_node
-    #     pop!(scenario_path)
-    # end
 
-    # println("===== forward pass started successfully")
+    # NOTE: No termination due to cycle over here
+
     #number of scenario paths
     M = length(scenario_paths)
+    path_len       = length(scenario_paths[1])
     # Storage for the list of outgoing states that we visit on the forward pass.
-    sampled_states = Dict(i => Dict{Symbol,Float64}[] for i in 1:M)
+    sampled_states = Dict{Tuple{T,Int}, Dict{Symbol,Float64}}()
     #storage for objective function on forward pass
-    costtogo = Dict(i => Dict{Int64, Float64}() for i in 1:M)
+    costtogo = Dict(i => Dict{Int, Float64}() for i in 1:path_len)
+    #for each node_index, noise_id, record the scenario from root node to (node_index, noise_id)
+    scenario_trajectory = Dict{Tuple{T,Int}, Vector{Tuple{T, Any}}}()
 
     # Storage for the belief states: partition index and the belief dictionary.
     belief_states = Dict(i => Tuple{Int,Dict{T,Float64}}[] for i in 1:M)
-    
-    # Our initial incoming state.
 
     # A cumulator for the stage-objectives.
     cumulative_values = Dict(i => 0.0 for i in 1:M)
@@ -214,14 +205,11 @@ function forward_pass(
     #Iterate down the scenario paths
     for i in 1:M
         incoming_state_value = copy(options.initial_state)
-        
-        
-        scenario_path = scenario_paths[i]
+        scenario_path        = scenario_paths[i]
         scenario_path_noises = scenario_paths_noises[i]
         
         # Iterate down the scenario.
         for (depth, (node_index, noise)) in enumerate(scenario_path)
-            
             
             node    = model[node_index]
             noiseid = scenario_path_noises[depth]
@@ -231,16 +219,14 @@ function forward_pass(
             # NOTE: No update in belief state etc.
             # NOTE: No infinite horizon problem here
             # NOTE: No termination due to cycle over here
-            # println("Inside forward pass -> Dpeth: $(depth), Node index: $(node_index), Noise ID: $(noiseid)")
+            
             #Takes care of the overlapping scenario paths
             if haskey(items.cached_solutions, (node_index, noiseid))
                 sol_index               = items.cached_solutions[(node_index, noiseid)]
-                cumulative_values[i]     = cumulative_values[i] + items.stage_objective[sol_index]
-                push!(sampled_states[i], copy(items.incoming_state_value[sol_index]))
-                costtogo[i][node_index] = items.costtogo[sol_index]
+                stage_OBJ               = items.stage_objective[sol_index]
+                cumulative_values[i]    = cumulative_values[i] + stage_OBJ
+                incoming_state_value    = items.incoming_state_value[sol_index]
             else
-                # println("   =========== executing solve subproblem")
-                # Solve the subproblem, note that `duality_handler = nothing`.
                 TimerOutputs.@timeit model.timer_output "solve_subproblem" begin
                     subproblem_results = solve_subproblem(
                         model,
@@ -251,25 +237,26 @@ function forward_pass(
                         duality_handler = nothing,
                     )
                 end
-
-                # println("   =========== ended solve subproblem")
-                # Cumulate the stage_objective.
                 
-                cumulative_values[i] = cumulative_values[i] + subproblem_results.stage_objective
+                # Cumulate the stage_objective.
+                stage_OBJ            = subproblem_results.stage_objective
+                cumulative_values[i] = cumulative_values[i] + stage_OBJ
 
                 # Set the outgoing state value as the incoming state value for the next #node.
                 incoming_state_value = copy(subproblem_results.state)
 
                 # Add the outgoing state variable to the list of states we have sampled
                 # on this forward pass.
-                push!(sampled_states[i], incoming_state_value)
-                costtogo[i][node_index] = JuMP.value(node.bellman_function.global_theta.theta)
+                sampled_states[(node_index, noiseid)] = incoming_state_value
+                cost_to_go                            = JuMP.value(node.bellman_function.global_theta.theta)
+                costtogo[node_index][noiseid]         = cost_to_go
+                scenario_trajectory[(node_index, noiseid)] = scenario_path[1:depth]
+                
                 #update items.cached_solutions
-
-                push!(items.stage_objective, subproblem_results.stage_objective)
+                push!(items.stage_objective, stage_OBJ)
                 push!(items.incoming_state_value, incoming_state_value)
-                push!(items.costtogo, costtogo[i][node_index])
-                items.cached_solutions[(node_index, noiseid)] = length(items.costtogo)
+                push!(items.costtogo, cost_to_go)
+                items.cached_solutions[(node_index, noiseid)] = length(items.stage_objective)
             end
         end
     end
@@ -278,9 +265,7 @@ function forward_pass(
     cum_paths =  [cumulative_values[i] for i in 1:M]
     std_cost  =  Statistics.std(cum_paths)
     avg_cost  =  Statistics.mean(cum_paths)
-    stat_ub   =  avg_cost + 1.6*std_cost
-
-    # println(" ======== successfully executed the multi-forward pass ======== ")
+    stat_ub   =  avg_cost + 1.647*std_cost
 
     return (
         scenario_paths   = scenario_paths,
@@ -289,6 +274,7 @@ function forward_pass(
         belief_states    = belief_states,
         cumulative_value = stat_ub,
         costtogo         = costtogo,
+        scenario_trajectory = scenario_trajectory,
     )
 end
 
@@ -321,14 +307,9 @@ function forward_pass(
     options::Options,
     pass::DefaultNestedForwardPass,
 ) where {T}
-    # First up, sample a scenario. Note that if a cycle is detected, this will
-    # return the cycle node as well.
 
 
-    println("   ==forward pass")
-    # println(options.sampling_scheme)
-    # println("----")
-
+    # println("==========forward pass=============")
     iterations = length(options.log)
     TimerOutputs.@timeit model.timer_output "sample_scenario" begin
         
@@ -346,30 +327,19 @@ function forward_pass(
         end
     end
 
-
-    
-    # println("")
-    # final_node = scenario_path[end]
-    # if terminated_due_to_cycle && !pass.include_last_node
-    #     pop!(scenario_path)
-    # end
-
     # println("===== forward pass started successfully")
-    #number of scenario paths
+
     M              = length(scenario_paths)
     path_len       = length(scenario_paths[1])
     # Storage for the list of outgoing states that we visit on the forward pass.
     sampled_states = Dict{Tuple{T,Int}, Dict{Symbol,Float64}}()
     #storage for objective function on forward pass
     costtogo       = Dict(i => Dict{Int, Float64}() for i in 1:path_len)
-
-    
+    #for each node_index, noise_id, record the scenario from root node to (node_index, noise_id)
     scenario_trajectory = Dict{Tuple{T,Int}, Vector{Tuple{T, Any}}}()
 
     # Storage for the belief states: partition index and the belief dictionary.
     belief_states = Dict(i => Tuple{Int,Dict{T,Float64}}[] for i in 1:M)
-    
-    # Our initial incoming state.
 
     # A cumulator for the stage-objectives.
     cumulative_values = Dict(i => 0.0 for i in 1:M)
@@ -392,35 +362,23 @@ function forward_pass(
             
             node    = model[node_index]
             noiseid = scenario_path_noises[depth]
-            
-            # println("verifying: depth $(depth), node_index: $(node_index)")
-            
 
             # NOTE: No objective state interpolation here
             # NOTE: No update in belief state etc.
             # NOTE: No infinite horizon problem here
             # NOTE: No termination due to cycle over here
-            # println("Inside forward pass -> Dpeth: $(depth), Node index: $(node_index), Noise ID: $(noiseid)")
-            # Takes care of the overlapping scenario paths
 
-            
+            # Takes care of the overlapping scenario paths 
             if haskey(items.cached_solutions, (node_index, noiseid))
                 sol_index               = items.cached_solutions[(node_index, noiseid)]
                 stage_OBJ               = items.stage_objective[sol_index]
                 cumulative_values[i]     = cumulative_values[i] + stage_OBJ
                 incoming_state_value     = items.incoming_state_value[sol_index]
 
-                # push!(sampled_states[i], copy(items.incoming_state_value[sol_index]))
-                # costtogo[i][(node_index, noiseid)] = items.costtogo[sol_index]
             else
-                # println("   =========== executing solve subproblem")
-                # Solve the subproblem, note that `duality_handler = nothing`.
-
-
                 old_noise_id = 0
                 if depth > 1
                     old_noise_id = scenario_path_noises[depth-1]
-
                 end
 
 
@@ -435,43 +393,14 @@ function forward_pass(
                         incoming_noise_id = old_noise_id,
                         current_noise_id = noiseid,
                         current_node_index = node_index,
-                        write_sub = true, 
+                        write_sub = false, 
                         write_string = "forward_$(iterations)_",
                     )
                 end
 
-
-                # incoming_noise_id = incoming_noise_id,
-                # current_noise_id = noise.id,
-                # current_node_index = child_node.index, 
-                # write_sub = write_sub,
-                # write_string = "backward"
-
-                # incoming_noise_id::Number = 1,
-                # current_noise_id::Number = 1,
-                # current_node_index::Number = 1,
-                # write_sub::Bool = false,
-
-                # println("   =========== ended solve subproblem")
-                # Cumulate the stage_objective.
-                
-
-                # theta_val = JuMP.value(node.bellman_function.global_theta.theta)
-                # total_obj = subproblem_results.objective
-                
-
-                # @assert total_obj - theta_val == stage_OBJ
-                # @assert isapprox(total_obj - theta_val, stage_OBJ, atol=1e-1)
-
-
-                # println("stage_obj: $(stage_OBJ), calc_obj: $(total_obj - theta_val)")
-
                 stage_OBJ            = subproblem_results.stage_objective
                 cumulative_values[i] = cumulative_values[i] + stage_OBJ
-                
-                
-                
-                
+            
                 # Set the outgoing state value as the incoming state value for the *next* #node.
                 incoming_state_value = copy(subproblem_results.state)
 
@@ -479,43 +408,20 @@ function forward_pass(
                 # on this forward pass.
                 sampled_states[(node_index, noiseid)] = incoming_state_value
                 cost_to_go                            = JuMP.value(node.bellman_function.global_theta.theta)
-
-                
-                # println("cost to go nested dictionary: $(costtogo)")
-
-                # println("dictionary accessed at nodeindex: $(node_index), noiseid: $(noiseid)")
-
                 costtogo[node_index][noiseid]         = cost_to_go
-
-                # println("cost to go access sucessful")
-                
                 scenario_trajectory[(node_index, noiseid)] = scenario_path[1:depth]
-
-                # println("scenarion trajectory and scenario path successful")
                 
                 push!(items.stage_objective, stage_OBJ)
                 push!(items.incoming_state_value, incoming_state_value)
                 push!(items.costtogo, cost_to_go)
                 items.cached_solutions[(node_index, noiseid)] = length(items.stage_objective)
             end
-            println("           path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), prob: $(scenario_paths_prob[i])")
+            # println("           path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), prob: $(scenario_paths_prob[i])")
         end
-        println("       path: $(i), cumm_value: $(cumulative_values[i])")
+        # println("       path: $(i), cumm_value: $(cumulative_values[i])")
     end
     
-    # cumulative_value = Dict(i => 0.0 for i in 1:M)
     stat_ub =  sum([cumulative_values[i]*scenario_paths_prob[i] for i in 1:M])
-
-    # cum_all = [cumulative_values[i] for i in 1:M]
-    # println("Iter: $(iterations), stat_ub: $(stat_ub)")
-
-
-    # std_cost  =  Statistics.std(cum_all)
-    # avg_cost  =  Statistics.mean(cum_all)
-    # stat_ub   =  avg_cost + 1.6*std_cost
-    # stat_ub   =  Statistics.quantile(cum_paths, 0.95)
-
-    # println(" ======== successfully executed the multi-forward pass ======== ")
 
     return (
         scenario_paths   = scenario_paths,

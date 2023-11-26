@@ -77,16 +77,16 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
             # because we abuse the solvers feasibility tolerance, and end up
             # returning a solution that is on the edge of numerical dual
             # feasibility.
-            println("             at edge of feasible region with number of lg dual evals: $(evals[])")
+            # println("             at edge of feasible region with number of lg dual evals: $(evals[])")
             return fₖ, xₖ
         elseif _norm(∇fₖ₊₁) < 1e-6
             # Zero(ish) gradient. Return what must be a local maxima.
-            println("             early termination with number of lg dual evals: $(evals[])")
+            # println("             early termination with number of lg dual evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
         elseif evals[] > bfgs.evaluation_limit
             # We have evaluated the function too many times. Return our current
             # best.
-            println("             number of lg dual evals: $(evals[])")
+            # println("             number of lg dual evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
         end
         # BFGS update.

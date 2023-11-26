@@ -1196,6 +1196,10 @@ function parameterize(
         error("Duplicate calls to SDDP.parameterize detected.")
     end
     id = Int(0)
+
+    #Note Noise object also contains id
+    #we assume each noise is unique
+    #id is a convenient way to access which noise we are talking about
     for (realization, prob) in zip(realizations, probability)
         id = id + 1
         push!(node.noise_terms, Noise(realization, prob, id))
