@@ -1518,9 +1518,11 @@ function train(
     # println("number of enteries in log: $(iterations)")
     training_results = TrainingResults(status, log)
 
-    bound_list = [training_results.log[i].bound for i in 1:iterations]
-    cumm_list  = [training_results.log[i].simulation_value for i in 1:iterations]
-    time_list  = [training_results.log[i].time for i in 1:iterations]
+    bound_list       = [training_results.log[i].bound for i in 1:iterations]
+    cumm_list        = [training_results.log[i].simulation_value for i in 1:iterations]
+    time_list        = [training_results.log[i].time for i in 1:iterations]
+    cuts_std_list    = [training_results.log[i].cuts_std for i in 1:iterations]
+    cuts_nonstd_list = [training_results.log[i].cuts_nonstd for i in 1:iterations]
 
 
     log_count = training_results.log[end].time
@@ -1539,10 +1541,12 @@ function train(
                 μ_index, σ_index = confidence_interval(map(l -> l.simulation_value, training_results.log[1:index]))
                 cuts_std = sum(map(l -> l.cuts_std, training_results.log[1:index]))
                 cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log[1:index]))
-                push!(output_results, (iter = index, time = iter_end_time, bb = best_bound_index, low = μ_index - σ_index, high = μ_index + σ_index, cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes))
+                push!(output_results, (iter = index, time = iter_end_time, bb = best_bound_index, low = μ_index - σ_index, high = μ_index + σ_index, 
+                cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes))
                 recCount += 1
             end
             index += 1
+
         end
     end
 
@@ -1553,7 +1557,8 @@ function train(
         μ, σ = confidence_interval(map(l -> l.simulation_value, training_results.log))
         cuts_std = sum(map(l -> l.cuts_std, training_results.log))
         cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log))
-        push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, low = μ-σ, high = μ+σ, cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes, bound_list = bound_list, cumm_list = cumm_list, time_list = time_list))
+        push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, low = μ-σ, high = μ+σ, cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes, 
+        bound_list = bound_list, cumm_list = cumm_list, time_list = time_list, cs_list = cuts_std_list, cns_list = cuts_nonstd_list))
 
     end
         
