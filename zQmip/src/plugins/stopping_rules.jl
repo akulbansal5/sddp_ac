@@ -444,10 +444,10 @@ function convergence_test(
     println("tol is $(rule.atol)")
 
     if gap < rule.atol
-        return false
+        return true
     end
 
-    return true
+    return false
 end
 
 
