@@ -1121,13 +1121,13 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
 
         # println("starting iteration: $(iter_count)")
 
-        # println("=========== start forward pass ===============")
+        println("=========== start forward pass ===============")
         TimerOutputs.@timeit model.timer_output "forward_pass" begin
             forward_trajectory = forward_pass(model, options, options.forward_pass)
             options.forward_pass_callback(forward_trajectory)
         end
                 
-        # println("=================== start backward pass ==============")
+        println("=================== start backward pass ==============")
         TimerOutputs.@timeit model.timer_output "backward_pass" begin
             cuts, cuts_std, cuts_nonstd = backward_pass(
                 model,
@@ -1143,7 +1143,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         end
         iterations = length(options.log)
 
-        # println("======================== calculate bound ==============")
+        println("======================== calculate bound ==============")
         TimerOutputs.@timeit model.timer_output "calculate_bound" begin
             bound = calculate_bound(model)
             # println("Iter: $(iterations), lower_bound: $(bound)")
@@ -1177,12 +1177,16 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
             ),
         )
 
+        println("====== pushed into log")
         # if length(options.log) > 1
         #     println("Iter: $(length(options.log)), bound: $(bound), ub: {forward_trajectory.cumulative_value}, changes: $(count_first_stage_changes(options.log))")
         # end
 
         has_converged, status =
             convergence_test(model, options.log, options.stopping_rules)
+
+        println("====== converngence test =======")
+        
         return IterationResult(
             Distributed.myid(),
             bound,
