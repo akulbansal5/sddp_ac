@@ -440,8 +440,8 @@ function convergence_test(
     # println("last sim: $(last_log.simulation_value)")
     # println("last bound: $(last_log.bound)")
     gap = abs(last_log.simulation_value - last_log.bound)/(abs(last_log.simulation_value) + 1e-11)
-    println("gap is $(gap)")
-    println("tol is $(rule.atol)")
+    # println("gap is $(gap)")
+    # println("tol is $(rule.atol)")
 
     if gap < rule.atol
         return true
