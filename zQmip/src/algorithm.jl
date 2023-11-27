@@ -1121,13 +1121,13 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
 
         # println("starting iteration: $(iter_count)")
 
-        println("=========== start forward pass ===============")
+        # println("=========== start forward pass ===============")
         TimerOutputs.@timeit model.timer_output "forward_pass" begin
             forward_trajectory = forward_pass(model, options, options.forward_pass)
             options.forward_pass_callback(forward_trajectory)
         end
                 
-        println("=================== start backward pass ==============")
+        # println("=================== start backward pass ==============")
         TimerOutputs.@timeit model.timer_output "backward_pass" begin
             cuts, cuts_std, cuts_nonstd = backward_pass(
                 model,
@@ -1143,7 +1143,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         end
         iterations = length(options.log)
 
-        println("======================== calculate bound ==============")
+        # println("======================== calculate bound ==============")
         TimerOutputs.@timeit model.timer_output "calculate_bound" begin
             bound = calculate_bound(model)
             # println("Iter: $(iterations), lower_bound: $(bound)")
@@ -1177,7 +1177,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
             ),
         )
 
-        println("====== pushed into log")
+        # println("====== pushed into log")
         # if length(options.log) > 1
         #     println("Iter: $(length(options.log)), bound: $(bound), ub: {forward_trajectory.cumulative_value}, changes: $(count_first_stage_changes(options.log))")
         # end
@@ -1185,7 +1185,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         has_converged, status =
             convergence_test(model, options.log, options.stopping_rules)
 
-        println("====== converngence test =======")
+        # println("====== convergence test =======")
 
         return IterationResult(
             Distributed.myid(),
@@ -1515,11 +1515,11 @@ function train(
     output_results = []
     iterations = length(options.log)
 
-    println("count first stage changes")
+    # println("count first stage changes")
     stage1_state_changes = count_first_stage_changes(options.log)
     
 
-    println("number of enteries in log: $(iterations)")
+    # println("number of enteries in log: $(iterations)")
     
     training_results = TrainingResults(status, log)
 
@@ -1529,7 +1529,7 @@ function train(
     cuts_std_list    = [training_results.log[i].cuts_std for i in 1:iterations]
     cuts_nonstd_list = [training_results.log[i].cuts_nonstd for i in 1:iterations]
 
-    println("relevant info collected on termination")
+    # println("relevant info collected on termination")
 
 
     log_count = training_results.log[end].time
@@ -1569,7 +1569,7 @@ function train(
         bound_list = bound_list, cumm_list = cumm_list, time_list = time_list, cs_list = cuts_std_list, cns_list = cuts_nonstd_list))
 
     end
-    println("relevant info recorded on termination")
+    # println("relevant info recorded on termination")
     
     
 
@@ -1589,7 +1589,7 @@ function train(
     end
 
     close(log_file_handle)
-    println("print threshold crossed")
+    # println("print threshold crossed")
 
     # return best_bound, μ - σ, μ + σ, cuts_std, cuts_nonstd, length(options.log)
     return output_results
