@@ -47,7 +47,11 @@ function master_loop(
     while true
         result = iteration(model, options, options.iter_pass)
         options.post_iteration_callback(result)
+
+        println("post iteration call back successful")
         log_iteration(options)
+
+        println("logged the iteration inside master loop")
         if result.has_converged
             return result.status
         end
