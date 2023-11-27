@@ -53,8 +53,10 @@ function master_loop(
 
         println("logged the iteration inside master loop")
         if result.has_converged
+            println("covergence criterion is met")
             return result.status
         end
+        println("convergence criterion is not met")
     end
     return
 end

@@ -1186,7 +1186,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
             convergence_test(model, options.log, options.stopping_rules)
 
         println("====== converngence test =======")
-        
+
         return IterationResult(
             Distributed.myid(),
             bound,
@@ -1519,7 +1519,7 @@ function train(
     stage1_state_changes = count_first_stage_changes(options.log)
 
 
-    # println("number of enteries in log: $(iterations)")
+    println("number of enteries in log: $(iterations)")
     training_results = TrainingResults(status, log)
 
     bound_list       = [training_results.log[i].bound for i in 1:iterations]
@@ -1527,6 +1527,8 @@ function train(
     time_list        = [training_results.log[i].time for i in 1:iterations]
     cuts_std_list    = [training_results.log[i].cuts_std for i in 1:iterations]
     cuts_nonstd_list = [training_results.log[i].cuts_nonstd for i in 1:iterations]
+
+    println("relevant info collected on termination")
 
 
     log_count = training_results.log[end].time
@@ -1554,6 +1556,7 @@ function train(
         end
     end
 
+
     if record_every_seconds === nothing || length(output_results) < log_count
         # println("GOOD: entering the if statement")
         model.most_recent_training_results = training_results
@@ -1565,7 +1568,10 @@ function train(
         bound_list = bound_list, cumm_list = cumm_list, time_list = time_list, cs_list = cuts_std_list, cns_list = cuts_nonstd_list))
 
     end
-        
+    println("relevant info recorded on termination")
+    
+    
+
     if print_level > 0
         log_iteration(options; force_if_needed = true)
         print_helper(print_footer, log_file_handle, training_results)
@@ -1582,6 +1588,7 @@ function train(
     end
 
     close(log_file_handle)
+    println("print threshold crossed")
 
     # return best_bound, μ - σ, μ + σ, cuts_std, cuts_nonstd, length(options.log)
     return output_results
