@@ -1515,11 +1515,12 @@ function train(
     output_results = []
     iterations = length(options.log)
 
-
+    println("count first stage changes")
     stage1_state_changes = count_first_stage_changes(options.log)
-
+    
 
     println("number of enteries in log: $(iterations)")
+    
     training_results = TrainingResults(status, log)
 
     bound_list       = [training_results.log[i].bound for i in 1:iterations]
