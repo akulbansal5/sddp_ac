@@ -939,7 +939,7 @@ function backward_pass(
                 # JuMP.write_to_file(node.subproblem, "subprob_mpo_$(node.index)_$(iter).lp")
                 # println("   printed backward subproblem at node $(node.index) and iteration $(iter).")
                 
-                if options.sense_signal*(cost_to_go - objofchildren_mip) < 0
+                if options.sense_signal*(cost_to_go - objofchildren_mip) < -tolerance
                     # println("       costtogo: $(costtogo[node_index]), obj of children mip: $(objofchildren_mip)")
                     # println("       add LapLov cut/Lag cut procedure")
                     new_cuts = refine_bellman_function(

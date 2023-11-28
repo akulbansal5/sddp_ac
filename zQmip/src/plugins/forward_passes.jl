@@ -247,9 +247,9 @@ function forward_pass(
 
                 # Add the outgoing state variable to the list of states we have sampled
                 # on this forward pass.
-                sampled_states[(node_index, noiseid)] = incoming_state_value
-                cost_to_go                            = JuMP.value(node.bellman_function.global_theta.theta)
-                costtogo[node_index][noiseid]         = cost_to_go
+                sampled_states[(node_index, noiseid)]      = incoming_state_value
+                cost_to_go                                 = JuMP.value(node.bellman_function.global_theta.theta)
+                costtogo[node_index][noiseid]              = cost_to_go
                 scenario_trajectory[(node_index, noiseid)] = scenario_path[1:depth]
                 
                 #update items.cached_solutions
@@ -433,7 +433,7 @@ function forward_pass(
         costtogo         = costtogo,
         scenario_trajectory = scenario_trajectory,
         std_dev             = 0,
-        M                   = M
+        M                   = M,
     )
 end
 

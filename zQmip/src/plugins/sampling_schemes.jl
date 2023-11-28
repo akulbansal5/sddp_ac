@@ -363,7 +363,7 @@ function get_children(
 end
 
 function get_root_children(
-    sampling_scheme::Union{InSampleMonteCarlo,InSampleMonteCarloMultiple, AllSampleMonteCarloMultiple},
+    sampling_scheme::Union{InSampleMonteCarlo,InSampleMonteCarloMultiple,AllSampleMonteCarloMultiple},
     graph::PolicyGraph{T},
 ) where {T}
     return graph.root_children
