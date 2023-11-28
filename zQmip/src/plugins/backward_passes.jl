@@ -857,14 +857,14 @@ function backward_pass(
             if visited_flag == true
                 continue
             else
-                states_visited[j] = outgoing_state
+                states_visited[noise_id] = outgoing_state
                 push!(unique_path_indices, noise_id)
             end
 
             
-            objective_state = nothing
+            objective_state               = nothing
             partition_index, belief_state = (0, nothing)
-            items = BackwardPassItems(T, Noise)
+            items                         = BackwardPassItems(T, Noise)
 
             TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
                 #only relaxes subproblems for children node
