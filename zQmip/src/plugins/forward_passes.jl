@@ -265,16 +265,17 @@ function forward_pass(
     cum_paths =  [cumulative_values[i] for i in 1:M]
     std_cost  =  Statistics.std(cum_paths)
     avg_cost  =  Statistics.mean(cum_paths)
-    stat_ub   =  avg_cost + 1.647*std_cost
 
     return (
         scenario_paths   = scenario_paths,
         sampled_states   = sampled_states,
         objective_states = objective_states,
         belief_states    = belief_states,
-        cumulative_value = stat_ub,
+        cumulative_value = avg_cost,
         costtogo         = costtogo,
         scenario_trajectory = scenario_trajectory,
+        std_dev             = std_cost,
+        M                   = M
     )
 end
 
@@ -431,6 +432,8 @@ function forward_pass(
         cumulative_value = stat_ub,
         costtogo         = costtogo,
         scenario_trajectory = scenario_trajectory,
+        std_dev             = 0,
+        M                   = M
     )
 end
 

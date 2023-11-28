@@ -455,3 +455,41 @@ end
 # ========================== Homem-De-Mello Stopping Criterion ========================== #
 
 
+struct TitoStalling <: AbstractStoppingRule
+    type1_prob::Float64
+    type2_prob::Float64
+    gap::Float64
+end
+
+stopping_rule_status(::TitoStalling) = :tito_stalling
+
+function convergence_test(
+    ::PolicyGraph{T},
+    log::Vector{Log},
+    rule::TitoStalling,
+) where {T}
+
+    if length(log) < 2
+        return false
+    end
+
+    last_log = log[end]
+    std = last_log.std_dev
+    lb  = last_log.bound
+    stat_ub  = last_log.simulation_value
+    ratio = stat_ub/lb
+
+    rho = ratio - rule.type1_prob*std/(lb*sqrt(last_log.M))
+
+    if rho > 1
+        return false
+    end
+    
+    delta = (rule.type1_prob +rule.type2_prob)*std/(lb*sqrt(last_log.M))
+
+    if delta < rule.gap
+        return true
+    end
+
+    return false
+end

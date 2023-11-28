@@ -1174,6 +1174,8 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
                 cuts_std,
                 cuts_nonstd,
                 forward_trajectory.sampled_states,
+                forward_trajectory.std_dev,
+                forward_trajectory.M
             ),
         )
 

@@ -679,6 +679,8 @@ struct Log
     cuts_std::Int
     cuts_nonstd::Int
     sampled_states::Dict{Tuple{Int,Int}, Dict{Symbol,Float64}}
+    std_dev::Float64
+    M::Int
     function Log(iteration::Int,
         bound::Float64,
         simulation_value::Float64,
@@ -690,7 +692,9 @@ struct Log
         serious_numerical_issue::Bool,
         cuts_std::Int,
         cuts_nonstd::Int,
-        sampled_states::Dict{Tuple{Int,Int}, Dict{Symbol,Float64}} = Dict{Tuple{Int,Int}, Dict{Symbol,Float64}}())
+        sampled_states::Dict{Tuple{Int,Int}, Dict{Symbol,Float64}} = Dict{Tuple{Int,Int}, Dict{Symbol,Float64}}(),
+        std_dev::Float64 = 0.0,
+        M::Int = 1)
         return new(iteration,
             bound,
             simulation_value,
@@ -702,7 +706,9 @@ struct Log
             serious_numerical_issue,
             cuts_std,
             cuts_nonstd,
-            sampled_states)
+            sampled_states,
+            std_dev,
+            M)
     end
 end
 
