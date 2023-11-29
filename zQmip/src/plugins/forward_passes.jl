@@ -434,7 +434,7 @@ function forward_pass(
         cumulative_value = pass.best_bd,
         costtogo         = costtogo,
         scenario_trajectory = scenario_trajectory,
-        std_dev             = 0,
+        std_dev             = 0.0,
         M                   = M,
     )
 end
