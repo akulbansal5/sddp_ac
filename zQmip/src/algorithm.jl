@@ -1179,7 +1179,10 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
             ),
         )
 
-        # println("====== pushed into log")
+
+        
+
+        println("====== pushed into log")
         # if length(options.log) > 1
         #     println("Iter: $(length(options.log)), bound: $(bound), ub: {forward_trajectory.cumulative_value}, changes: $(count_first_stage_changes(options.log))")
         # end
@@ -1564,10 +1567,11 @@ function train(
         # println("GOOD: entering the if statement")
         model.most_recent_training_results = training_results
         best_bound = training_results.log[end].bound
+        upper_bound = training_results.log[end].simulation_value
         μ, σ = confidence_interval(map(l -> l.simulation_value, training_results.log))
         cuts_std = sum(map(l -> l.cuts_std, training_results.log))
         cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log))
-        push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, low = μ-σ, high = μ+σ, cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes, 
+        push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, ub = upper_bound, low = μ-σ, high = μ+σ, cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes, 
         bound_list = bound_list, cumm_list = cumm_list, time_list = time_list, cs_list = cuts_std_list, cns_list = cuts_nonstd_list))
 
     end
