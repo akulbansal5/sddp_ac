@@ -295,7 +295,7 @@ set when training, but it comes at the cost of not knowing which node formed the
 cycle (if there are multiple possibilities).
 """
 
-struct DefaultNestedForwardPass <: AbstractForwardPass
+mutable struct DefaultNestedForwardPass <: AbstractForwardPass
     include_last_node::Bool
     best_bd::Float64
     function DefaultNestedForwardPass(; include_last_node::Bool = true, best_bd::Float64 = typemin(Float64))
