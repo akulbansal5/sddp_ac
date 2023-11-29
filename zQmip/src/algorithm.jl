@@ -1182,7 +1182,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
 
         
 
-        println("====== pushed into log")
+        # println("====== pushed into log")
         # if length(options.log) > 1
         #     println("Iter: $(length(options.log)), bound: $(bound), ub: {forward_trajectory.cumulative_value}, changes: $(count_first_stage_changes(options.log))")
         # end
