@@ -1855,7 +1855,7 @@ function benders_simulate(
     scenario_paths, scenario_paths_noises, scenario_paths_prob = sample_scenario(model, sampling_scheme)
     M = length(scenario_paths)
     cumulative_values = Dict(i => 0.0 for i in 1:M)
-    items = ForwardPassItems(T)
+    items = ForwardPassItems(Any)
 
     for i in 1:M
 
