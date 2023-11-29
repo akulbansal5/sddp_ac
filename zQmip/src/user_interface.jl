@@ -843,7 +843,7 @@ function LinearPolicyGraph(builder::Function; stages::Int, kwargs...)
     if stages < 1
         error("You must create a LinearPolicyGraph with `stages >= 1`.")
     end
-    # println("building Linear policy graph")
+    println("building Linear policy graph")
     return PolicyGraph(builder, LinearGraph(stages); kwargs...)
 end
 
@@ -974,7 +974,7 @@ function PolicyGraph(
     # Construct a basic policy graph. We will add to it in the remainder of this
     # function.
     policy_graph = PolicyGraph(sense, graph.root_node, solver_threads)
-    # println("created policy graph object")
+    println("created policy graph object")
 
 
     # Create a Bellman function if one is not given.
@@ -997,6 +997,7 @@ function PolicyGraph(
         end
     end
     # Initialize nodes.
+    println("   ==== adding details to nodes")
     for (node_index, children) in graph.nodes
         # println("   ==== initialization for node $(node_index)")
         if node_index == graph.root_node
@@ -1061,7 +1062,7 @@ function PolicyGraph(
             initialize_bellman_function(bellman_function, policy_graph, node)
     end
 
-    # println("   ==== adding root nodes")
+    println("   ==== adding root nodes")
     # Add root nodes
     for (child, probability) in graph.nodes[graph.root_node]
         push!(policy_graph.root_children, Noise(child, probability))
@@ -1076,6 +1077,8 @@ function PolicyGraph(
             end
         end
     end
+
+    print(" ===== final leg")
     # Initialize belief states.
     if length(graph.belief_partition) > 0
         initialize_belief_states(policy_graph, graph)

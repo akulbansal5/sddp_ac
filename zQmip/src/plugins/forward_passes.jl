@@ -297,8 +297,9 @@ cycle (if there are multiple possibilities).
 
 struct DefaultNestedForwardPass <: AbstractForwardPass
     include_last_node::Bool
-    function DefaultNestedForwardPass(; include_last_node::Bool = true)
-        return new(include_last_node)
+    best_bd::Float64
+    function DefaultNestedForwardPass(; include_last_node::Bool = true, best_bd::Float64 = typemin(Float64))
+        return new(include_last_node, best_bd)
     end
 end
 
@@ -422,14 +423,15 @@ function forward_pass(
         # println("       path: $(i), cumm_value: $(cumulative_values[i])")
     end
     
-    stat_ub =  sum([cumulative_values[i]*scenario_paths_prob[i] for i in 1:M])
+    pass.best_bd =  max(sum([cumulative_values[i]*scenario_paths_prob[i] for i in 1:M]), pass.best_bd)
+    
 
     return (
         scenario_paths   = scenario_paths,
         sampled_states   = sampled_states,
         objective_states = objective_states,
         belief_states    = belief_states,
-        cumulative_value = stat_ub,
+        cumulative_value = pass.best_bd,
         costtogo         = costtogo,
         scenario_trajectory = scenario_trajectory,
         std_dev             = 0,
