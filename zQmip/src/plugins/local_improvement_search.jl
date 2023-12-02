@@ -19,8 +19,9 @@ end
 struct BFGS <: AbstractSearchMethod
     evaluation_limit::Int
     ftol::Float64
-    function BFGS(evaluation_limit::Int, ftol::Float64 = 1e-9)
-        new(evaluation_limit, ftol)
+    gtol::Float64
+    function BFGS(evaluation_limit::Int, ftol::Float64 = 1e-9, gtol::Float64 = 1e-9)
+        new(evaluation_limit, ftol, gtol)
     end
 end
 
@@ -70,8 +71,8 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
         pₖ = B \ -∇fₖ
         # Run line search in direction `pₖ`
         αₖ, fₖ₊₁, ∇fₖ₊₁ = _line_search(f, fₖ, ∇fₖ, xₖ, pₖ, αₖ, evals)
-
         
+
         if _norm(αₖ * pₖ) / max(1.0, _norm(xₖ)) < bfgs.ftol
             # Small steps! Probably at the edge of the feasible region.
             # Return the current iterate.
@@ -83,16 +84,16 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
             # because we abuse the solvers feasibility tolerance, and end up
             # returning a solution that is on the edge of numerical dual
             # feasibility.
-            # println("             at edge of feasible region with number of lg dual evals: $(evals[])")
+            println("             local_imprv: at edge of feasible region with number of lg dual evals: $(evals[])")
             return fₖ, xₖ
-        elseif _norm(∇fₖ₊₁) < 1e-6
+        elseif _norm(∇fₖ₊₁) < bfgs.gtol
             # Zero(ish) gradient. Return what must be a local maxima.
-            # println("             early termination with number of lg dual evals: $(evals[])")
+            println("             local_imprv: zero gradient with number of lg dual evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
         elseif evals[] > bfgs.evaluation_limit
             # We have evaluated the function too many times. Return our current
             # best.
-            # println("             number of lg dual evals: $(evals[])")
+            println("           local_imprv: termination with number of lg dual evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
         end
         # BFGS update.
