@@ -20,7 +20,7 @@ struct BFGS <: AbstractSearchMethod
     evaluation_limit::Int
     ftol::Float64
     gtol::Float64
-    function BFGS(evaluation_limit::Int, ftol::Float64 = 1e-9, gtol::Float64 = 1e-9)
+    function BFGS(evaluation_limit::Int, ftol::Float64 = 1e-10, gtol::Float64 = 1e-9)
         new(evaluation_limit, ftol, gtol)
     end
 end
@@ -73,7 +73,9 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
         αₖ, fₖ₊₁, ∇fₖ₊₁ = _line_search(f, fₖ, ∇fₖ, xₖ, pₖ, αₖ, evals)
         
 
-        if _norm(αₖ * pₖ) / max(1.0, _norm(xₖ)) < bfgs.ftol
+
+        step = _norm(αₖ * pₖ) / max(1.0, _norm(xₖ)) 
+        if step < bfgs.ftol
             # Small steps! Probably at the edge of the feasible region.
             # Return the current iterate.
             #
@@ -84,7 +86,7 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
             # because we abuse the solvers feasibility tolerance, and end up
             # returning a solution that is on the edge of numerical dual
             # feasibility.
-            println("             local_imprv: at edge of feasible region with number of lg dual evals: $(evals[])")
+            println("             local_imprv: at edge with # of lg dual evals: $(evals[]), ftol: $(bfgs.ftol), step: $(step).")
             return fₖ, xₖ
         elseif _norm(∇fₖ₊₁) < bfgs.gtol
             # Zero(ish) gradient. Return what must be a local maxima.
