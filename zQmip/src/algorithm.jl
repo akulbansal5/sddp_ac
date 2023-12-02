@@ -951,7 +951,7 @@ function solve_all_children(
                 items.cached_solutions[(child.term, noise.term)] =
                     length(items.duals)
             end
-            # println("           child_index: $(child_node.index), noise_id: $(noise.id), obj: $(sub_obj), bound = $(sub_bound), st_obj: $(st_obj)")
+            println("           child_index: $(child_node.index), old_noise_id: $(incoming_noise_id), noise_id: $(noise.id), obj: $(sub_obj), st_obj: $(st_obj)")
         end
     end
     if length(scenario_path) == length_scenario_path
@@ -1119,7 +1119,8 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         model.ext[:numerical_issue] = false
         iter_count = length(options.log)
 
-        # println("starting iteration: $(iter_count)")
+        
+        println("===> starting iteration: $(iter_count) <===")
 
         # println("=========== start forward pass ===============")
         TimerOutputs.@timeit model.timer_output "forward_pass" begin

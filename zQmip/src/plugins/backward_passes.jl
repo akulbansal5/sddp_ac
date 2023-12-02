@@ -658,7 +658,10 @@ function backward_pass(
     tolerance::Float64 = 1e-6,
 ) where {T,N}
 
-    # println("======== starting backward pass ==========")
+
+    iterations = length(options.log)
+    println("   >>starting backward pass at iteration: $(iterations)")
+
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
         restore_duality =
             prepare_backward_pass(model, options.duality_handler, options)
@@ -667,12 +670,12 @@ function backward_pass(
     # TODO(odow): improve storage type.
     # println("creating cuts object for storing cuts")
     cuts = Dict{T,Vector{Any}}(index => Any[] for index in keys(model.nodes))
-    iterations = length(options.log)
+    
 
     
     
     path_len    = length(scenario_paths[1])
-    cuts_std    = 0           
+    cuts_std    = 0                                        
     cuts_nonstd = 0
     
     for index in path_len:-1:1
@@ -702,7 +705,7 @@ function backward_pass(
             end
             
             if visited_flag == true
-                # println("       node_index: $(node_index), noise_id: $(noise_id) already cached")
+                println("       node_index: $(node_index), noise_id: $(noise_id) already cached")
                 continue
             else
                 states_visited[noise_id] = outgoing_state

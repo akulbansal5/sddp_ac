@@ -329,7 +329,7 @@ function forward_pass(
         end
     end
 
-    # println("===== forward pass started successfully")
+    println("   >>Forward pass at iteration: $(iterations)")
 
     M              = length(scenario_paths)
     path_len       = length(scenario_paths[1])
@@ -418,7 +418,7 @@ function forward_pass(
                 push!(items.costtogo, cost_to_go)
                 items.cached_solutions[(node_index, noiseid)] = length(items.stage_objective)
             end
-            # println("           path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), prob: $(scenario_paths_prob[i])")
+            println("           path: $(i), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), prob: $(scenario_paths_prob[i])")
         end
         # println("       path: $(i), cumm_value: $(cumulative_values[i])")
     end
