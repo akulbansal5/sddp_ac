@@ -18,6 +18,10 @@ end
 ###
 struct BFGS <: AbstractSearchMethod
     evaluation_limit::Int
+    ftol::Float64
+    function BFGS(evaluation_limit::Int, ftol::Float64 = 1e-9)
+        new(evaluation_limit, ftol)
+    end
 end
 
 """
@@ -66,7 +70,9 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
         pₖ = B \ -∇fₖ
         # Run line search in direction `pₖ`
         αₖ, fₖ₊₁, ∇fₖ₊₁ = _line_search(f, fₖ, ∇fₖ, xₖ, pₖ, αₖ, evals)
-        if _norm(αₖ * pₖ) / max(1.0, _norm(xₖ)) < 1e-3
+
+        
+        if _norm(αₖ * pₖ) / max(1.0, _norm(xₖ)) < bfgs.ftol
             # Small steps! Probably at the edge of the feasible region.
             # Return the current iterate.
             #
