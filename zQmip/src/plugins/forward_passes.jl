@@ -371,14 +371,21 @@ function forward_pass(
             # NOTE: No termination due to cycle over here
 
             # Takes care of the overlapping scenario paths 
+            old_noise_id = 0
+
             if haskey(items.cached_solutions, (node_index, noiseid))
+
+                if depth > 1
+                    old_noise_id = scenario_path_noises[depth-1]
+                end
+
                 sol_index               = items.cached_solutions[(node_index, noiseid)]
                 stage_OBJ               = items.stage_objective[sol_index]
                 cumulative_values[i]     = cumulative_values[i] + stage_OBJ
                 incoming_state_value     = items.incoming_state_value[sol_index]
 
             else
-                old_noise_id = 0
+                
                 if depth > 1
                     old_noise_id = scenario_path_noises[depth-1]
                 end
