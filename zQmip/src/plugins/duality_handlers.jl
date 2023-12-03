@@ -262,6 +262,22 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
         x_in_value[i] = JuMP.fix_value(state.in)                                    #query the value to which state.in has been fixed to
         h_expr[i] = @expression(node.subproblem, state.in - x_in_value[i])          #seems like the expression z_n - x_{a(n)}^{i}
         JuMP.unfix(state.in)                                                        #relaxing the copy constraints in the dual
+
+            
+        if JuMP.is_binary(state.out)
+            JuMP.set_upper_bound(state.in, 1.0)
+            JuMP.set_lower_bound(state.in, 0.0)
+        else
+            if JuMP.has_lower_bound(state.out)
+                JuMP.set_lower_bound(state.in, JuMP.lower_bound(state.out))
+            end
+
+            if JuMP.has_upper_bound(state.out)
+                JuMP.set_upper_bound(state.in, JuMP.lower_bound(state.out))
+            end
+        end
+        # x_in_value[i] = JuMP.fix_value(state.in) 
+
         λ_star[i] = conic_dual[key]                                                 #initial choice of lagrangian
     end
 
