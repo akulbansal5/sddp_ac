@@ -308,10 +308,11 @@ function _solve_primal_problem(
     )                                                           #the constraint is put in the objective over here
                                                                 #primal_obj - λ' * h_expr  = - λ' * (z_n - x_{a(n)}^{i})
 
-                                                                
+
     JuMP.optimize!(model)                                       
 
-    if JuMP.termination_status(model) != MOI.OPTIMAL            
+    if JuMP.termination_status(model) != MOI.OPTIMAL 
+        println("               termination status lagrn problem: $(JuMP.termination_status(model))")           
         JuMP.set_objective_function(model, primal_obj)          #set the original objective if the problem is infeasible
         return nothing
     end
