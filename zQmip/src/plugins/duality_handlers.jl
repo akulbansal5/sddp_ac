@@ -333,13 +333,16 @@ function _solve_primal_problem(
                                                                 #primal_obj - λ' * h_expr  = - λ' * (z_n - x_{a(n)}^{i})
 
 
+
+    filename    = "/home/akul/sddp_comp/data/"
+    JuMP.write_to_file(model, filename*"lagrn.lp")
     JuMP.optimize!(model)                                       
 
     if JuMP.termination_status(model) != MOI.OPTIMAL 
         # println("               termination status lagrn problem: $(JuMP.termination_status(model))")
         
-        filename    = "/home/akul/sddp_comp/data/"
-        JuMP.write_to_file(model, filename*"lagrn.lp")
+        # filename    = "/home/akul/sddp_comp/data/"
+        # JuMP.write_to_file(model, filename*"lagrn.lp")
         JuMP.set_objective_function(model, primal_obj)          #set the original objective if the problem is infeasible
         return nothing
     end
