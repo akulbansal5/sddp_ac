@@ -660,7 +660,7 @@ function backward_pass(
 
 
     iterations = length(options.log)
-    println("   >>starting backward pass at iteration: $(iterations)")
+    # println("   >>starting backward pass at iteration: $(iterations)")
 
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
         restore_duality =
@@ -705,7 +705,7 @@ function backward_pass(
             end
             
             if visited_flag == true
-                println("       node_index: $(node_index), noise_id: $(noise_id) already cached")
+                # println("       node_index: $(node_index), noise_id: $(noise_id) already cached")
                 continue
             else
                 states_visited[noise_id] = outgoing_state

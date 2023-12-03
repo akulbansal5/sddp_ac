@@ -951,7 +951,7 @@ function solve_all_children(
                 items.cached_solutions[(child.term, noise.term)] =
                     length(items.duals)
             end
-            println("           child_index: $(child_node.index), old_noise_id: $(incoming_noise_id), noise_id: $(noise.id), obj: $(sub_obj), st_obj: $(st_obj)")
+            # println("           child_index: $(child_node.index), old_noise_id: $(incoming_noise_id), noise_id: $(noise.id), obj: $(sub_obj), st_obj: $(st_obj)")
         end
     end
     if length(scenario_path) == length_scenario_path

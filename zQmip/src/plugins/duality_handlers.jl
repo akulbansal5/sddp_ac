@@ -265,7 +265,7 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
 
             
         if JuMP.is_binary(state.out)
-            println("               inside lagrn: state variables are indeed binary")
+            # println("               inside lagrn: state variables are indeed binary")
             JuMP.set_upper_bound(state.in, 1.0)
             JuMP.set_lower_bound(state.in, 0.0)
         else
@@ -302,9 +302,12 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
             return L_k === nothing ? nothing : (s * L_k, s * h_k)
         end
 
+    #note by setting force = true the binary bounds set above are removed and new bounds are set
     for (i, (_, state)) in enumerate(node.states)
         JuMP.fix(state.in, x_in_value[i], force = true)
     end
+
+
     λ_solution = Dict{Symbol,Float64}(
         name => λ_star[i] for (i, name) in enumerate(keys(node.states))
     )
@@ -334,8 +337,8 @@ function _solve_primal_problem(
 
 
 
-    filename    = "/home/akul/sddp_comp/data/"
-    JuMP.write_to_file(model, filename*"lagrn.lp")
+    # filename    = "/home/akul/sddp_comp/data/"
+    # JuMP.write_to_file(model, filename*"lagrn.lp")
     JuMP.optimize!(model)                                       
 
     if JuMP.termination_status(model) != MOI.OPTIMAL 
