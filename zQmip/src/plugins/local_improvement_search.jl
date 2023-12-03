@@ -75,7 +75,7 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
         # Run line search in direction `pₖ`
         αₖ, fₖ₊₁, ∇fₖ₊₁ = _line_search(f, fₖ, ∇fₖ, xₖ, pₖ, αₖ, evals)
         
-        println("             local_imprv: $(evals[]), function value: $(fₖ)")
+        
         norm_value     = _norm(αₖ * pₖ)
         step           = norm_value / max(1.0, _norm(xₖ)) 
         if step < bfgs.ftol
@@ -138,13 +138,16 @@ function _line_search(
         fₖ₊₁, ∇fₖ₊₁ = ret
         if p' * ∇fₖ₊₁ < 1e-6
             # Still a descent direction, so take a step.
+            println("           line search: termination but still a descent direction")
             return α, fₖ₊₁, ∇fₖ₊₁
         elseif isapprox(fₖ + α * p' * ∇fₖ, fₖ₊₁; atol = 1e-8)
             # Step is onto a kink
+            println("           line search: termination by entering into a kink")
             return α, fₖ₊₁, ∇fₖ₊₁
         end
         #  Step is an ascent, so use Newton's method to find the intersection
         α = (fₖ₊₁ - fₖ - p' * ∇fₖ₊₁ * α) / (p' * ∇fₖ - p' * ∇fₖ₊₁)
+        println("             line search: $(evals[]), alpha value: $(α)")
     end
     return 0.0, fₖ, ∇fₖ
 end
