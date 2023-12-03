@@ -237,20 +237,31 @@ mutable struct LagrangianDuality <: AbstractDualityHandler
 end
 
 function get_dual_solution(node::Node, lagrange::LagrangianDuality)
+    
+    # relaxes the integer problem -> obtains the LP dual
+    # in case we are unable to solve the Lagrangian dual problem we return the LP dual
     undo_relax = _relax_integrality(node)
     optimize!(node.subproblem)
     conic_obj, conic_dual, conic_bound = get_dual_solution(node, ContinuousConicDuality())
     undo_relax()
+    
+
+    #now we solve the problem (4.3) and (4.4) mentioned in Zou/Ahmed et al SDDiP paper
+
     s = JuMP.objective_sense(node.subproblem) == MOI.MIN_SENSE ? -1 : 1
     N = length(node.states)
-    x_in_value = zeros(N)
-    λ_star, h_expr, h_k = zeros(N), Vector{AffExpr}(undef, N), zeros(N)
-    for (i, (key, state)) in enumerate(node.states)
-        x_in_value[i] = JuMP.fix_value(state.in)
+    x_in_value = zeros(N)                                                           #x_{a(n)}^{i}: this is the incumbent solution from the ancestor node
+    λ_star, h_expr, h_k = zeros(N), Vector{AffExpr}(undef, N), zeros(N)             
+
+    for (i, (key, state)) in enumerate(node.states)                                                                            
+        x_in_value[i] = JuMP.fix_value(state.in)                                    
         h_expr[i] = @expression(node.subproblem, state.in - x_in_value[i])          
         JuMP.unfix(state.in)                                                        #relaxing the copy constraints in the dual
         λ_star[i] = conic_dual[key]                                                 #initial choice of lagrangian
     end
+
+
+
     # Check that the conic dual is feasible for the subproblem. Sometimes it
     # isn't if the LP dual solution is slightly infeasible due to numerical
     # issues.
