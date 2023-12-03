@@ -265,6 +265,7 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
 
             
         if JuMP.is_binary(state.out)
+            println("               inside lagrn: state variables are indeed binary")
             JuMP.set_upper_bound(state.in, 1.0)
             JuMP.set_lower_bound(state.in, 0.0)
         else
@@ -280,6 +281,9 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
         
         λ_star[i] = conic_dual[key]                                                 #initial choice of lagrangian
     end
+
+    filename    = "/home/akul/sddp_comp/data/"
+    JuMP.write_to_file(node.subproblem, filename*"lagrn_pre.lp")
 
 
 
