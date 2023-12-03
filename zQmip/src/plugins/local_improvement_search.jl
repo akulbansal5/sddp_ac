@@ -53,6 +53,8 @@ to this purpose:
 function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
     # Initial estimte for the Hessian matrix in BFGS
     B = zeros(length(x₀), length(x₀))
+
+
     for i in 1:size(B, 1)
         B[i, i] = 1.0
     end
@@ -72,7 +74,7 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
         # Run line search in direction `pₖ`
         αₖ, fₖ₊₁, ∇fₖ₊₁ = _line_search(f, fₖ, ∇fₖ, xₖ, pₖ, αₖ, evals)
         
-        println("           local_imprv: $(evals[]), function value: $(fₖ)")
+        println("             local_imprv: $(evals[]), function value: $(fₖ)")
         norm_value     = _norm(αₖ * pₖ)
         step = norm_value / max(1.0, _norm(xₖ)) 
         if step < bfgs.ftol
@@ -124,7 +126,7 @@ function _line_search(
     α::Float64,
     evals::Ref{Int},
 ) where {F<:Function}
-    while _norm(α * p) / max(1.0, _norm(x)) > 1e-6
+    while _norm(α * p) / max(1.0, _norm(x)) > 1e-3
         xₖ = x + α * p
         ret = f(xₖ)
         evals[] += 1
