@@ -1045,6 +1045,23 @@ function PolicyGraph(
         node.has_integrality =
             (JuMP.VariableRef, MOI.Integer) in ctypes ||
             (JuMP.VariableRef, MOI.ZeroOne) in ctypes
+
+        for (i, (key, state)) in enumerate(node.states)    
+            
+            if JuMP.isbinary(state.out)
+                JuMP.set_upper_bound(state.in, 1.0)
+                JuMP.set_lower_bound(state.in, 0.0)
+            else
+                if JuMP.has_lower_bound(state.out)
+                    JuMP.set_lower_bound(state.in, JuMP.lower_bound(state.out))
+                end
+
+                if JuMP.has_upper_bound(state.out)
+                    JuMP.set_upper_bound(state.in, JuMP.lower_bound(state.out))
+                end
+            end
+            # x_in_value[i] = JuMP.fix_value(state.in) 
+        end
     end
 
     # println("   ==== looping back through node childs")
@@ -1061,6 +1078,9 @@ function PolicyGraph(
         node.bellman_function =
             initialize_bellman_function(bellman_function, policy_graph, node)
     end
+
+
+
 
     println("   ==== adding root nodes")
     # Add root nodes
