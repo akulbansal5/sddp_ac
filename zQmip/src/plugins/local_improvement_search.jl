@@ -61,6 +61,8 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
     # We assume that the initial iterate is feasible
     xₖ = x₀
     fₖ, ∇fₖ = f(xₖ)::Tuple{Float64,Vector{Float64}}
+
+    println("               local_improv: gradient of the function $(∇fₖ)")
     # Initial step-length
     αₖ = 1.0
     # Evaluation counter
