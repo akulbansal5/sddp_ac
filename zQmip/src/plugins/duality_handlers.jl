@@ -330,7 +330,7 @@ function _solve_primal_problem(
     JuMP.optimize!(model)                                       
 
     if JuMP.termination_status(model) != MOI.OPTIMAL 
-        println("               termination status lagrn problem: $(JuMP.termination_status(model))")
+        # println("               termination status lagrn problem: $(JuMP.termination_status(model))")
         
         filename    = "/home/akul/sddp_comp/data/"
         JuMP.write_to_file(model, filename*"lagrn.lp")

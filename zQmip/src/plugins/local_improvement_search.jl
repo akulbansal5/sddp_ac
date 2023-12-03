@@ -62,7 +62,7 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
     # We assume that the initial iterate is feasible
     xₖ = x₀
     fₖ, ∇fₖ = f(xₖ)::Tuple{Float64,Vector{Float64}}                             #the gradient comes through f(x_k)
-    println("               local_improv: gradient of the function $(∇fₖ)")    
+    # println("               local_improv: gradient of the function $(∇fₖ)")    
     
     # Initial step-length
     αₖ = 1.0
@@ -91,16 +91,16 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
             # because we abuse the solvers feasibility tolerance, and end up
             # returning a solution that is on the edge of numerical dual
             # feasibility.
-            println("             local_imprv: at edge with # of lg dual evals: $(evals[]), ftol: $(bfgs.ftol), step: $(step), alpha_k: $(αₖ), norm_value: $(norm_value)")
+            # println("             local_imprv: at edge with # of lg dual evals: $(evals[]), ftol: $(bfgs.ftol), step: $(step), alpha_k: $(αₖ), norm_value: $(norm_value)")
             return fₖ, xₖ
         elseif _norm(∇fₖ₊₁) < bfgs.gtol
             # Zero(ish) gradient. Return what must be a local maxima.
-            println("             local_imprv: zero gradient with number of lg dual evals: $(evals[])")
+            # println("             local_imprv: zero gradient with number of lg dual evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
         elseif evals[] <= 0
             # We have evaluated the function too many times. Return our current
             # best.
-            println("           local_imprv: termination with number of lg dual evals: $(evals[])")
+            # println("           local_imprv: termination with number of lg dual evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
         end
         # BFGS update.
@@ -133,7 +133,7 @@ function _line_search(
         xₖ = x + α * p
         ret = f(xₖ)
         evals[] -= 1
-        println("             line search: $(evals[]), alpha value: $(α), ret: $(ret), p_k: $(p)")
+        # println("             line search: $(evals[]), alpha value: $(α), ret: $(ret), p_k: $(p)")
         if ret === nothing
             α /= 2  # Infeasible. So take a smaller step
             continue
@@ -141,11 +141,11 @@ function _line_search(
         fₖ₊₁, ∇fₖ₊₁ = ret
         if p' * ∇fₖ₊₁ < 1e-6
             # Still a descent direction, so take a step.
-            println("           line search: termination but still a descent direction")
+            # println("           line search: termination but still a descent direction")
             return α, fₖ₊₁, ∇fₖ₊₁
         elseif isapprox(fₖ + α * p' * ∇fₖ, fₖ₊₁; atol = 1e-8)
             # Step is onto a kink
-            println("           line search: termination by entering into a kink")
+            # println("           line search: termination by entering into a kink")
             return α, fₖ₊₁, ∇fₖ₊₁
         end
         #  Step is an ascent, so use Newton's method to find the intersection
