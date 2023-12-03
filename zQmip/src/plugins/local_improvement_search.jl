@@ -74,8 +74,7 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
         pₖ = B \ -∇fₖ
         # Run line search in direction `pₖ`
         αₖ, fₖ₊₁, ∇fₖ₊₁ = _line_search(f, fₖ, ∇fₖ, xₖ, pₖ, αₖ, evals)
-        
-        
+
         norm_value     = _norm(αₖ * pₖ)
         step           = norm_value / max(1.0, _norm(xₖ)) 
         if step < bfgs.ftol
@@ -131,7 +130,7 @@ function _line_search(
         xₖ = x + α * p
         ret = f(xₖ)
         evals[] -= 1
-        println("             line search: $(evals[]), alpha value: $(α), ret: $(ret)")
+        println("             line search: $(evals[]), alpha value: $(α), ret: $(ret), p_k: $(p)")
         if ret === nothing
             α /= 2  # Infeasible. So take a smaller step
             continue
