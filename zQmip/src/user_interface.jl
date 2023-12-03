@@ -1048,7 +1048,7 @@ function PolicyGraph(
 
         for (i, (key, state)) in enumerate(node.states)    
             
-            if JuMP.isbinary(state.out)
+            if JuMP.is_binary(state.out)
                 JuMP.set_upper_bound(state.in, 1.0)
                 JuMP.set_lower_bound(state.in, 0.0)
             else
