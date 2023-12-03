@@ -131,6 +131,7 @@ function _line_search(
         xₖ = x + α * p
         ret = f(xₖ)
         evals[] -= 1
+        println("             line search: $(evals[]), alpha value: $(α), ret: $(ret)")
         if ret === nothing
             α /= 2  # Infeasible. So take a smaller step
             continue
@@ -147,7 +148,7 @@ function _line_search(
         end
         #  Step is an ascent, so use Newton's method to find the intersection
         α = (fₖ₊₁ - fₖ - p' * ∇fₖ₊₁ * α) / (p' * ∇fₖ - p' * ∇fₖ₊₁)
-        println("             line search: $(evals[]), alpha value: $(α)")
+        
     end
     return 0.0, fₖ, ∇fₖ
 end
