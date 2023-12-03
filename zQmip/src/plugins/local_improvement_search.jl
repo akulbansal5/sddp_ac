@@ -64,7 +64,8 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
     # Initial step-length
     αₖ = 1.0
     # Evaluation counter
-    evals = Ref(0)
+    # evals = Ref(0)
+    evals = Ref(bfgs.evaluation_limit)
     while true
         # Search direction. We could be clever here and maintain B⁻¹, but we're
         # only ever going to be solving this for very small |x| << 100 problems,
@@ -76,7 +77,7 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
         
         println("             local_imprv: $(evals[]), function value: $(fₖ)")
         norm_value     = _norm(αₖ * pₖ)
-        step = norm_value / max(1.0, _norm(xₖ)) 
+        step           = norm_value / max(1.0, _norm(xₖ)) 
         if step < bfgs.ftol
             # Small steps! Probably at the edge of the feasible region.
             # Return the current iterate.
@@ -94,7 +95,7 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
             # Zero(ish) gradient. Return what must be a local maxima.
             println("             local_imprv: zero gradient with number of lg dual evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
-        elseif evals[] > bfgs.evaluation_limit
+        elseif evals[] <= 0
             # We have evaluated the function too many times. Return our current
             # best.
             println("           local_imprv: termination with number of lg dual evals: $(evals[])")
@@ -126,17 +127,20 @@ function _line_search(
     α::Float64,
     evals::Ref{Int},
 ) where {F<:Function}
-    while _norm(α * p) / max(1.0, _norm(x)) > 1e-3
+    while _norm(α * p) > 1e-3 * max(1.0, _norm(x))
         xₖ = x + α * p
         ret = f(xₖ)
-        evals[] += 1
+        evals[] -= 1
         if ret === nothing
             α /= 2  # Infeasible. So take a smaller step
             continue
         end
         fₖ₊₁, ∇fₖ₊₁ = ret
-        if p' * ∇fₖ₊₁ < 1e-3
+        if p' * ∇fₖ₊₁ < 1e-6
             # Still a descent direction, so take a step.
+            return α, fₖ₊₁, ∇fₖ₊₁
+        elseif isapprox(fₖ + α * p' * ∇fₖ, fₖ₊₁; atol = 1e-8)
+            # Step is onto a kink
             return α, fₖ₊₁, ∇fₖ₊₁
         end
         #  Step is an ascent, so use Newton's method to find the intersection
