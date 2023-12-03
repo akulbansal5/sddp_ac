@@ -124,7 +124,7 @@ function _line_search(
     α::Float64,
     evals::Ref{Int},
 ) where {F<:Function}
-    while _norm(α * p) / max(1.0, _norm(x)) > 1e-3
+    while _norm(α * p) / max(1.0, _norm(x)) > 1e-6
         xₖ = x + α * p
         ret = f(xₖ)
         evals[] += 1
