@@ -245,8 +245,8 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
     conic_obj, conic_dual, conic_bound = get_dual_solution(node, ContinuousConicDuality())
     undo_relax()
 
-    filename = "/home/akul/sddp_comp/data/"
-    JuMP.write_to_file(node.subproblem, filename*"primal.lp")
+    # filename = "/home/akul/sddp_comp/data/"
+    # JuMP.write_to_file(node.subproblem, filename*"primal.lp")
 
     #now we solve the problem (4.3) and (4.4) mentioned in Zou/Ahmed et al SDDiP paper
 
@@ -255,7 +255,7 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
     x_in_value = zeros(N)                                                           #x_{a(n)}^{i}: this is the incumbent solution from the ancestor node
     λ_star, h_expr, h_k = zeros(N), Vector{AffExpr}(undef, N), zeros(N)             
 
-
+    
 
 
     for (i, (key, state)) in enumerate(node.states)                                                                        
@@ -273,11 +273,11 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
             end
 
             if JuMP.has_upper_bound(state.out)
-                JuMP.set_upper_bound(state.in, JuMP.lower_bound(state.out))
+                JuMP.set_upper_bound(state.in, JuMP.upper_bound(state.out))
             end
         end
-        # x_in_value[i] = JuMP.fix_value(state.in) 
-
+       
+        
         λ_star[i] = conic_dual[key]                                                 #initial choice of lagrangian
     end
 
@@ -297,12 +297,14 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
             L_k = _solve_primal_problem(node.subproblem, x, h_expr, h_k)
             return L_k === nothing ? nothing : (s * L_k, s * h_k)
         end
+
     for (i, (_, state)) in enumerate(node.states)
         JuMP.fix(state.in, x_in_value[i], force = true)
     end
     λ_solution = Dict{Symbol,Float64}(
         name => λ_star[i] for (i, name) in enumerate(keys(node.states))
     )
+
     return s * L_star, λ_solution, s * L_star
 end
 
