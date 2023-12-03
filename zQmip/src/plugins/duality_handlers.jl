@@ -244,7 +244,9 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
     optimize!(node.subproblem)
     conic_obj, conic_dual, conic_bound = get_dual_solution(node, ContinuousConicDuality())
     undo_relax()
-    
+
+    filename = "/home/akul/sddp_comp/data/"
+    JuMP.write_to_file(node.subproblem, filename*"primal.lp")
 
     #now we solve the problem (4.3) and (4.4) mentioned in Zou/Ahmed et al SDDiP paper
 
