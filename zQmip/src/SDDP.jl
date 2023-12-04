@@ -42,6 +42,8 @@ include("print.jl")
 # The core SDDP code.
 include("algorithm.jl")
 
+println(">>>>>>>>>>>>>>>>>> algorithms included")
+
 # Specific plugins.
 include("plugins/risk_measures.jl")
 include("plugins/sampling_schemes.jl")
