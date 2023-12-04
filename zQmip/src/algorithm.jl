@@ -1355,6 +1355,14 @@ function train(
     iter_pass::Number = 0,
     M::Int = 1,
 )
+
+    # duals   = [SDDP.LagrangianDuality(), SDDP.LaporteLouveauxDuality()]
+    # bpass   = [SDDP.DefaultMultiBackwardPass(), SDDP.AnguloMultiBackwardPass()]
+    # fpass   = [SDDP.DefaultMultiForwardPass(), SDDP.DefaultNestedForwardPass()]
+    # spass   = [SDDP.InSampleMonteCarloMultiple(), SDDP.AllSampleMonteCarloMultiple()]
+    
+    # duality_handler
+    
     function log_frequency_f(log::Vector{Log})
         if mod(length(log), log_frequency) != 0
             return false
@@ -1378,7 +1386,7 @@ function train(
         return log[end].time - log[last].time >= seconds
     end
 
-    println("============inside train function")
+    # println("============inside train function")
     if !add_to_existing_cuts && model.most_recent_training_results !== nothing
         @warn("""
         Re-training a model with existing cuts!
