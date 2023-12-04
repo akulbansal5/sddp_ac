@@ -1098,7 +1098,7 @@ function PolicyGraph(
         end
     end
 
-    print(" ===== final leg")
+    # print(" ===== final leg")
     # Initialize belief states.
     if length(graph.belief_partition) > 0
         initialize_belief_states(policy_graph, graph)

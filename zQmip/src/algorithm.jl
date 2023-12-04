@@ -1120,7 +1120,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         iter_count = length(options.log)
 
         
-        println("===> starting iteration: $(iter_count) <===")
+        # println("===> starting iteration: $(iter_count) <===")
 
         # println("=========== start forward pass ===============")
         TimerOutputs.@timeit model.timer_output "forward_pass" begin
@@ -1378,7 +1378,7 @@ function train(
         return log[end].time - log[last].time >= seconds
     end
 
-
+    println("============inside train function")
     if !add_to_existing_cuts && model.most_recent_training_results !== nothing
         @warn("""
         Re-training a model with existing cuts!
