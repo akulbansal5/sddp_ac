@@ -351,6 +351,8 @@ function forward_pass(
 
     objective_states = NTuple{0,Float64}[]
 
+    println("       All possible noise scenario paths: $(scenario_paths_noises)")
+
     #Iterate down the scenario paths
     for i in 1:M
 
