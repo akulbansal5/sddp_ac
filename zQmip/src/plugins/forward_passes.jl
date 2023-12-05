@@ -433,7 +433,7 @@ function forward_pass(
     end
     
     pass.best_bd =  min(sum([cumulative_values[i]*scenario_paths_prob[i] for i in 1:M]), pass.best_bd)
-    println("       new ub: pass.best_bd")
+    println("       new ub: $(pass.best_bd)")
 
     return (
         scenario_paths   = scenario_paths,
