@@ -50,10 +50,10 @@ to this purpose:
      evaluation and first-order gradient information.
  * `x₀::Vector{Float64}`: a feasible starting point.
 """
-function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
+function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}, time_left::Union{Number,Nothing}=nothing) where {F<:Function}
     # Initial estimte for the Hessian matrix in BFGS
     B = zeros(length(x₀), length(x₀))
-
+    start_time = time()
 
     for i in 1:size(B, 1)
         B[i, i] = 1.0
@@ -102,6 +102,8 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
             # We have evaluated the function too many times. Return our current
             # best.
             # println("             local_imprv: termination with number of lg dual evals: $(evals[])")
+            return fₖ₊₁, xₖ + αₖ * pₖ
+        elseif time() - start_time > time_left
             return fₖ₊₁, xₖ + αₖ * pₖ
         end
         # BFGS update.

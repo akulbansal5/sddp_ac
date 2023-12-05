@@ -722,6 +722,9 @@ function backward_pass(
             partition_index, belief_state = (0, nothing)
             items = BackwardPassItems(T, Noise)
 
+
+            # log[end].time
+            time_left = length(options.log) > 0 ? options.time_limit - log[end].time : nothing
             
             solve_all_children(
                 model,
@@ -737,8 +740,12 @@ function backward_pass(
                 options.mipgap,
                 noise_id,
                 false,
-                iterations
+                iterations,
+                time_left
             )
+
+
+            
 
             objofchildren_lp = bounds_on_actual_costtogo(items, options.duality_handler)
             cost_to_go       = costtogo[node_index][noise_id]
@@ -883,6 +890,9 @@ function backward_pass(
                 restore_duality = prepare_backward_pass_node(model, node, continuous_duality, options) 
             end
 
+            # log[end].time
+            
+
             solve_all_children(
                 model,
                 node,
@@ -931,7 +941,7 @@ function backward_pass(
                 push!(cuts[node_index], new_cuts)
             else
                 items = BackwardPassItems(T, Noise) 
-                
+                time_left = length(options.log) > 0 ? options.time_limit - log[end].time : nothing
                 solve_all_children(
                     model,
                     node,
@@ -943,7 +953,11 @@ function backward_pass(
                     options.backward_sampling_scheme,
                     scenario_trajectory[(node_index, noise_id)],                      
                     options.duality_handler,
-                    options.mipgap
+                    options.mipgap,
+                    1,
+                    false,
+                    1,
+                    time_left
                     )
 
                 

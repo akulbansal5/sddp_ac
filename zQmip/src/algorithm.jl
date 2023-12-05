@@ -107,6 +107,7 @@ struct Options{T}
     mipgap::Number
     iter_pass::Number
     M::Int
+    time_limit::Union{Number,Nothing}
     last_log_iteration::Ref{Int}
     # Internal function: users should never construct this themselves.
     function Options(
@@ -133,6 +134,7 @@ struct Options{T}
         mipgap = 1e-4,
         iter_pass = 0,
         M = 1,
+        time_limit::Union{Number,Nothing} = nothing
     ) where {T}
         return new{T}(
             initial_state,
@@ -160,6 +162,7 @@ struct Options{T}
             mipgap,
             iter_pass,
             M,
+            time_limit,
             Ref{Int}(0),  # last_log_iteration
         )
     end
@@ -471,6 +474,7 @@ function solve_subproblem(
     current_node_index::Number = 1,
     write_sub::Bool = false,
     write_string::String = "default",
+    time_left::Union{Number,Nothing} = nothing,
 ) where {T,S}
 
     # println("   =========== solve subproblem =========== ")
@@ -479,6 +483,7 @@ function solve_subproblem(
     if model.solver_threads !== nothing
         _add_threads_solver(node, threads = model.solver_threads)
     end
+
 
     _add_mipgap_solver(node, mipgap, duality_handler)
 
@@ -540,7 +545,7 @@ function solve_subproblem(
 
     
     TimerOutputs.@timeit model.timer_output "get_dual_solution" begin
-        objective, dual_values, bound = get_dual_solution(node, duality_handler, model.timer_output)
+        objective, dual_values, bound = get_dual_solution(node, duality_handler, model.timer_output, time_left)
     end
     if node.post_optimize_hook !== nothing
         node.post_optimize_hook(pre_optimize_ret)
@@ -870,6 +875,7 @@ function solve_all_children(
     incoming_noise_id::Number = 1,
     write_sub::Bool = false,
     iterations::Number = 1,
+    time_left::Union{Number, Nothing} = nothing
 ) where {T}
     length_scenario_path = length(scenario_path)
     for child in node.children
@@ -936,6 +942,7 @@ function solve_all_children(
                         current_node_index = child_node.index, 
                         write_sub = write_sub,
                         write_string = "backward_$(iterations)_", 
+                        time_left = time_left
                     )
                 end
 
@@ -1454,6 +1461,13 @@ function train(
     end
     if time_limit !== nothing
         push!(stopping_rules, TimeLimit(time_limit))
+    else
+        for rule in stopping_rules
+            if isa(rule, TimeLimit)
+                println("yes there is a timelimit in rules")
+                time_limit = rule.limit
+            end
+        end
     end
     # If no stopping rule exists, add the default rule.
     if isempty(stopping_rules)
@@ -1507,6 +1521,7 @@ function train(
         mipgap,
         iter_pass,
         M,
+        time_limit
     )
 
 
