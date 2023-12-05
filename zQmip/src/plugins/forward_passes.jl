@@ -329,7 +329,7 @@ function forward_pass(
         end
     end
 
-    println("   >>Forward pass at iteration: $(iterations)")
+    # println("   >>Forward pass at iteration: $(iterations)")
 
     M              = length(scenario_paths)
     path_len       = length(scenario_paths[1])
@@ -351,7 +351,7 @@ function forward_pass(
 
     objective_states = NTuple{0,Float64}[]
 
-    println("       All possible noise scenario paths: $(scenario_paths_noises)")
+    # println("       All possible noise scenario paths: $(scenario_paths_noises)")
 
     #Iterate down the scenario paths
     for i in 1:M

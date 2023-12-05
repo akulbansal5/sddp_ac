@@ -645,6 +645,8 @@ function backward_pass(
 end
 
 
+
+
 function backward_pass(
     model::PolicyGraph{T},
     options::Options,
@@ -660,7 +662,7 @@ function backward_pass(
 
 
     iterations = length(options.log)
-    println("   >>starting backward pass at iteration: $(iterations)")
+    # println("   >>starting backward pass at iteration: $(iterations)")
 
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
         restore_duality =
@@ -821,7 +823,7 @@ function backward_pass(
     belief_states::Dict{Int, Vector{Tuple{Int,Dict{T,Float64}}}},
     costtogo::Dict{Int, Dict{Int, Float64}},
     scenario_trajectory::Dict{Tuple{T,Int}, Vector{Tuple{T, Any}}},
-    tolerance::Float64 = 1e-6,
+    tolerance::Float64 = 1e-3,
 ) where {T,N}
 
     # println("--starting backward pass--")
@@ -855,22 +857,22 @@ function backward_pass(
         for noise_id in noiseids
 
             outgoing_state = sampled_states[(node_index, noise_id)]
-            
-            visited_flag = false
-            for h in unique_path_indices
-                if outgoing_state == states_visited[h]
-                    visited_flag = true
-                    break
+            TimerOutputs.@timeit model.timer_output "hashing" begin
+                visited_flag = false
+                for h in unique_path_indices
+                    if outgoing_state == states_visited[h]
+                        visited_flag = true
+                        break
+                    end
+                end
+                
+                if visited_flag == true
+                    continue
+                else
+                    states_visited[noise_id] = outgoing_state
+                    push!(unique_path_indices, noise_id)
                 end
             end
-            
-            if visited_flag == true
-                continue
-            else
-                states_visited[noise_id] = outgoing_state
-                push!(unique_path_indices, noise_id)
-            end
-
             
             objective_state               = nothing
             partition_index, belief_state = (0, nothing)
@@ -909,19 +911,21 @@ function backward_pass(
             objofchildren_mip = nothing
             if options.sense_signal*(cost_to_go -  objofchildren_lp) < -tolerance
                 # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
-                new_cuts = refine_bellman_function(
-                    model,
-                    node,
-                    continuous_duality,
-                    node.bellman_function,
-                    options.risk_measures[node_index],
-                    outgoing_state,
-                    items.duals,                                #dual_variables
-                    items.supports,                             
-                    items.probability,                         
-                    items.objectives,
-                    objofchildren_lp,                           # in order for Laporte and Laouvex cuts to work the input includes mip objective
-                )
+                TimerOutputs.@timeit model.timer_output "benders_cut_addition" begin
+                    new_cuts = refine_bellman_function(
+                        model,
+                        node,
+                        continuous_duality,
+                        node.bellman_function,
+                        options.risk_measures[node_index],
+                        outgoing_state,
+                        items.duals,                                #dual_variables
+                        items.supports,                             
+                        items.probability,                         
+                        items.objectives,
+                        objofchildren_lp,                           # in order for Laporte and Laouvex cuts to work the input includes mip objective
+                    )
+                end
                 flag = 1
                 cuts_std += 1                     
                 push!(cuts[node_index], new_cuts)
@@ -952,19 +956,21 @@ function backward_pass(
                 if options.sense_signal*(cost_to_go - objofchildren_mip) < -tolerance
                     # println("       costtogo: $(costtogo[node_index]), obj of children mip: $(objofchildren_mip)")
                     # println("       add LapLov cut/Lag cut procedure")
-                    new_cuts = refine_bellman_function(
-                        model,
-                        node,
-                        options.duality_handler,
-                        node.bellman_function,
-                        options.risk_measures[node_index],
-                        outgoing_state,
-                        items.duals,
-                        items.supports,
-                        items.probability,
-                        items.objectives,
-                        objofchildren_mip,
-                    )
+                    TimerOutputs.@timeit model.timer_output "benders_cut_addition" begin
+                        new_cuts = refine_bellman_function(
+                            model,
+                            node,
+                            options.duality_handler,
+                            node.bellman_function,
+                            options.risk_measures[node_index],
+                            outgoing_state,
+                            items.duals,
+                            items.supports,
+                            items.probability,
+                            items.objectives,
+                            objofchildren_mip,
+                        )
+                    end
                     flag = 2                                #indicates non-benders cut
                     cuts_nonstd += 1
                     push!(cuts[node_index], new_cuts)

@@ -69,7 +69,7 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
     # Evaluation counter
     # evals = Ref(0)
     evals = Ref(bfgs.evaluation_limit)
-    println("               local_imprv: allowed number of evals: $(bfgs.evaluation_limit)")
+    # println("               local_imprv: allowed number of evals: $(bfgs.evaluation_limit)")
     while true
         # Search direction. We could be clever here and maintain B⁻¹, but we're
         # only ever going to be solving this for very small |x| << 100 problems,
@@ -92,16 +92,16 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
             # because we abuse the solvers feasibility tolerance, and end up
             # returning a solution that is on the edge of numerical dual
             # feasibility.
-            println("             local_imprv: at edge with # of lg dual evals: $(evals[]), ftol: $(bfgs.ftol), step: $(step), alpha_k: $(αₖ), norm_value: $(norm_value)")
+            # println("             local_imprv: at edge with # of lg dual evals: $(evals[]), ftol: $(bfgs.ftol), step: $(step), alpha_k: $(αₖ), norm_value: $(norm_value)")
             return fₖ, xₖ
         elseif _norm(∇fₖ₊₁) < bfgs.gtol
             # Zero(ish) gradient. Return what must be a local maxima.
-            println("             local_imprv: zero gradient with gradient $(_norm(∇fₖ₊₁))")
+            # println("             local_imprv: zero gradient with gradient $(_norm(∇fₖ₊₁))")
             return fₖ₊₁, xₖ + αₖ * pₖ
         elseif evals[] <= 0
             # We have evaluated the function too many times. Return our current
             # best.
-            println("             local_imprv: termination with number of lg dual evals: $(evals[])")
+            # println("             local_imprv: termination with number of lg dual evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
         end
         # BFGS update.
