@@ -10,7 +10,7 @@ _norm(x) = sqrt(sum(xi^2 for xi in x))
 abstract type AbstractSearchMethod end
 
 function minimize(f::Function, x₀::Vector{Float64})
-    return minimize(f, BFGS(100), x₀)
+    return minimize(f, BFGS(1000), x₀)
 end
 
 ###
@@ -153,6 +153,4 @@ function _line_search(
         
     end
     return 0.0, fₖ, ∇fₖ
-end
-
 end
