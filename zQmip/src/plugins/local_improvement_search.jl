@@ -20,7 +20,7 @@ struct BFGS <: AbstractSearchMethod
     evaluation_limit::Int
     ftol::Float64
     gtol::Float64
-    function BFGS(evaluation_limit::Int, ftol::Float64 = 1e-3, gtol::Float64 = 1e-6)
+    function BFGS(evaluation_limit::Int, ftol::Float64 = 1e-3, gtol::Float64 = 1e-5)
         new(evaluation_limit, ftol, gtol)
     end
 end
@@ -92,16 +92,16 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
             # because we abuse the solvers feasibility tolerance, and end up
             # returning a solution that is on the edge of numerical dual
             # feasibility.
-            println("             local_imprv: at edge with # of lg dual evals: $(evals[]), ftol: $(bfgs.ftol), step: $(step), alpha_k: $(αₖ), norm_value: $(norm_value)")
+            # println("             local_imprv: at edge with # of lg dual evals: $(evals[]), ftol: $(bfgs.ftol), step: $(step), alpha_k: $(αₖ), norm_value: $(norm_value)")
             return fₖ, xₖ
         elseif _norm(∇fₖ₊₁) < bfgs.gtol
             # Zero(ish) gradient. Return what must be a local maxima.
-            println("             local_imprv: zero gradient with gradient $(_norm(∇fₖ₊₁)) and evals: $(evals[])")
+            # println("             local_imprv: zero gradient with gradient $(_norm(∇fₖ₊₁)) and evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
         elseif evals[] <= 0
             # We have evaluated the function too many times. Return our current
             # best.
-            println("             local_imprv: termination with number of lg dual evals: $(evals[])")
+            # println("             local_imprv: termination with number of lg dual evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
         end
         # BFGS update.
