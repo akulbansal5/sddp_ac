@@ -95,12 +95,12 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
             return fₖ, xₖ
         elseif _norm(∇fₖ₊₁) < bfgs.gtol
             # Zero(ish) gradient. Return what must be a local maxima.
-            println("             local_imprv: zero gradient with number of lg dual evals: $(evals[])")
+            println("             local_imprv: zero gradient with gradient $(_norm(∇fₖ₊₁))")
             return fₖ₊₁, xₖ + αₖ * pₖ
         elseif evals[] <= 0
             # We have evaluated the function too many times. Return our current
             # best.
-            println("           local_imprv: termination with number of lg dual evals: $(evals[])")
+            println("             local_imprv: termination with number of lg dual evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
         end
         # BFGS update.
