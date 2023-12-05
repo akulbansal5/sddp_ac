@@ -956,7 +956,7 @@ function backward_pass(
                 if options.sense_signal*(cost_to_go - objofchildren_mip) < -tolerance
                     # println("       costtogo: $(costtogo[node_index]), obj of children mip: $(objofchildren_mip)")
                     # println("       add LapLov cut/Lag cut procedure")
-                    TimerOutputs.@timeit model.timer_output "benders_cut_addition" begin
+                    TimerOutputs.@timeit model.timer_output "tight_cut_addition" begin
                         new_cuts = refine_bellman_function(
                             model,
                             node,

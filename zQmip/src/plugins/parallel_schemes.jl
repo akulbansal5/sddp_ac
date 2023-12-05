@@ -48,10 +48,10 @@ function master_loop(
         result = iteration(model, options, options.iter_pass)
         options.post_iteration_callback(result)
 
-        # println("post iteration call back successful")
+        println("post iteration call back successful")
         log_iteration(options)
 
-        # println("logged the iteration inside master loop")
+        println("logged the iteration inside master loop")
         if result.has_converged
             # println("covergence criterion is met")
             return result.status
