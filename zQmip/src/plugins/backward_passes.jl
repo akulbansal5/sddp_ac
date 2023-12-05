@@ -660,7 +660,7 @@ function backward_pass(
 
 
     iterations = length(options.log)
-    # println("   >>starting backward pass at iteration: $(iterations)")
+    println("   >>starting backward pass at iteration: $(iterations)")
 
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
         restore_duality =
