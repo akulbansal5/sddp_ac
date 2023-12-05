@@ -724,7 +724,7 @@ function backward_pass(
 
 
             # log[end].time
-            time_left = length(options.log) > 0 ? options.time_limit - log[end].time : nothing
+            time_left = length(options.log) > 0 ? options.time_limit - options.log[end].time : nothing
             
             solve_all_children(
                 model,
@@ -941,7 +941,7 @@ function backward_pass(
                 push!(cuts[node_index], new_cuts)
             else
                 items = BackwardPassItems(T, Noise) 
-                time_left = length(options.log) > 0 ? options.time_limit - log[end].time : nothing
+                time_left = length(options.log) > 0 ? options.time_limit - options.log[end].time : nothing
                 solve_all_children(
                     model,
                     node,
