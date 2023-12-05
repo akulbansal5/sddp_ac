@@ -537,6 +537,8 @@ function solve_subproblem(
     
     state = get_outgoing_state(node)
     stage_objective = stage_objective_value(node.stage_objective)
+
+    
     TimerOutputs.@timeit model.timer_output "get_dual_solution" begin
         objective, dual_values, bound = get_dual_solution(node, duality_handler)
     end

@@ -427,13 +427,13 @@ function forward_pass(
                 push!(items.costtogo, cost_to_go)
                 items.cached_solutions[(node_index, noiseid)] = length(items.stage_objective)
             end
-            println("           path: $(i), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), prob: $(scenario_paths_prob[i])")
+            # println("           path: $(i), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), prob: $(scenario_paths_prob[i])")
         end
         # println("       path: $(i), cumm_value: $(cumulative_values[i])")
     end
     
     pass.best_bd =  min(sum([cumulative_values[i]*scenario_paths_prob[i] for i in 1:M]), pass.best_bd)
-    println("       new ub: $(pass.best_bd)")
+    # println("       new ub: $(pass.best_bd)")
 
     return (
         scenario_paths   = scenario_paths,

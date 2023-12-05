@@ -694,22 +694,26 @@ function backward_pass(
         noiseids             = keys(costtogo[node_index])
 
         for noise_id in noiseids
+            
+
             outgoing_state = sampled_states[(node_index, noise_id)]
             
-            visited_flag = false
-            for h in unique_noise_indices
-                if outgoing_state == states_visited[h]
-                    visited_flag = true
-                    break
+            TimerOutputs.@timeit model.timer_output "hashing" begin
+                visited_flag = false
+                for h in unique_noise_indices
+                    if outgoing_state == states_visited[h]
+                        visited_flag = true
+                        break
+                    end
                 end
-            end
-            
-            if visited_flag == true
-                # println("       node_index: $(node_index), noise_id: $(noise_id) already cached")
-                continue
-            else
-                states_visited[noise_id] = outgoing_state
-                push!(unique_noise_indices, noise_id)
+                
+                if visited_flag == true
+                    # println("       node_index: $(node_index), noise_id: $(noise_id) already cached")
+                    continue
+                else
+                    states_visited[noise_id] = outgoing_state
+                    push!(unique_noise_indices, noise_id)
+                end
             end
 
             objective_state = nothing
@@ -742,52 +746,55 @@ function backward_pass(
             
             if options.sense_signal*(cost_to_go -  objofchildren_lp) < -tolerance
                 # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
-                new_cuts = refine_bellman_function(
-                    model,
-                    node,
-                    options.duality_handler,
-                    node.bellman_function,
-                    options.risk_measures[node_index],
-                    outgoing_state,
-                    items.duals,                                #dual_variables
-                    items.supports,                             
-                    items.probability,                         
-                    items.objectives,
-                    objofchildren_lp,                           # in order for Laporte and Laouvex cuts to work the input includes mip objective
-                )
-                cuts_std += 1                     
-                push!(cuts[node_index], new_cuts)
 
-                
-                # JuMP.write_to_file(node.subproblem, "subprob_mpo_$(node.index)_$(iter).lp")
-                # println("   printed backward subproblem at node $(node.index) and iteration $(iter).")
-                
+                TimerOutputs.@timeit model.timer_output "cut_addition" begin
+                    new_cuts = refine_bellman_function(
+                        model,
+                        node,
+                        options.duality_handler,
+                        node.bellman_function,
+                        options.risk_measures[node_index],
+                        outgoing_state,
+                        items.duals,                                #dual_variables
+                        items.supports,                             
+                        items.probability,                         
+                        items.objectives,
+                        objofchildren_lp,                           # in order for Laporte and Laouvex cuts to work the input includes mip objective
+                    )
+                    cuts_std += 1                     
+                    push!(cuts[node_index], new_cuts)
 
-                if options.refine_at_similar_nodes
-                    # Refine the bellman function at other nodes with the same
-                    # children, e.g., in the same stage of a Markovian policy graph.
-                    for other_index in options.similar_children[node_index]
-                        copied_probability = similar(items.probability)
-                        other_node = model[other_index]
-                        for (idx, child_index) in enumerate(items.nodes)
-                            copied_probability[idx] =
-                                get(options.Φ, (other_index, child_index), 0.0) *
-                                items.supports[idx].probability
+                    
+                    # JuMP.write_to_file(node.subproblem, "subprob_mpo_$(node.index)_$(iter).lp")
+                    # println("   printed backward subproblem at node $(node.index) and iteration $(iter).")
+                    
+
+                    if options.refine_at_similar_nodes
+                        # Refine the bellman function at other nodes with the same
+                        # children, e.g., in the same stage of a Markovian policy graph.
+                        for other_index in options.similar_children[node_index]
+                            copied_probability = similar(items.probability)
+                            other_node = model[other_index]
+                            for (idx, child_index) in enumerate(items.nodes)
+                                copied_probability[idx] =
+                                    get(options.Φ, (other_index, child_index), 0.0) *
+                                    items.supports[idx].probability
+                            end
+                            new_cuts = refine_bellman_function(
+                                model,
+                                other_node,
+                                options.duality_handler,
+                                other_node.bellman_function,
+                                options.risk_measures[other_index],
+                                outgoing_state,                     #outgoing state
+                                items.duals,                
+                                items.supports,
+                                copied_probability,
+                                items.objectives,
+                            )
+                            push!(cuts[other_index], new_cuts)
+                            cuts_std += 1
                         end
-                        new_cuts = refine_bellman_function(
-                            model,
-                            other_node,
-                            options.duality_handler,
-                            other_node.bellman_function,
-                            options.risk_measures[other_index],
-                            outgoing_state,                     #outgoing state
-                            items.duals,                
-                            items.supports,
-                            copied_probability,
-                            items.objectives,
-                        )
-                        push!(cuts[other_index], new_cuts)
-                        cuts_std += 1
                     end
                 end
             end
