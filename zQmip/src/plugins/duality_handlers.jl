@@ -105,7 +105,7 @@ function prepare_backward_pass_node(
     
     return undo_relax
 end
-function get_dual_solution(node::Node, ::Nothing)
+function get_dual_solution(node::Node, ::Nothing, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing)
     return JuMP.objective_value(node.subproblem), Dict{Symbol,Float64}(), JuMP.objective_bound(node.subproblem)
 end
 
@@ -135,7 +135,7 @@ min Cᵢ(x̄, u, w) + θᵢ
 """
 struct ContinuousConicDuality <: AbstractDualityHandler end
 
-function get_dual_solution(node::Node, ::ContinuousConicDuality)
+function get_dual_solution(node::Node, ::ContinuousConicDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing)
     if JuMP.dual_status(node.subproblem) != JuMP.MOI.FEASIBLE_POINT
         # Attempt to recover by resetting the optimizer and re-solving.
         if JuMP.mode(node.subproblem) != JuMP.DIRECT
@@ -180,7 +180,7 @@ duality_log_key(::ContinuousConicDuality) = " "
 struct LaporteLouveauxDuality <: AbstractDualityHandler end
 
 
-function get_dual_solution(node::Node, ::LaporteLouveauxDuality)
+function get_dual_solution(node::Node, ::LaporteLouveauxDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing)
     #TODO (akul): unlike other functions perform feasibility checks 
     λ = Dict{Symbol,Float64}()
     return objective_value(node.subproblem), λ, JuMP.objective_bound(node.subproblem)
@@ -236,14 +236,17 @@ mutable struct LagrangianDuality <: AbstractDualityHandler
     end
 end
 
-function get_dual_solution(node::Node, lagrange::LagrangianDuality)
+function get_dual_solution(node::Node, lagrange::LagrangianDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing)
     
     # relaxes the integer problem -> obtains the LP dual
     # in case we are unable to solve the Lagrangian dual problem we return the LP dual
-    undo_relax = _relax_integrality(node)
-    optimize!(node.subproblem)
-    conic_obj, conic_dual, conic_bound = get_dual_solution(node, ContinuousConicDuality())
-    undo_relax()
+
+    TimerOutputs.@timeit timer_out "solving_LP" begin
+        undo_relax = _relax_integrality(node)
+        optimize!(node.subproblem)
+        conic_obj, conic_dual, conic_bound = get_dual_solution(node, ContinuousConicDuality())
+        undo_relax()
+    end
 
     # filename = "/home/akul/sddp_comp/data/"
     # JuMP.write_to_file(node.subproblem, filename*"primal.lp")
@@ -257,54 +260,58 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality)
 
     
 
+    TimerOutputs.@timeit timer_out "setting_bound" begin
+        for (i, (key, state)) in enumerate(node.states)                                                                        
+            x_in_value[i] = JuMP.fix_value(state.in)                                    #query the value to which state.in has been fixed to
+            h_expr[i] = @expression(node.subproblem, state.in - x_in_value[i])          #seems like the expression z_n - x_{a(n)}^{i}
+            JuMP.unfix(state.in)                                                        #relaxing the copy constraints in the dual
 
-    for (i, (key, state)) in enumerate(node.states)                                                                        
-        x_in_value[i] = JuMP.fix_value(state.in)                                    #query the value to which state.in has been fixed to
-        h_expr[i] = @expression(node.subproblem, state.in - x_in_value[i])          #seems like the expression z_n - x_{a(n)}^{i}
-        JuMP.unfix(state.in)                                                        #relaxing the copy constraints in the dual
+                
+            if JuMP.is_binary(state.out)
+                # println("               inside lagrn: state variables are indeed binary")
+                JuMP.set_upper_bound(state.in, 1.0)
+                JuMP.set_lower_bound(state.in, 0.0)
+            else
+                if JuMP.has_lower_bound(state.out)
+                    JuMP.set_lower_bound(state.in, JuMP.lower_bound(state.out))
+                end
 
-            
-        if JuMP.is_binary(state.out)
-            # println("               inside lagrn: state variables are indeed binary")
-            JuMP.set_upper_bound(state.in, 1.0)
-            JuMP.set_lower_bound(state.in, 0.0)
-        else
-            if JuMP.has_lower_bound(state.out)
-                JuMP.set_lower_bound(state.in, JuMP.lower_bound(state.out))
+                if JuMP.has_upper_bound(state.out)
+                    JuMP.set_upper_bound(state.in, JuMP.upper_bound(state.out))
+                end
             end
-
-            if JuMP.has_upper_bound(state.out)
-                JuMP.set_upper_bound(state.in, JuMP.upper_bound(state.out))
-            end
-        end
-       
         
-        λ_star[i] = conic_dual[key]                                                 #initial choice of lagrangian
+            
+            λ_star[i] = conic_dual[key]                                                 #initial choice of lagrangian
+        end
     end
 
-    filename    = "/home/akul/sddp_comp/data/"
-    JuMP.write_to_file(node.subproblem, filename*"lagrn_pre.lp")
+    # filename    = "/home/akul/sddp_comp/data/"
+    # JuMP.write_to_file(node.subproblem, filename*"lagrn_pre.lp")
 
 
 
     # Check that the conic dual is feasible for the subproblem. Sometimes it
     # isn't if the LP dual solution is slightly infeasible due to numerical
     # issues.
-    L_k = _solve_primal_problem(node.subproblem, λ_star, h_expr, h_k)              #solving the primal problem
-    
-    
-    if L_k === nothing
-        return conic_obj, conic_dual, conic_bound
-    end
-    L_star, λ_star =
-        LocalImprovementSearch.minimize(lagrange.method, λ_star) do x
-            L_k = _solve_primal_problem(node.subproblem, x, h_expr, h_k)
-            return L_k === nothing ? nothing : (s * L_k, s * h_k)
+    TimerOutputs.@timeit timer_out "solving_lagrn" begin
+        L_k = _solve_primal_problem(node.subproblem, λ_star, h_expr, h_k)              #solving the primal problem
+        
+        
+        if L_k === nothing
+            return conic_obj, conic_dual, conic_bound
         end
 
-    #note by setting force = true the binary bounds set above are removed and new bounds are set
-    for (i, (_, state)) in enumerate(node.states)
-        JuMP.fix(state.in, x_in_value[i], force = true)
+        L_star, λ_star =
+            LocalImprovementSearch.minimize(lagrange.method, λ_star) do x
+                L_k = _solve_primal_problem(node.subproblem, x, h_expr, h_k)
+                return L_k === nothing ? nothing : (s * L_k, s * h_k)
+            end
+
+        #note by setting force = true the binary bounds set above are removed and new bounds are set
+        for (i, (_, state)) in enumerate(node.states)
+            JuMP.fix(state.in, x_in_value[i], force = true)
+        end
     end
 
 
@@ -384,7 +391,7 @@ to obtain a better estimate of the intercept.
 """
 mutable struct StrengthenedConicDuality <: AbstractDualityHandler end
 
-function get_dual_solution(node::Node, ::StrengthenedConicDuality)
+function get_dual_solution(node::Node, ::StrengthenedConicDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing)
     undo_relax = _relax_integrality(node)
     optimize!(node.subproblem)
     conic_obj, conic_dual, conic_bound = get_dual_solution(node, ContinuousConicDuality())
@@ -514,7 +521,7 @@ function prepare_backward_pass(
     return prepare_backward_pass(model, arm.handler, options)
 end
 
-function get_dual_solution(node::Node, handler::BanditDuality)
+function get_dual_solution(node::Node, handler::BanditDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing)
     return get_dual_solution(node, handler.arms[handler.last_arm_index].handler)
 end
 
