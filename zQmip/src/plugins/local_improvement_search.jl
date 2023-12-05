@@ -103,7 +103,7 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}, time_left::Union{Numb
             # best.
             # println("             local_imprv: termination with number of lg dual evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
-        elseif time() - start_time > time_left
+        elseif time_left !== nothing && time() - start_time > time_left
             return fₖ₊₁, xₖ + αₖ * pₖ
         end
         # BFGS update.
