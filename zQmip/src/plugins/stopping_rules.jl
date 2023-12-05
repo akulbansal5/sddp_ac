@@ -447,7 +447,7 @@ function convergence_test(
     if gap < rule.atol
         return true
     else
-        if model.optimization_sense == MOI.MIN_SENSE
+        if model.objective_sense == MOI.MIN_SENSE
             if last_log.simulation_value < last_log.bound - 1e-6
                 return true
             end
