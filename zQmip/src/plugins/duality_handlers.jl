@@ -294,24 +294,25 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality, timer_out::U
     # Check that the conic dual is feasible for the subproblem. Sometimes it
     # isn't if the LP dual solution is slightly infeasible due to numerical
     # issues.
-    TimerOutputs.@timeit timer_out "solving_lagrn" begin
+    TimerOutputs.@timeit timer_out "solving_primal" begin
         L_k = _solve_primal_problem(node.subproblem, λ_star, h_expr, h_k)              #solving the primal problem
-        
-        
-        if L_k === nothing
-            return conic_obj, conic_dual, conic_bound
-        end
+    end
+    
+    if L_k === nothing
+        return conic_obj, conic_dual, conic_bound
+    end
 
-        L_star, λ_star =
-            LocalImprovementSearch.minimize(lagrange.method, λ_star) do x
+    L_star, λ_star =
+        LocalImprovementSearch.minimize(lagrange.method, λ_star) do x
+            TimerOutputs.@timeit timer_out "solving_primal" begin
                 L_k = _solve_primal_problem(node.subproblem, x, h_expr, h_k)
-                return L_k === nothing ? nothing : (s * L_k, s * h_k)
             end
-
-        #note by setting force = true the binary bounds set above are removed and new bounds are set
-        for (i, (_, state)) in enumerate(node.states)
-            JuMP.fix(state.in, x_in_value[i], force = true)
+            return L_k === nothing ? nothing : (s * L_k, s * h_k)
         end
+
+    #note by setting force = true the binary bounds set above are removed and new bounds are set
+    for (i, (_, state)) in enumerate(node.states)
+        JuMP.fix(state.in, x_in_value[i], force = true)
     end
 
 
