@@ -1464,7 +1464,7 @@ function train(
     else
         for rule in stopping_rules
             if isa(rule, TimeLimit)
-                println("yes there is a timelimit in rules")
+                # println("yes there is a timelimit in rules")
                 time_limit = rule.limit
             end
         end
