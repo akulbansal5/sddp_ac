@@ -69,6 +69,7 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
     # Evaluation counter
     # evals = Ref(0)
     evals = Ref(bfgs.evaluation_limit)
+    println("               local_imprv: allowed number of evals: $(bfgs.evaluation_limit)")
     while true
         # Search direction. We could be clever here and maintain B⁻¹, but we're
         # only ever going to be solving this for very small |x| << 100 problems,
@@ -77,7 +78,7 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}) where {F<:Function}
         pₖ = B \ -∇fₖ
         # Run line search in direction `pₖ`
         αₖ, fₖ₊₁, ∇fₖ₊₁ = _line_search(f, fₖ, ∇fₖ, xₖ, pₖ, αₖ, evals)
-
+        # println("                           local imprv iter: $(evals[]), total: $(evals)")
         norm_value     = _norm(αₖ * pₖ)
         step           = norm_value / max(1.0, _norm(xₖ)) 
         if step < bfgs.ftol

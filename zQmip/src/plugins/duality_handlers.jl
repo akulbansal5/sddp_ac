@@ -223,7 +223,7 @@ mutable struct LagrangianDuality <: AbstractDualityHandler
     method::LocalImprovementSearch.AbstractSearchMethod
 
     function LagrangianDuality(;
-        method = LocalImprovementSearch.BFGS(100),
+        method = LocalImprovementSearch.BFGS(1000),
         kwargs...,
     )
         if length(kwargs) > 0
