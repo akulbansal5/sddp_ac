@@ -445,10 +445,12 @@ function convergence_test(
     # println("inside convergence test")
 
     if gap < rule.atol
+        println("gap $(gap) is less then tol $(rule.atol)")
         return true
     else
         if model.objective_sense == MOI.MIN_SENSE
             if last_log.simulation_value < last_log.bound - 1e-6
+                println("bounds reversed ub: $(last_log.simulation_value), lb: $(last_log.bound)")
                 return true
             end
         end
