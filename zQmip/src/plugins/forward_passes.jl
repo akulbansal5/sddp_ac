@@ -298,7 +298,7 @@ cycle (if there are multiple possibilities).
 mutable struct DefaultNestedForwardPass <: AbstractForwardPass
     include_last_node::Bool
     best_bd::Float64
-    function DefaultNestedForwardPass(; include_last_node::Bool = true, best_bd::Float64 = typemin(Float64))
+    function DefaultNestedForwardPass(; include_last_node::Bool = true, best_bd::Float64 = typemax(Float64))
         return new(include_last_node, best_bd)
     end
 end
