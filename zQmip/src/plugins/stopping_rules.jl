@@ -425,7 +425,7 @@ end
 stopping_rule_status(::NBBoundStalling) = :nb_bound_stalling
 
 function convergence_test(
-    ::PolicyGraph{T},
+    model::PolicyGraph{T},
     log::Vector{Log},
     rule::NBBoundStalling,
 ) where {T}
@@ -446,6 +446,12 @@ function convergence_test(
 
     if gap < rule.atol
         return true
+    else
+        if model.optimization_sense == MOI.MIN_SENSE
+            if last_log.simulation_value < last_log.bound - 1e-6
+                return true
+            end
+        end
     end
 
     
