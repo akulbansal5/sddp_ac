@@ -154,3 +154,5 @@ function _line_search(
     end
     return 0.0, fₖ, ∇fₖ
 end
+
+end
