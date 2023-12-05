@@ -1532,7 +1532,11 @@ function train(
     iterations = length(options.log)
 
     # println("count first stage changes")
-    stage1_state_changes = count_first_stage_changes(options.log)
+    stage1_state_changes = 0
+    if length(options.log) > 1
+        stage1_state_changes = count_first_stage_changes(options.log)
+    end
+
     
 
     # println("number of enteries in log: $(iterations)")
