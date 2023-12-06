@@ -545,7 +545,7 @@ function solve_subproblem(
 
     
     TimerOutputs.@timeit model.timer_output "get_dual_solution" begin
-        objective, dual_values, bound = get_dual_solution(node, duality_handler, model.timer_output, time_left)
+        objective, dual_values, bound = get_dual_solution(node, duality_handler, model.timer_output, time_left, model.curr_bound)
     end
     if node.post_optimize_hook !== nothing
         node.post_optimize_hook(pre_optimize_ret)

@@ -16,11 +16,13 @@ end
 ###
 ### BFGS
 ###
-struct BFGS <: AbstractSearchMethod
+mutable struct BFGS <: AbstractSearchMethod
     evaluation_limit::Int
     ftol::Float64
     gtol::Float64
-    function BFGS(evaluation_limit::Int, ftol::Float64 = 1e-3, gtol::Float64 = 1e-5)
+    gaptol::Float64
+    bound::Union{Float64,Nothing}
+    function BFGS(evaluation_limit::Int, ftol::Float64 = 1e-3, gtol::Float64 = 1e-5, gaptol::Float64 = 1e-2, bound::Union{Float64,Nothing} = nothing)
         new(evaluation_limit, ftol, gtol)
     end
 end
@@ -50,7 +52,7 @@ to this purpose:
      evaluation and first-order gradient information.
  * `x₀::Vector{Float64}`: a feasible starting point.
 """
-function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}, time_left::Union{Number,Nothing}=nothing) where {F<:Function}
+function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}, time_left::Union{Number,Nothing}=nothing, curr_bound::Union{Number, Nothing} = nothing) where {F<:Function}
     # Initial estimte for the Hessian matrix in BFGS
     B = zeros(length(x₀), length(x₀))
     start_time = time()
@@ -70,6 +72,7 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}, time_left::Union{Numb
     # evals = Ref(0)
     evals = Ref(bfgs.evaluation_limit)
     # println("               local_imprv: allowed number of evals: $(bfgs.evaluation_limit)")
+    curr_gap = 1
     while true
         # Search direction. We could be clever here and maintain B⁻¹, but we're
         # only ever going to be solving this for very small |x| << 100 problems,
@@ -80,7 +83,13 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}, time_left::Union{Numb
         αₖ, fₖ₊₁, ∇fₖ₊₁ = _line_search(f, fₖ, ∇fₖ, xₖ, pₖ, αₖ, evals)
         # println("                           local imprv iter: $(evals[]), total: $(evals)")
         norm_value     = _norm(αₖ * pₖ)
-        step           = norm_value / max(1.0, _norm(xₖ)) 
+        step           = norm_value / max(1.0, _norm(xₖ))
+
+        
+        if curr_bound !== nothing
+            curr_gap = abs(curr_bound - fₖ₊₁)/abs(curr_bound + 1e-11)
+        end
+        
         if step < bfgs.ftol
             # Small steps! Probably at the edge of the feasible region.
             # Return the current iterate.
@@ -102,6 +111,9 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}, time_left::Union{Numb
             # We have evaluated the function too many times. Return our current
             # best.
             # println("             local_imprv: termination with number of lg dual evals: $(evals[])")
+            return fₖ₊₁, xₖ + αₖ * pₖ
+        elseif curr_gap < bfgs.gaptol
+            #println("termination due to gap")
             return fₖ₊₁, xₖ + αₖ * pₖ
         elseif time_left !== nothing && time() - start_time > time_left
             return fₖ₊₁, xₖ + αₖ * pₖ

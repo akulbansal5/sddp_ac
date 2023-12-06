@@ -105,7 +105,7 @@ function prepare_backward_pass_node(
     
     return undo_relax
 end
-function get_dual_solution(node::Node, ::Nothing, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing, time_left::Union{Number, Nothing} = nothing)
+function get_dual_solution(node::Node, ::Nothing, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing, time_left::Union{Number, Nothing} = nothing, curr_bound::Union{Number, Nothing} = nothing)
     return JuMP.objective_value(node.subproblem), Dict{Symbol,Float64}(), JuMP.objective_bound(node.subproblem)
 end
 
@@ -135,7 +135,7 @@ min Cᵢ(x̄, u, w) + θᵢ
 """
 struct ContinuousConicDuality <: AbstractDualityHandler end
 
-function get_dual_solution(node::Node, ::ContinuousConicDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing, time_left::Union{Number, Nothing} = nothing)
+function get_dual_solution(node::Node, ::ContinuousConicDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing, time_left::Union{Number, Nothing} = nothing, curr_bound::Union{Number, Nothing} = nothing)
     if JuMP.dual_status(node.subproblem) != JuMP.MOI.FEASIBLE_POINT
         # Attempt to recover by resetting the optimizer and re-solving.
         if JuMP.mode(node.subproblem) != JuMP.DIRECT
@@ -180,7 +180,7 @@ duality_log_key(::ContinuousConicDuality) = " "
 struct LaporteLouveauxDuality <: AbstractDualityHandler end
 
 
-function get_dual_solution(node::Node, ::LaporteLouveauxDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing, time_left::Union{Number, Nothing} = nothing)
+function get_dual_solution(node::Node, ::LaporteLouveauxDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing, time_left::Union{Number, Nothing} = nothing, curr_bound::Union{Number, Nothing} = nothing)
     #TODO (akul): unlike other functions perform feasibility checks 
     λ = Dict{Symbol,Float64}()
     return objective_value(node.subproblem), λ, JuMP.objective_bound(node.subproblem)
@@ -236,7 +236,7 @@ mutable struct LagrangianDuality <: AbstractDualityHandler
     end
 end
 
-function get_dual_solution(node::Node, lagrange::LagrangianDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing, time_left::Union{Number, Nothing} = nothing)
+function get_dual_solution(node::Node, lagrange::LagrangianDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing, time_left::Union{Number, Nothing} = nothing, curr_bound::Union{Number, Nothing} = nothing)
     
     # relaxes the integer problem -> obtains the LP dual
     # in case we are unable to solve the Lagrangian dual problem we return the LP dual
@@ -303,7 +303,7 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality, timer_out::U
     end
 
     L_star, λ_star =
-        LocalImprovementSearch.minimize(lagrange.method, λ_star, time_left) do x
+        LocalImprovementSearch.minimize(lagrange.method, λ_star, time_left, curr_bound) do x
             TimerOutputs.@timeit timer_out "solving_primal" begin
                 L_k = _solve_primal_problem(node.subproblem, x, h_expr, h_k)
             end
@@ -392,7 +392,7 @@ to obtain a better estimate of the intercept.
 """
 mutable struct StrengthenedConicDuality <: AbstractDualityHandler end
 
-function get_dual_solution(node::Node, ::StrengthenedConicDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing, time_left::Union{Number, Nothing} = nothing)
+function get_dual_solution(node::Node, ::StrengthenedConicDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing, time_left::Union{Number, Nothing} = nothing, curr_bound::Union{Number, Nothing} = nothing)
     undo_relax = _relax_integrality(node)
     optimize!(node.subproblem)
     conic_obj, conic_dual, conic_bound = get_dual_solution(node, ContinuousConicDuality())
@@ -522,7 +522,7 @@ function prepare_backward_pass(
     return prepare_backward_pass(model, arm.handler, options)
 end
 
-function get_dual_solution(node::Node, handler::BanditDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing, time_left::Union{Number, Nothing} = nothing)
+function get_dual_solution(node::Node, handler::BanditDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing, time_left::Union{Number, Nothing} = nothing, curr_bound::Union{Number, Nothing} = nothing)
     return get_dual_solution(node, handler.arms[handler.last_arm_index].handler)
 end
 

@@ -743,6 +743,7 @@ mutable struct PolicyGraph{T}
     scenario_paths::Dict{Int, Vector{Tuple{T, Any}}}
     scenario_paths_noises::Dict{Int, Vector{Int}}
     scenario_paths_prob::Dict{Int, Float64}
+    curr_bound::Union{Float64, Nothing}
 
     function PolicyGraph(sense::Symbol, root_node::T, solver_threads::Union{Nothing, Number}) where {T}
         if sense != :Min && sense != :Max
@@ -764,7 +765,8 @@ mutable struct PolicyGraph{T}
             solver_threads,
             Dict{Int, Vector{Tuple{T, Any}}}(),
             Dict{Int, Vector{Int}}(),
-            Dict{Int, Float64}()
+            Dict{Int, Float64}(),
+            nothing
         )
     end
 end

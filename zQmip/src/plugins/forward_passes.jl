@@ -374,9 +374,9 @@ function forward_pass(
 
             # Takes care of the overlapping scenario paths 
             old_noise_id = 0
-
+            isHash = "no"
             if haskey(items.cached_solutions, (node_index, noiseid))
-
+                isHash = "yes"
                 if depth > 1
                     old_noise_id = scenario_path_noises[depth-1]
                 end
@@ -387,7 +387,7 @@ function forward_pass(
                 incoming_state_value     = items.incoming_state_value[sol_index]
 
             else
-                
+                isHash = "no"
                 if depth > 1
                     old_noise_id = scenario_path_noises[depth-1]
                 end
@@ -417,9 +417,9 @@ function forward_pass(
 
                 # Add the outgoing state variable to the list of states we have sampled
                 # on this forward pass.
-                sampled_states[(node_index, noiseid)] = incoming_state_value
-                cost_to_go                            = JuMP.value(node.bellman_function.global_theta.theta)
-                costtogo[node_index][noiseid]         = cost_to_go
+                sampled_states[(node_index, noiseid)]      = incoming_state_value
+                cost_to_go                                 = JuMP.value(node.bellman_function.global_theta.theta)
+                costtogo[node_index][noiseid]              = cost_to_go
                 scenario_trajectory[(node_index, noiseid)] = scenario_path[1:depth]
                 
                 push!(items.stage_objective, stage_OBJ)
@@ -427,12 +427,15 @@ function forward_pass(
                 push!(items.costtogo, cost_to_go)
                 items.cached_solutions[(node_index, noiseid)] = length(items.stage_objective)
             end
-            # println("           path: $(i), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), prob: $(scenario_paths_prob[i])")
+            
+
+            println("           path: $(i), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), isHash: $(isHash)")
         end
         # println("       path: $(i), cumm_value: $(cumulative_values[i])")
     end
     
     pass.best_bd =  min(sum([cumulative_values[i]*scenario_paths_prob[i] for i in 1:M]), pass.best_bd)
+    model.curr_bound = pass.best_bd
     # println("       new ub: $(pass.best_bd)")
 
     return (
