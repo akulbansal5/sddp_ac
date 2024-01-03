@@ -471,7 +471,7 @@ function forward_pass(
     Sampled states is now captured as scenario node attributes in the scenario tree
     """
 
-    # println("==========forward pass=============")
+    println("==========forward pass=============")
     iterations = length(options.log)
 
     TimerOutputs.@timeit model.timer_output "sample_scenario" begin
@@ -572,7 +572,7 @@ function forward_pass(
                     write_string = "forward_$(iterations)_",
                 )
             end
-
+            println("       subproblem successfully solved inside the forward pass")
             stage_OBJ            = subproblem_results.stage_objective
             upper_bound          += upper_bound + stage_OBJ*scen_node.cum_prob
 
