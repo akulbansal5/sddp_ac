@@ -491,7 +491,7 @@ function forward_pass(
             noise_tree                    = model.noise_tree
         end
     end
-
+    println("   scenario successfully sampled")
     
     # println("   >>Forward pass at iteration: $(iterations)")
 
@@ -544,7 +544,6 @@ function forward_pass(
             node    = model[node_index]
             noiseid = scen_node.noise_id
             noise = scen_node.noise_term
-                
 
             # NOTE: No objective state interpolation here
             # NOTE: No update in belief state etc.
@@ -556,7 +555,7 @@ function forward_pass(
             if depth > 1
                 old_noise_id = scen_node.parent.noise_id
             end
-
+            println("       solving the subproblem")
             TimerOutputs.@timeit model.timer_output "solve_subproblem" begin
                 subproblem_results = solve_subproblem(
                     model,
