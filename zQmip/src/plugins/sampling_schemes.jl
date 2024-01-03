@@ -3,6 +3,38 @@
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+#TODO: Move the ScenarioNode and ScenarioTree struct to user interface so that they can be used elsewhere as well
+mutable struct ScenarioNode
+    node_index::Int
+    noise_term::Any
+    noise_probability::Float64
+    noise_id::Int
+    children::Union{Vector{ScenarioNode}, Nothing}
+    sampled_states::Union{Dict{Symbol,Float64}, Nothing}
+    cost_to_go::Union{Float64, Nothing}
+    parent::Union{ScenarioNode, Nothing}
+    cum_prob::Union{Float64, Nothing}
+
+    function ScenarioNode(node_index::Int, noise_term::Any, noise_probability::Float64, noise_id::Int,
+        children::Union{Vector{ScenarioNode}, Nothing} = ScenarioNode[],
+        sampled_states::Union{Dict{Symbol,Float64}, Nothing} = nothing,
+        cost_to_go::Union{Float64, Nothing} = nothing,
+        parent::Union{ScenarioNode, Nothing} = nothing,
+        cum_prob::Union{Float64, Nothing} = nothing)
+        new(node_index, noise_term, noise_probability, noise_id, children, sampled_states, cost_to_go, parent, cum_prob)
+    end
+end
+
+mutable struct ScenarioTree
+    depth::Union{Int,Nothing}
+    stageNodes::Union{Dict{Int, Vector{ScenarioNode}}, Nothing}
+    pathNodes::Union{Dict{Tuple{Int,Int}, ScenarioNode}, Nothing}
+    function ScenarioTree(depth::Union{Int,Nothing} = nothing, stageNodes::Union{Dict{Int, Vector{ScenarioNode}}, Nothing} = Dict{Int, Vector{ScenarioNode}}(),
+        pathNodes::Union{Dict{Tuple{Int,Int}, ScenarioNode}, Nothing} = Dict{Tuple{Int,Int}, ScenarioNode}())
+        new(depth, stageNodes, pathNodes)
+    end
+end
+
 # ========================= Monte Carlo Sampling Scheme ====================== #
 
 struct InSampleMonteCarlo <: AbstractSamplingScheme
@@ -563,6 +595,8 @@ end
             M::Int,              #denotes the number of scenarios that we will sample
         
 """
+
+
 function sample_scenario(
     graph::PolicyGraph{T},
     sampling_scheme::AllSampleMonteCarloMultiple,
@@ -579,17 +613,30 @@ function sample_scenario(
     current_node = graph[node_index]
     
     #maintain a global list of paths
+    #Int denotes the index of sampled path
     scenario_paths         = Dict{Int, Vector{Tuple{T, Any}}}()
     scenario_paths_noiseid = Dict{Int, Vector{Int}}()
     scenario_paths_prob    = Dict{Int, Float64}()
 
     # println("type of node: $(typeof(current_node))")
 
-    #maintain a lifo
-    lifo = Tuple{Int64, Any, Float64, Int64}[]
-
+    #maintain a lifo for doing depth first search (DFS)
+    # lifo       = Tuple{Int64, Any, Float64, Int64}[]
+    lifo         = ScenarioNode[]
+    noise_tree = ScenarioTree()
+    
+    
     for noise in current_node.noise_terms
-        push!(lifo, (node_index, noise.term, noise.probability, noise.id))
+        root = ScenarioNode(node_index, noise.term, noise.probability, noise.id)
+        root.cum_prob = noise.probability
+        if !haskey(noise_tree.stageNodes, node_index)
+            noise_tree.stageNodes[node_index] = ScenarioNode[]
+        end
+        push!(noise_tree.stageNodes[node_index], root)
+
+        
+        # push!(lifo, (node_index, noise.term, noise.probability, noise.id))
+        push!(lifo, root)
     end
 
     #current path
@@ -599,7 +646,8 @@ function sample_scenario(
     current_path_noiseid = Int[]
 
     current_probs        = Float64[]
-    m = 1
+    m                    = 1
+    
 
     # while lifo is unempty
     while length(lifo) > 0
@@ -607,10 +655,18 @@ function sample_scenario(
         #get a node from lifo
         path_node       = pop!(lifo)
         
-        path_node_index = path_node[1]
-        path_node_term  = path_node[2]
-        path_node_prob  = path_node[3]
-        path_node_id    = path_node[4]
+        
+        # path_node_index = path_node[1]
+        # path_node_term  = path_node[2]
+        # path_node_prob  = path_node[3]
+        # path_node_id    = path_node[4]
+
+        path_node_index = path_node.node_index
+        path_node_term  = path_node.noise_term
+        path_node_prob  = path_node.noise_probability
+        path_node_id    = path_node.noise_id
+
+        noise_tree.pathNodes[(m, path_node_index)] = path_node
         
         
         current_path         = current_path[1:path_node_index-1]
@@ -636,6 +692,7 @@ function sample_scenario(
             scenario_paths[m]         = current_path
             scenario_paths_noiseid[m] = current_path_noiseid
             scenario_paths_prob[m]    = foldl(*, current_probs)
+
             m                         += 1
         elseif child_count > 1
             return error("Internal SDDP error: not a linear policy graph")
@@ -648,8 +705,20 @@ function sample_scenario(
             # println("collecting info inside else")
             for noise in node_next_obj.noise_terms
                 # println(typeof(noise))
-                # println(typeof(lifo)) 
-                push!(lifo, (index_next, noise.term, noise.probability, noise.id))
+                # println(typeof(lifo))
+                
+                noise_child = ScenarioNode(index_next, noise.term, noise.probability, noise.id)
+                noise_child.parent = path_node
+                noise_child.cum_prob = noise.probability*noise_child.parent.cum_prob
+                # push!(lifo, (index_next, noise.term, noise.probability, noise.id))
+                push!(path_node.children, noise_child)
+
+                if !haskey(noise_tree.stageNodes, index_next)
+                    noise_tree.stageNodes[index_next] = ScenarioNode[]
+                end
+                push!(noise_tree.stageNodes[index_next], noise_child)
+                
+                push!(lifo, noise_child)
             end
         end
         # println("End of the while loop iteration")
@@ -658,7 +727,7 @@ function sample_scenario(
     # println("scenario sampled successfully")
     
 
-    return scenario_paths, scenario_paths_noiseid, scenario_paths_prob
+    return scenario_paths, scenario_paths_noiseid, scenario_paths_prob, noise_tree
 end
 
 

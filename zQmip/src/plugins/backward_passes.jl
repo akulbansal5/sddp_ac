@@ -823,6 +823,190 @@ end
 function backward_pass(
     model::PolicyGraph{T},
     options::Options,
+    pass::DefaultMultiBackwardPass,     
+    scenario_paths::Dict{Int, Vector{Tuple{T, Any}}},
+    sampled_states::Dict{Tuple{T,Int}, Dict{Symbol,Float64}},
+    objective_states::Vector{NTuple{N,Float64}},
+    belief_states::Dict{Int, Vector{Tuple{Int,Dict{T,Float64}}}},
+    costtogo::Dict{Int, Dict{Int, Float64}},
+    scenario_trajectory::Dict{Tuple{T,Int}, Vector{Tuple{T, Any}}},
+    noise_tree::Any,
+    tolerance::Float64 = 1e-6,
+) where {T,N}
+
+
+    iterations = length(options.log)
+    # println("   >>starting backward pass at iteration: $(iterations)")
+
+    TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
+        restore_duality =
+            prepare_backward_pass(model, options.duality_handler, options)
+    end
+
+    # TODO(odow): improve storage type.
+    # println("creating cuts object for storing cuts")
+    cuts = Dict{T,Vector{Any}}(index => Any[] for index in keys(model.nodes))
+    
+
+    
+    
+    path_len    = length(scenario_paths[1])
+    cuts_std    = 0                                        
+    cuts_nonstd = 0
+    
+    for index in path_len:-1:1
+
+        #note node_index is same as index in case of linear policy gtaphs
+        node_index = index
+        node = model[node_index]
+        if length(node.children) == 0
+            continue
+        end
+
+
+        # unique_outgoing_states
+        states_visited       = Dict{Int, Dict{Symbol,Float64}}()
+        unique_noise_indices = []
+        # noiseids             = keys(costtogo[node_index])
+        noise_nodes = noise_tree.stageNodes[index]
+        noise_node_counter = 1
+
+        for noise_node in noise_nodes
+            
+
+            outgoing_state = noise_node.sampled_states
+            
+            TimerOutputs.@timeit model.timer_output "hashing" begin
+                visited_flag = false
+                for h in unique_noise_indices
+                    if outgoing_state == states_visited[h]
+                        visited_flag = true
+                        break
+                    end
+                end
+                
+                if visited_flag == true
+                    # println("       node_index: $(node_index), noise_id: $(noise_id) already cached")
+                    continue
+                else
+                    states_visited[noise_node_counter] = outgoing_state
+                    push!(unique_noise_indices, noise_node_counter)
+                end
+            end
+
+            objective_state = nothing
+            partition_index, belief_state = (0, nothing)
+            items = BackwardPassItems(T, Noise)
+            
+
+            
+            # log[end].time
+            time_left = length(options.log) > 0 ? options.time_limit - options.log[end].time : nothing
+            
+
+
+            #NOTE: In the scenario trajectory each value is just a dummy empty vector of tuples representing scenario path Tuple{T, Any}[]
+            #we do this because the scenario path argument has no use in the solve_all_children and later in solve_subproblem
+
+            solve_all_children(
+                model,
+                node,
+                items,
+                1.0,
+                belief_state,
+                objective_state,
+                outgoing_state,
+                options.backward_sampling_scheme,
+                scenario_trajectory[(node_index, noise_node.noise_id)],
+                options.duality_handler,
+                options.mipgap,
+                noise_node.noise_id,
+                false,
+                iterations,
+                time_left
+            )
+
+
+            
+
+            objofchildren_lp = bounds_on_actual_costtogo(items, options.duality_handler)
+            cost_to_go       = noise_node.cost_to_go
+
+            # println("       node: $(node_index), costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)"
+            # println("       node_index: $(node_index), noise_id: $(noise_id), costtogo: $(cost_to_go), objofchilds: $(objofchildren_lp)")
+            
+            if options.sense_signal*(cost_to_go -  objofchildren_lp) < -tolerance
+                # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
+
+                TimerOutputs.@timeit model.timer_output "cut_addition" begin
+                    new_cuts = refine_bellman_function(
+                        model,
+                        node,
+                        options.duality_handler,
+                        node.bellman_function,
+                        options.risk_measures[node_index],
+                        outgoing_state,
+                        items.duals,                                #dual_variables
+                        items.supports,                             
+                        items.probability,                         
+                        items.objectives,
+                        objofchildren_lp,                           # in order for Laporte and Laouvex cuts to work the input includes mip objective
+                    )
+                    cuts_std += 1                     
+                    push!(cuts[node_index], new_cuts)
+
+                    
+                    # JuMP.write_to_file(node.subproblem, "subprob_mpo_$(node.index)_$(iter).lp")
+                    # println("   printed backward subproblem at node $(node.index) and iteration $(iter).")
+                    
+
+                    if options.refine_at_similar_nodes
+                        # Refine the bellman function at other nodes with the same
+                        # children, e.g., in the same stage of a Markovian policy graph.
+                        for other_index in options.similar_children[node_index]
+                            copied_probability = similar(items.probability)
+                            other_node = model[other_index]
+                            for (idx, child_index) in enumerate(items.nodes)
+                                copied_probability[idx] =
+                                    get(options.Φ, (other_index, child_index), 0.0) *
+                                    items.supports[idx].probability
+                            end
+                            new_cuts = refine_bellman_function(
+                                model,
+                                other_node,
+                                options.duality_handler,
+                                other_node.bellman_function,
+                                options.risk_measures[other_index],
+                                outgoing_state,                     #outgoing state
+                                items.duals,                
+                                items.supports,
+                                copied_probability,
+                                items.objectives,
+                            )
+                            push!(cuts[other_index], new_cuts)
+                            cuts_std += 1
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
+        restore_duality()
+    end
+
+    # println("   number of cuts added: $(cuts_std)")
+    # println("=============== finished backward pass ================== ")
+    return cuts, cuts_std, cuts_nonstd
+end
+
+
+
+
+function backward_pass(
+    model::PolicyGraph{T},
+    options::Options,
     pass::AnguloMultiBackwardPass,     
     scenario_paths::Dict{Int, Vector{Tuple{T, Any}}},
     sampled_states::Dict{Tuple{T,Int}, Dict{Symbol,Float64}},

@@ -1075,6 +1075,11 @@ end
 
 
 function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) where {T}
+    
+    """
+    iter_pass: 0 is the default implementation 
+               1 is the new implementation for Nested Benders and SDDiP algorithm that allows sampling multiple paths
+    """
 
     if iter_pass == 0
         model.ext[:numerical_issue] = false
@@ -1148,7 +1153,8 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
                 forward_trajectory.objective_states,
                 forward_trajectory.belief_states,
                 forward_trajectory.costtogo,
-                forward_trajectory.scenario_trajectory
+                forward_trajectory.scenario_trajectory,
+                forward_trajectory.noise_tree
             )
         end
         iterations = length(options.log)
