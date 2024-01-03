@@ -528,7 +528,8 @@ function forward_pass(
     # for i in 1:M
 
 
-    for (stage, stage_nodes) in noise_tree.stageNodes
+    for stage in 1:noise_tree.depth
+        stage_nodes = noise_tree.stageNodes[stage]
         for scen_node in stage_nodes
             node_index = scen_node.node_index
             depth = node_index
