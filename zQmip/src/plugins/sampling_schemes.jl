@@ -3,7 +3,7 @@
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#TODO: Move the ScenarioNode and ScenarioTree struct to user interface so that they can be used elsewhere as well
+#TODO: Move the ScenarioNode and NoiseTree struct to user interface so that they can be used elsewhere as well
 mutable struct ScenarioNode
     node_index::Int
     noise_term::Any
@@ -25,11 +25,11 @@ mutable struct ScenarioNode
     end
 end
 
-mutable struct ScenarioTree
+mutable struct NoiseTree
     depth::Union{Int,Nothing}
     stageNodes::Union{Dict{Int, Vector{ScenarioNode}}, Nothing}
     pathNodes::Union{Dict{Tuple{Int,Int}, ScenarioNode}, Nothing}
-    function ScenarioTree(depth::Union{Int,Nothing} = nothing, stageNodes::Union{Dict{Int, Vector{ScenarioNode}}, Nothing} = Dict{Int, Vector{ScenarioNode}}(),
+    function NoiseTree(depth::Union{Int,Nothing} = nothing, stageNodes::Union{Dict{Int, Vector{ScenarioNode}}, Nothing} = Dict{Int, Vector{ScenarioNode}}(),
         pathNodes::Union{Dict{Tuple{Int,Int}, ScenarioNode}, Nothing} = Dict{Tuple{Int,Int}, ScenarioNode}())
         new(depth, stageNodes, pathNodes)
     end
@@ -623,7 +623,7 @@ function sample_scenario(
     #maintain a lifo for doing depth first search (DFS)
     # lifo       = Tuple{Int64, Any, Float64, Int64}[]
     lifo         = ScenarioNode[]
-    noise_tree = ScenarioTree()
+    noise_tree   = NoiseTree()
     
     
     for noise in current_node.noise_terms
