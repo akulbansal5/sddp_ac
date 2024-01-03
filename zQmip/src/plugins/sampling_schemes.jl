@@ -29,7 +29,7 @@ mutable struct NoiseTree
     depth::Union{Int,Nothing}
     stageNodes::Union{Dict{Int, Vector{ScenarioNode}}, Nothing}
     pathNodes::Union{Dict{Tuple{Int,Int}, ScenarioNode}, Nothing}
-    function NoiseTree(depth::Union{Int,Nothing} = nothing, stageNodes::Union{Dict{Int, Vector{ScenarioNode}}, Nothing} = Dict{Int, Vector{ScenarioNode}}(),
+    function NoiseTree(depth::Union{Int,Nothing} = 1, stageNodes::Union{Dict{Int, Vector{ScenarioNode}}, Nothing} = Dict{Int, Vector{ScenarioNode}}(),
         pathNodes::Union{Dict{Tuple{Int,Int}, ScenarioNode}, Nothing} = Dict{Tuple{Int,Int}, ScenarioNode}())
         new(depth, stageNodes, pathNodes)
     end
@@ -601,6 +601,9 @@ function sample_scenario(
     graph::PolicyGraph{T},
     sampling_scheme::AllSampleMonteCarloMultiple,
 ) where {T}
+
+
+    println("       sampling scenario ...")
     max_depth = min(sampling_scheme.max_depth, sampling_scheme.rollout_limit())
 
 
@@ -609,7 +612,7 @@ function sample_scenario(
         sampling_scheme.initial_node,
         sample_noise(get_root_children(sampling_scheme, graph)))
     
-    
+    println("current node index: $(node_index)")
     current_node = graph[node_index]
     
     #maintain a global list of paths
@@ -624,6 +627,7 @@ function sample_scenario(
     # lifo       = Tuple{Int64, Any, Float64, Int64}[]
     lifo         = ScenarioNode[]
     noise_tree   = NoiseTree()
+    noise_tree.depth = max(noise_tree.depth, node_index)
     
     
     for noise in current_node.noise_terms
@@ -701,6 +705,7 @@ function sample_scenario(
             node_next     = node_now_childs[1]
             # println("type of node next: $(typeof(node_next))")
             index_next    = node_next.term
+            noise_tree.depth = max(noise_tree.depth, index_next)
             node_next_obj = graph[index_next]
             # println("collecting info inside else")
             for noise in node_next_obj.noise_terms
