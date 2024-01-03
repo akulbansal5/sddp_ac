@@ -533,6 +533,7 @@ function forward_pass(
             node_index = scen_node.node_index
             depth = node_index
 
+            print("     node index is $(node_index)")
             if node_index == 1        
                 incoming_state_value = copy(options.initial_state)
             else
@@ -556,6 +557,9 @@ function forward_pass(
                 old_noise_id = scen_node.parent.noise_id
             end
             println("       solving the subproblem")
+            println("       typeof incoming state: $(typeof(incoming_state_value))")
+            println()
+
             TimerOutputs.@timeit model.timer_output "solve_subproblem" begin
                 subproblem_results = solve_subproblem(
                     model,
