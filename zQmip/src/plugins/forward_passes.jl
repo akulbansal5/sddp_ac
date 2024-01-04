@@ -437,7 +437,7 @@ function forward_pass_ver2(
             end
             
 
-            println("           path: $(i), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), isHash: $(isHash)")
+            # println("           path: $(i), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), isHash: $(isHash)")
         end
         # println("       path: $(i), cumm_value: $(cumulative_values[i])")
     end
@@ -471,7 +471,7 @@ function forward_pass(
     Sampled states is now captured as scenario node attributes in the scenario tree
     """
 
-    println("==========forward pass=============")
+    # println("==========forward pass=============")
     iterations = length(options.log)
 
     TimerOutputs.@timeit model.timer_output "sample_scenario" begin
@@ -491,7 +491,7 @@ function forward_pass(
             noise_tree                    = model.noise_tree
         end
     end
-    println("   scenario successfully sampled")
+    # println("   scenario successfully sampled")
     
     # println("   >>Forward pass at iteration: $(iterations)")
 
@@ -557,9 +557,9 @@ function forward_pass(
             if depth > 1
                 old_noise_id = scen_node.parent.noise_id
             end
-            println("       solving the subproblem")
-            println("       typeof incoming state: $(typeof(incoming_state_value))")
-            println()
+            # println("       solving the subproblem")
+            # println("       typeof incoming state: $(typeof(incoming_state_value))")
+            # println()
 
             TimerOutputs.@timeit model.timer_output "solve_subproblem" begin
                 subproblem_results = solve_subproblem(
@@ -576,7 +576,7 @@ function forward_pass(
                     write_string = "forward_$(iterations)_",
                 )
             end
-            println("       subproblem successfully solved inside the forward pass")
+            # println("       subproblem successfully solved inside the forward pass")
             stage_OBJ            = subproblem_results.stage_objective
             upper_bound          += upper_bound + stage_OBJ*scen_node.cum_prob
 

@@ -907,7 +907,7 @@ function backward_pass(
 
             #NOTE: In the scenario trajectory each value is just a dummy empty vector of tuples representing scenario path Tuple{T, Any}[]
             #we do this because the scenario path argument has no use in the solve_all_children and later in solve_subproblem
-            println("       solving all children")
+            # println("       solving all children")
             solve_all_children(
                 model,
                 node,
@@ -926,7 +926,7 @@ function backward_pass(
                 time_left
             )
 
-            println("       successfully solved all children")
+            # println("       successfully solved all children")
 
             
 
@@ -939,7 +939,7 @@ function backward_pass(
             if options.sense_signal*(cost_to_go -  objofchildren_lp) < -tolerance
                 # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
 
-                println("   refining bellman function")
+                # println("   refining bellman function")
                 TimerOutputs.@timeit model.timer_output "cut_addition" begin
                     new_cuts = refine_bellman_function(
                         model,
@@ -956,7 +956,7 @@ function backward_pass(
                     )
                     cuts_std += 1                     
                     push!(cuts[node_index], new_cuts)
-                    println("   refined bellman function")
+                    # println("   refined bellman function")
                     
                     # JuMP.write_to_file(node.subproblem, "subprob_mpo_$(node.index)_$(iter).lp")
                     # println("   printed backward subproblem at node $(node.index) and iteration $(iter).")
@@ -999,7 +999,7 @@ function backward_pass(
     end
 
     # println("   number of cuts added: $(cuts_std)")
-    println("=============== finished backward pass ================== ")
+    # println("=============== finished backward pass ================== ")
     return cuts, cuts_std, cuts_nonstd
 end
 

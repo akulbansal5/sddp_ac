@@ -572,7 +572,7 @@ function sample_scenario(
 ) where {T}
 
 
-    println("       sampling scenario ...")
+    # println("       sampling scenario ...")
     max_depth = min(sampling_scheme.max_depth, sampling_scheme.rollout_limit())
 
 
@@ -581,7 +581,7 @@ function sample_scenario(
         sampling_scheme.initial_node,
         sample_noise(get_root_children(sampling_scheme, graph)))
     
-    println("current node index: $(node_index)")
+    # println("current node index: $(node_index)")
     current_node = graph[node_index]
     
     #maintain a global list of paths
