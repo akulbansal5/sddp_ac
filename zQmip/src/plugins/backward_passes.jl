@@ -938,6 +938,7 @@ function backward_pass(
             if options.sense_signal*(cost_to_go -  objofchildren_lp) < -tolerance
                 # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
 
+                println("   refining bellman function")
                 TimerOutputs.@timeit model.timer_output "cut_addition" begin
                     new_cuts = refine_bellman_function(
                         model,
@@ -954,12 +955,12 @@ function backward_pass(
                     )
                     cuts_std += 1                     
                     push!(cuts[node_index], new_cuts)
-
+                    println("   refined bellman function")
                     
                     # JuMP.write_to_file(node.subproblem, "subprob_mpo_$(node.index)_$(iter).lp")
                     # println("   printed backward subproblem at node $(node.index) and iteration $(iter).")
                     
-
+                    
                     if options.refine_at_similar_nodes
                         # Refine the bellman function at other nodes with the same
                         # children, e.g., in the same stage of a Markovian policy graph.
@@ -997,7 +998,7 @@ function backward_pass(
     end
 
     # println("   number of cuts added: $(cuts_std)")
-    # println("=============== finished backward pass ================== ")
+    println("=============== finished backward pass ================== ")
     return cuts, cuts_std, cuts_nonstd
 end
 
