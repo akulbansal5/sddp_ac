@@ -364,7 +364,7 @@ function _add_threads_solver(node::Node; threads::Int64)
     try
         JuMP.set_attribute(node.subproblem, "Threads", threads)
     catch e
-        println("Warning: unable to set the threads due to error $(e)")
+        # println("Warning: unable to set the threads due to error $(e)")
     end
     return
 end
@@ -384,7 +384,7 @@ function _add_threads_solver(model::PolicyGraph; threads::Number)
             _add_threads_solver(node, threads = Int64(threads))
         end
     catch e
-        println("Warning: unable to set the threads due to error $(e)")
+        # println("Warning: unable to set the threads due to error $(e)")
     end
     return
 end

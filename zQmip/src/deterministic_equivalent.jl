@@ -239,8 +239,9 @@ function deterministic_equivalent(
     try
         JuMP.set_attribute(model, "Threads", solver_threads)
     catch e
-        println("Warning: unable to set threads due to error $(e)")
+        # println("Warning: unable to set threads due to error $(e)")
     end
+
     JuMP.set_objective_sense(model, pg.objective_sense)
     for child in tree.children
         add_scenario_to_ef(model, child, check_time_limit)

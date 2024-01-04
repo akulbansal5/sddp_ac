@@ -558,7 +558,7 @@ function _add_mipgap_solver(node::Node, mipgap::Number, ::Union{LaporteLouveauxD
     try
         set_optimizer_attribute(node.subproblem, "mip_gap", mipgap)
     catch
-        println("Warning: unable to set the gap")
+        # println("Warning: unable to set the gap")
     end
 end
 
