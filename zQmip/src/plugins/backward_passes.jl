@@ -925,6 +925,7 @@ function backward_pass(
                 iterations,
                 time_left
             )
+
             println("       successfully solved all children")
 
             

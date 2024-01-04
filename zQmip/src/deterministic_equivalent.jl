@@ -236,7 +236,10 @@ function deterministic_equivalent(
     # Step 2: create a extensive-form JuMP model and add subproblems.
     # model = optimizer === nothing ? JuMP.Model() : JuMP.Model(optimizer_with_attributes(optimizer,  "Threads" => solver_threads))
     model = optimizer === nothing ? JuMP.Model() : JuMP.Model(optimizer)
-    JuMP.set_attribute(model, "Threads", solver_threads)
+    try
+        JuMP.set_attribute(model, "Threads", solver_threads)
+    catch e
+        println("Warning: unable to set threads due to error $(e)")
     JuMP.set_objective_sense(model, pg.objective_sense)
     for child in tree.children
         add_scenario_to_ef(model, child, check_time_limit)

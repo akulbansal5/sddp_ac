@@ -3,6 +3,40 @@
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+
+mutable struct ScenarioNode
+    node_index::Int
+    noise_term::Any
+    noise_probability::Float64
+    noise_id::Int
+    children::Union{Vector{ScenarioNode}, Nothing}
+    sampled_states::Union{Dict{Symbol,Float64}, Nothing}
+    cost_to_go::Union{Float64, Nothing}
+    parent::Union{ScenarioNode, Nothing}
+    cum_prob::Union{Float64, Nothing}
+
+    function ScenarioNode(node_index::Int, noise_term::Any, noise_probability::Float64, noise_id::Int,
+        children::Union{Vector{ScenarioNode}, Nothing} = ScenarioNode[],
+        sampled_states::Union{Dict{Symbol,Float64}, Nothing} = nothing,
+        cost_to_go::Union{Float64, Nothing} = nothing,
+        parent::Union{ScenarioNode, Nothing} = nothing,
+        cum_prob::Union{Float64, Nothing} = nothing)
+        new(node_index, noise_term, noise_probability, noise_id, children, sampled_states, cost_to_go, parent, cum_prob)
+    end
+end
+
+mutable struct NoiseTree
+    depth::Union{Int,Nothing}
+    stageNodes::Union{Dict{Int, Vector{ScenarioNode}}, Nothing}
+    pathNodes::Union{Dict{Tuple{Int,Int}, ScenarioNode}, Nothing}
+    function NoiseTree(depth::Union{Int,Nothing} = 1, stageNodes::Union{Dict{Int, Vector{ScenarioNode}}, Nothing} = Dict{Int, Vector{ScenarioNode}}(),
+        pathNodes::Union{Dict{Tuple{Int,Int}, ScenarioNode}, Nothing} = Dict{Tuple{Int,Int}, ScenarioNode}())
+        new(depth, stageNodes, pathNodes)
+    end
+end
+
+
+
 struct Graph{T}
     # The root node of the policy graph.
     root_node::T

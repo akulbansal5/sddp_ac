@@ -529,10 +529,10 @@ function forward_pass(
 
 
     for stage in 1:noise_tree.depth
-        stage_nodes = noise_tree.stageNodes[stage]
+        stage_nodes    = noise_tree.stageNodes[stage]
         for scen_node in stage_nodes
             node_index = scen_node.node_index
-            depth = node_index
+            depth      = node_index
 
             print("     node index is $(node_index)")
             if node_index == 1        
@@ -545,7 +545,7 @@ function forward_pass(
                 
             node    = model[node_index]
             noiseid = scen_node.noise_id
-            noise = scen_node.noise_term
+            noise   = scen_node.noise_term
 
             # NOTE: No objective state interpolation here
             # NOTE: No update in belief state etc.

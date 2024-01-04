@@ -358,9 +358,14 @@ The subproblem is solved by a commercial solver. This functions allows setting
 number of threads to use when solving a subproblem at a particular node. This is helpful when running
 the code on a remote server.
 
+author: Akul
 """
 function _add_threads_solver(node::Node; threads::Int64)
-    JuMP.set_attribute(node.subproblem, "Threads", threads)
+    try
+        JuMP.set_attribute(node.subproblem, "Threads", threads)
+    catch e
+        println("Warning: unable to set the threads due to error $(e)")
+    end
     return
 end
 
@@ -374,8 +379,12 @@ the code on a remote server.
 
 """
 function _add_threads_solver(model::PolicyGraph; threads::Number)
-    for (_, node) in model.nodes
-        _add_threads_solver(node, threads = Int64(threads))
+    try 
+        for (_, node) in model.nodes
+            _add_threads_solver(node, threads = Int64(threads))
+        end
+    catch e
+        println("Warning: unable to set the threads due to error $(e)")
     end
     return
 end
