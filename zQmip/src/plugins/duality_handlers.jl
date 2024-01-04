@@ -555,7 +555,11 @@ Adds the mipgap to the node subproblem if the
 """
 function _add_mipgap_solver(node::Node, mipgap::Number, ::Union{LaporteLouveauxDuality,LagrangianDuality,StrengthenedConicDuality})
     #set the solver gap here
-    set_optimizer_attribute(node.subproblem, "mip_gap", mipgap)
+    try
+        set_optimizer_attribute(node.subproblem, "mip_gap", mipgap)
+    catch
+        println("Warning: unable to set the gap")
+    end
 end
 
 """
