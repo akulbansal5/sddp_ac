@@ -907,7 +907,7 @@ function backward_pass(
 
             #NOTE: In the scenario trajectory each value is just a dummy empty vector of tuples representing scenario path Tuple{T, Any}[]
             #we do this because the scenario path argument has no use in the solve_all_children and later in solve_subproblem
-
+            println("       solving all children")
             solve_all_children(
                 model,
                 node,
@@ -925,7 +925,7 @@ function backward_pass(
                 iterations,
                 time_left
             )
-
+            println("       successfully solved all children")
 
             
 
