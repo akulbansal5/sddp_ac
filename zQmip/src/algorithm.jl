@@ -1152,20 +1152,36 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         end
                 
         # println("=================== start backward pass ==============")
+        # TimerOutputs.@timeit model.timer_output "backward_pass" begin
+        #     cuts, cuts_std, cuts_nonstd = backward_pass(
+        #         model,
+        #         options,
+        #         options.backward_pass,
+        #         forward_trajectory.scenario_paths,
+        #         forward_trajectory.sampled_states,
+        #         forward_trajectory.objective_states,
+        #         forward_trajectory.belief_states,
+        #         forward_trajectory.costtogo,
+        #         forward_trajectory.scenario_trajectory,
+        #         forward_trajectory.noise_tree
+        #     )
+        # end
+
         TimerOutputs.@timeit model.timer_output "backward_pass" begin
-            cuts, cuts_std, cuts_nonstd = backward_pass(
-                model,
-                options,
-                options.backward_pass,
-                forward_trajectory.scenario_paths,
-                forward_trajectory.sampled_states,
-                forward_trajectory.objective_states,
-                forward_trajectory.belief_states,
-                forward_trajectory.costtogo,
-                forward_trajectory.scenario_trajectory,
-                forward_trajectory.noise_tree
-            )
-        end
+        cuts, cuts_std, cuts_nonstd = backward_pass(
+            model,
+            options,
+            options.backward_pass,
+            forward_trajectory.scenario_paths,
+            forward_trajectory.sampled_states,
+            forward_trajectory.objective_states,
+            forward_trajectory.belief_states,
+            forward_trajectory.costtogo,
+            forward_trajectory.scenario_trajectory
+        )
+    end
+
+
         iterations = length(options.log)
 
         # println("======================== calculate bound ==============")

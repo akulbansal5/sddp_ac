@@ -304,7 +304,7 @@ mutable struct DefaultNestedForwardPass <: AbstractForwardPass
 end
 
 
-function forward_pass_ver2(
+function forward_pass(
     model::PolicyGraph{T},
     options::Options,
     pass::DefaultNestedForwardPass,
@@ -460,7 +460,7 @@ function forward_pass_ver2(
 end
 
 
-function forward_pass(
+function forward_pass_ver2(
     model::PolicyGraph{T},
     options::Options,
     pass::DefaultNestedForwardPass,
@@ -491,8 +491,8 @@ function forward_pass(
             noise_tree                    = model.noise_tree
         end
     end
+
     # println("   scenario successfully sampled")
-    
     # println("   >>Forward pass at iteration: $(iterations)")
 
     M              = length(scenario_paths)
