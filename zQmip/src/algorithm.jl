@@ -1200,13 +1200,34 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         # end
 
         
+        # push!(
+        #     options.log,
+        #     Log(
+        #         length(options.log) + 1,
+        #         bound,
+        #         forward_trajectory.cumulative_value,
+        #         forward_trajectory.noise_tree.pathNodes[(1,1)].sampled_states,
+        #         time() - options.start_time,
+        #         Distributed.myid(),
+        #         model.ext[:total_solves],
+        #         duality_log_key(options.duality_handler),
+        #         model.ext[:numerical_issue],
+        #         cuts_std,
+        #         cuts_nonstd,
+        #         forward_trajectory.sampled_states,
+        #         forward_trajectory.std_dev,
+        #         forward_trajectory.M
+        #     ),
+        # )
+
+
         push!(
             options.log,
             Log(
                 length(options.log) + 1,
                 bound,
                 forward_trajectory.cumulative_value,
-                forward_trajectory.noise_tree.pathNodes[(1,1)].sampled_states,
+                forward_trajectory.sampled_states[(1,1)],
                 time() - options.start_time,
                 Distributed.myid(),
                 model.ext[:total_solves],
