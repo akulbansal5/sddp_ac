@@ -534,7 +534,7 @@ function forward_pass(
             node_index = scen_node.node_index
             depth      = node_index
 
-            print("     node index is $(node_index)")
+            # print("     node index is $(node_index)")
             if node_index == 1        
                 incoming_state_value = copy(options.initial_state)
             else
