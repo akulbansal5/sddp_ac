@@ -1290,7 +1290,7 @@ count the number of times the first stage solution changes
 
 function count_first_stage_changes(log_vector::Vector{Log})
     count = 0
-    for i in min(2,length(log_vector)):length(log_vector)
+    for i in max(2,length(log_vector)):length(log_vector)
         old = log_vector[i-1].master_state
         current = log_vector[i].master_state
         
