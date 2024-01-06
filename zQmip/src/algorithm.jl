@@ -969,7 +969,8 @@ function solve_all_children(
                 items.cached_solutions[(child.term, noise.term)] =
                     length(items.duals)
             end
-            # println("           child_index: $(child_node.index), old_noise_id: $(incoming_noise_id), noise_id: $(noise.id), obj: $(sub_obj), st_obj: $(st_obj)")
+            #BP denotes backward pass
+            println("           BP: child_index: $(child_node.index), old_noise_id: $(incoming_noise_id), noise_id: $(noise.id), obj: $(sub_obj), st_obj: $(st_obj)")
         end
     end
     if length(scenario_path) == length_scenario_path
@@ -1182,7 +1183,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
     end
 
 
-        iterations = length(options.log)
+        
 
         # println("======================== calculate bound ==============")
         TimerOutputs.@timeit model.timer_output "calculate_bound" begin
@@ -1241,6 +1242,10 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
             ),
         )
 
+        
+        iterations = length(options.log)
+        count_changes = count_first_stage_changes(options.log)
+        println("Iter: $(iterations), First stage changes: $(count_changes)")
 
         
 
