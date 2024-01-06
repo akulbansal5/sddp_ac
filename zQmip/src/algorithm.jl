@@ -1146,13 +1146,13 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         
         # println("===> starting iteration: $(iter_count) <===")
 
-        # println("=========== start forward pass ===============")
+        println("=========== start forward pass ===============")
         TimerOutputs.@timeit model.timer_output "forward_pass" begin
             forward_trajectory = forward_pass(model, options, options.forward_pass)
             options.forward_pass_callback(forward_trajectory)
         end
                 
-        # println("=================== start backward pass ==============")
+        println("=================== start backward pass ==============")
         # TimerOutputs.@timeit model.timer_output "backward_pass" begin
         #     cuts, cuts_std, cuts_nonstd = backward_pass(
         #         model,
@@ -1185,7 +1185,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
 
         
 
-        # println("======================== calculate bound ==============")
+        println("======================== calculate bound ==============")
         TimerOutputs.@timeit model.timer_output "calculate_bound" begin
             bound = calculate_bound(model)
             # println("Iter: $(iterations), lower_bound: $(bound)")
@@ -1221,7 +1221,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         #     ),
         # )
 
-
+        println("======================== record in the log ==============")
         push!(
             options.log,
             Log(
@@ -1242,7 +1242,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
             ),
         )
 
-        
+        println("count the changes in first stage solution")
         iterations = length(options.log)
         count_changes = count_first_stage_changes(options.log)
         println("Iter: $(iterations), First stage changes: $(count_changes)")
