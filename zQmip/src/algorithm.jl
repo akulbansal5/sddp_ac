@@ -1293,19 +1293,24 @@ function count_first_stage_changes(log_vector::Vector{Log})
     for i in max(2,length(log_vector)):length(log_vector)
         old = log_vector[i-1].master_state
         current = log_vector[i].master_state
-        
+
         old_int     = Dict(key => round(Int, value) for (key, value) in old)
         current_int = Dict(key => round(Int, value) for (key, value) in current)
+
+        
+        println("local iter: $(i), old master solution: $(old_int)")
+        println("local iter: $(i), current master solution: $(current_int)")
+
         if (old_int != current_int)
             count += 1
         end
 
-        if i == length(log_vector)
-            println("old master solution real: $(old)")
-            println("current master solution real: $(current)")
-            println("old master solution: $(old_int)")
-            println("current master solution: $(current_int)")
-        end
+        # if i == length(log_vector)
+        #     println("old master solution real: $(old)")
+        #     println("current master solution real: $(current)")
+        #     println("old master solution: $(old_int)")
+        #     println("current master solution: $(current_int)")
+        # end
     end
     return count
 end
