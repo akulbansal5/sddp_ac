@@ -1291,7 +1291,7 @@ count the number of times the first stage solution changes
 function count_first_stage_changes(log_vector::Vector{Log})
     count = 0
 
-    if lenght(log_vector) < 2
+    if length(log_vector) < 2
         return 0
     end
     for i in 2:length(log_vector)
