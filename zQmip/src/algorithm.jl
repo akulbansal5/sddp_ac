@@ -1189,7 +1189,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         TimerOutputs.@timeit model.timer_output "calculate_bound" begin
             bound = calculate_bound(model)
             # println("Iter: $(iterations), lower_bound: $(bound)")
-            # println("lower bound: $(bound)")
+            println("   lower bound: $(bound)")
         end
 
         
@@ -1245,7 +1245,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         println("count the changes in first stage solution")
         iterations = length(options.log)
         count_changes = count_first_stage_changes(options.log)
-        println("Iter: $(iterations), First stage changes: $(count_changes)")
+        println("Iter: $(iterations), First stage changes: $(count_changes), LBound: $(bound), UBound: $(forward_trajectory.cumulative_value)")
 
         
 
@@ -1300,6 +1300,10 @@ function count_first_stage_changes(log_vector::Vector{Log})
             count += 1
         end
 
+        if i == length(log_vector)
+            println("old master solution: $(old)")
+            println("current master solution: $(current)")
+        end
     end
     return count
 end
