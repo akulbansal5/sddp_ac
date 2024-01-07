@@ -1293,7 +1293,7 @@ function count_first_stage_changes(log_vector::Vector{Log})
 
     if lenght(log_vector) < 2
         return 0
-
+    end
     for i in 2:length(log_vector)
         old = log_vector[i-1].master_state
         current = log_vector[i].master_state
