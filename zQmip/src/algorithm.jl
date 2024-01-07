@@ -1301,8 +1301,10 @@ function count_first_stage_changes(log_vector::Vector{Log})
         end
 
         if i == length(log_vector)
-            println("old master solution: $(old)")
-            println("current master solution: $(current)")
+            println("old master solution real: $(old)")
+            println("current master solution real: $(current)")
+            println("old master solution: $(old_int)")
+            println("current master solution: $(current_int)")
         end
     end
     return count
