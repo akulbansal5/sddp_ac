@@ -519,6 +519,8 @@ function solve_subproblem(
     
 
     JuMP.optimize!(node.subproblem)
+    orig_obj = JuMP.objective_value(node.subproblem)
+
 
     if write_sub == true
         filename = "/home/akul/sddp_comp/data/"*write_string
@@ -564,6 +566,7 @@ function solve_subproblem(
         state = state,
         duals = dual_values,
         objective = objective,
+        orig_obj = orig_obj,
         stage_objective = stage_objective,
         bound = bound
     )
@@ -895,6 +898,7 @@ function solve_all_children(
         sub_obj = nothing
         sub_bound = nothing
         st_obj = nothing
+        orig_obj = nothing
 
 
         for noise in
@@ -962,6 +966,7 @@ function solve_all_children(
                 sub_obj = subproblem_results.objective
                 sub_bound = subproblem_results.bound
                 st_obj    = subproblem_results.stage_objective
+                orig_obj  = subproblem_results.orig_obj
                 push!(items.objectives, sub_obj)
                 push!(items.belief, belief)
                 push!(items.bounds, sub_bound)
@@ -970,7 +975,7 @@ function solve_all_children(
                     length(items.duals)
             end
             #BP denotes backward pass
-            println("           BP: child_index: $(child_node.index), old_noise_id: $(incoming_noise_id), noise_id: $(noise.id), obj: $(sub_obj), st_obj: $(st_obj)")
+            println("           BP: child_index: $(child_node.index), old_noise_id: $(incoming_noise_id), noise_id: $(noise.id), orig_obj: $(orig_obj), obj: $(sub_obj), st_obj: $(st_obj)")
         end
     end
     if length(scenario_path) == length_scenario_path
