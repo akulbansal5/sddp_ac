@@ -383,59 +383,58 @@ function forward_pass(
             # Takes care of the overlapping scenario paths 
             old_noise_id = 0
             isHash = "no"
-            if haskey(items.cached_solutions, (node_index, noiseid))
-                isHash = "yes"
-                if depth > 1
-                    old_noise_id = scenario_path_noises[depth-1]
-                end
+            # if haskey(items.cached_solutions, (node_index, noiseid))
+            #     isHash = "yes"
+            #     if depth > 1
+            #         old_noise_id = scenario_path_noises[depth-1]
+            #     end
 
-                sol_index               = items.cached_solutions[(node_index, noiseid)]
-                stage_OBJ               = items.stage_objective[sol_index]
-                cumulative_values[i]    = cumulative_values[i] + stage_OBJ
-                incoming_state_value    = items.incoming_state_value[sol_index]
+            #     sol_index               = items.cached_solutions[(node_index, noiseid)]
+            #     stage_OBJ               = items.stage_objective[sol_index]
+            #     cumulative_values[i]    = cumulative_values[i] + stage_OBJ
+            #     incoming_state_value    = items.incoming_state_value[sol_index]
 
-            else
-                isHash = "no"
-                if depth > 1
-                    old_noise_id = scenario_path_noises[depth-1]
-                end
-
-
-                TimerOutputs.@timeit model.timer_output "solve_subproblem" begin
-                    subproblem_results = solve_subproblem(
-                        model,
-                        node,
-                        incoming_state_value,
-                        noise,
-                        scenario_path[1:depth],
-                        duality_handler = nothing,
-                        incoming_noise_id = old_noise_id,
-                        current_noise_id = noiseid,
-                        current_node_index = node_index,
-                        write_sub = false, 
-                        write_string = "forward_$(iterations)_",
-                    )
-                end
-
-                stage_OBJ            = subproblem_results.stage_objective
-                cumulative_values[i] = cumulative_values[i] + stage_OBJ
-            
-                # Set the outgoing state value as the incoming state value for the *next* #node.
-                incoming_state_value = copy(subproblem_results.state)
-
-
-                # Add the outgoing state variable to the list of states we have sampled
-                # on this forward pass.
-                sampled_states[(node_index, noiseid)]      = incoming_state_value
-                cost_to_go                                 = JuMP.value(node.bellman_function.global_theta.theta)
-                costtogo[node_index][noiseid]              = cost_to_go
-                scenario_trajectory[(node_index, noiseid)] = scenario_path[1:depth]
-                
-                push!(items.stage_objective, stage_OBJ)
-                push!(items.incoming_state_value, incoming_state_value)
-                push!(items.costtogo, cost_to_go)
-                items.cached_solutions[(node_index, noiseid)] = length(items.stage_objective)
+            # else
+            isHash = "no"
+            if depth > 1
+                old_noise_id = scenario_path_noises[depth-1]
             end
+
+
+            TimerOutputs.@timeit model.timer_output "solve_subproblem" begin
+                subproblem_results = solve_subproblem(
+                    model,
+                    node,
+                    incoming_state_value,
+                    noise,
+                    scenario_path[1:depth],
+                    duality_handler = nothing,
+                    incoming_noise_id = old_noise_id,
+                    current_noise_id = noiseid,
+                    current_node_index = node_index,
+                    write_sub = false, 
+                    write_string = "forward_$(iterations)_",
+                )
+            end
+
+            stage_OBJ            = subproblem_results.stage_objective
+            cumulative_values[i] = cumulative_values[i] + stage_OBJ
+        
+            # Set the outgoing state value as the incoming state value for the *next* #node.
+            incoming_state_value = copy(subproblem_results.state)
+
+
+            # Add the outgoing state variable to the list of states we have sampled
+            # on this forward pass.
+            sampled_states[(node_index, noiseid)]      = incoming_state_value
+            cost_to_go                                 = JuMP.value(node.bellman_function.global_theta.theta)
+            costtogo[node_index][noiseid]              = cost_to_go
+            scenario_trajectory[(node_index, noiseid)] = scenario_path[1:depth]
+            
+            push!(items.stage_objective, stage_OBJ)
+            push!(items.incoming_state_value, incoming_state_value)
+            push!(items.costtogo, cost_to_go)
+            items.cached_solutions[(node_index, noiseid)] = length(items.stage_objective)
             
             #FP denotes forward pass
             println("           node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid)")
