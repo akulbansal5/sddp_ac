@@ -423,6 +423,7 @@ function forward_pass(
                 # Set the outgoing state value as the incoming state value for the *next* #node.
                 incoming_state_value = copy(subproblem_results.state)
 
+
                 # Add the outgoing state variable to the list of states we have sampled
                 # on this forward pass.
                 sampled_states[(node_index, noiseid)]      = incoming_state_value
@@ -437,6 +438,8 @@ function forward_pass(
             end
             
             #FP denotes forward pass
+            println("           node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid)")
+            println("           state: $(incoming_state_value)")
             println("           FP: path: $(i), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), isHash: $(isHash)")
         end
         # println("       path: $(i), cumm_value: $(cumulative_values[i])")

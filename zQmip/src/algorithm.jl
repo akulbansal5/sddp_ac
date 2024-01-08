@@ -1443,7 +1443,7 @@ function train(
     # spass   = [SDDP.InSampleMonteCarloMultiple(), SDDP.AllSampleMonteCarloMultiple()]
     
     # duality_handler
-    
+    println("entered the function train")
     function log_frequency_f(log::Vector{Log})
         if mod(length(log), log_frequency) != 0
             return false

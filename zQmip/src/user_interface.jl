@@ -878,6 +878,7 @@ Node indices: 1, 2
 ```
 """
 function LinearPolicyGraph(builder::Function; stages::Int, kwargs...)
+    println("Creating Linear Graph")
     if stages < 1
         error("You must create a LinearPolicyGraph with `stages >= 1`.")
     end
