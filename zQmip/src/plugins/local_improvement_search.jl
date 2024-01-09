@@ -157,11 +157,11 @@ function _line_search(
         fₖ₊₁, ∇fₖ₊₁ = ret
         if p' * ∇fₖ₊₁ < 1e-6
             # Still a descent direction, so take a step.
-            println("           line search: termination but still a descent direction")
+            # println("           line search: termination but still a descent direction")
             return α, fₖ₊₁, ∇fₖ₊₁
         elseif isapprox(fₖ + α * p' * ∇fₖ, fₖ₊₁; atol = 1e-8)
             # Step is onto a kink
-            println("           line search: termination by entering into a kink")
+            # println("           line search: termination by entering into a kink")
             return α, fₖ₊₁, ∇fₖ₊₁
         end
         #  Step is an ascent, so use Newton's method to find the intersection
