@@ -1240,7 +1240,7 @@ function backward_pass(
     belief_states::Dict{Int, Vector{Tuple{Int,Dict{T,Float64}}}},
     costtogo::Dict{Int, Dict{Int, Float64}},
     scenario_trajectory::Dict{Tuple{T,Int}, Vector{Tuple{T, Any}}},
-    noise_tree:Any,
+    noise_tree::Any,
     tolerance::Float64 = 1e-3,
 ) where {T,N}
 
