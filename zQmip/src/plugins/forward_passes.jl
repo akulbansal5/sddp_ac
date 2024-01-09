@@ -532,6 +532,7 @@ function forward_pass(
 
     for stage in 1:noise_tree.depth
         stage_nodes    = noise_tree.stageNodes[stage]
+        scen_node_count = 1
         for scen_node in stage_nodes
             node_index = scen_node.node_index
             depth      = node_index
@@ -590,8 +591,9 @@ function forward_pass(
 
             println("           node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid)")
             println("           state: $(incoming_state_value)")
-            println("           FP: path: $(i), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(scen_node.cost_to_go)")
+            println("           FP: scen_node: $(scen_node_count), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(scen_node.cost_to_go)")
             # println("       path: $(i), cumm_value: $(cumulative_values[i])")
+            scen_node_count += 1
         end
     end
     
