@@ -22,7 +22,7 @@ mutable struct BFGS <: AbstractSearchMethod
     gtol::Float64
     gaptol::Float64
     bound::Union{Float64,Nothing}
-    function BFGS(evaluation_limit::Int, ftol::Float64 = 1e-3, gtol::Float64 = 1e-5, gaptol::Float64 = 1e-2, bound::Union{Float64,Nothing} = nothing)
+    function BFGS(evaluation_limit::Int, ftol::Float64 = 1e-4, gtol::Float64 = 1e-5, gaptol::Float64 = 1e-2, bound::Union{Float64,Nothing} = nothing)
         new(evaluation_limit, ftol, gtol)
     end
 end
