@@ -90,7 +90,7 @@ function _add_cut(
     xᵏ::Dict{Symbol,Float64},
     obj_y::Union{Nothing,NTuple{N,Float64}},
     belief_y::Union{Nothing,Dict{T,Float64}};
-    cut_selection::Bool = true,
+    cut_selection::Bool = false,
 ) where {N,T}
     for (key, x) in xᵏ
         θᵏ -= πᵏ[key] * x

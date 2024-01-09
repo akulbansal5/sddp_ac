@@ -489,6 +489,11 @@ end
             graph::PolicyGraph{T},
             sampling_scheme::InSampleMonteCarloMultiple,
             M::Int,              #denotes the number of scenarios that we will sample
+
+    Returns:
+
+        scenario_paths, scenario_paths_noiseid, scenario_paths_prob, noise_tree
+        #noise_tree consists of ScenarioNode(index_next, noise.term, noise.probability, noise.id)
         
 """
 function sample_scenario(
@@ -496,6 +501,9 @@ function sample_scenario(
     sampling_scheme::InSampleMonteCarloMultiple,
     M::Int,
 ) where {T}
+
+
+
     max_depth = min(sampling_scheme.max_depth, sampling_scheme.rollout_limit())
 
     # Storage for multiple scenarios. Each tuple (part of values (lists) in dict) is (node_index, noise.term).
@@ -561,6 +569,8 @@ function sample_scenario(
         end
     end 
     # println("======== scenario sampled successfully =========")
+    
+
     return scenario_paths, scenario_paths_noises, false
 end
 
