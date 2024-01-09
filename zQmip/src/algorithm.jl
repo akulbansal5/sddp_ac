@@ -1049,6 +1049,11 @@ function calculate_bound(
                     noise.term,
                 )
             end
+            
+            iter_temp = model.most_recent_training_results === nothing ? 1 : length(model.most_recent_training_results.log)
+
+
+
             subproblem_results = solve_subproblem(
                 model,
                 node,
@@ -1056,7 +1061,10 @@ function calculate_bound(
                 noise.term,
                 Tuple{T,Any}[(child.term, noise.term)],
                 duality_handler = nothing,
+                write_sub = true,
+                write_string::String = "root_iter_$(iter_temp)_",
             )
+
             push!(objectives, subproblem_results.objective)
             push!(probabilities, child.probability * noise.probability)
             push!(noise_supports, noise.term)
@@ -1227,6 +1235,8 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         )
 
         
+
+        
         # push!(
         #     options.log,
         #     Log(
@@ -1262,6 +1272,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         has_converged, status =
             convergence_test(model, options.log, options.stopping_rules)
 
+        model.most_recent_training_results = TrainingResults(status, options.log)
         # println("====== convergence test =======")
 
         return IterationResult(
