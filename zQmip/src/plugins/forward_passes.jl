@@ -580,7 +580,7 @@ function forward_pass(
                 )
             end
             # println("       subproblem successfully solved inside the forward pass")
-            stage_OBJ            = subproblem_results.stage_objective
+            stage_OBJ             = subproblem_results.stage_objective
             upper_bound          += upper_bound + stage_OBJ*scen_node.cum_prob
 
             # Set the outgoing state value as the incoming state value for the *next* #node.
@@ -591,7 +591,7 @@ function forward_pass(
 
             println("           node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid)")
             println("           state: $(incoming_state_value)")
-            println("           FP: scen_node: $(scen_node_count), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(scen_node.cost_to_go)")
+            println("           FP: scen_node: $(scen_node_count), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cum_prb: $(scen_node.cum_prob), cost-to-go: $(scen_node.cost_to_go)")
             # println("       path: $(i), cumm_value: $(cumulative_values[i])")
             scen_node_count += 1
         end
