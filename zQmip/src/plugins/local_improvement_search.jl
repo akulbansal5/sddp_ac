@@ -101,21 +101,22 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}, time_left::Union{Numb
             # because we abuse the solvers feasibility tolerance, and end up
             # returning a solution that is on the edge of numerical dual
             # feasibility.
-            # println("             local_imprv: at edge with # of lg dual evals: $(evals[]), ftol: $(bfgs.ftol), step: $(step), alpha_k: $(αₖ), norm_value: $(norm_value)")
+            println("             local_imprv: at edge with # of lg dual evals: $(evals[]), ftol: $(bfgs.ftol), step: $(step), alpha_k: $(αₖ), norm_value: $(norm_value)")
             return fₖ, xₖ
         elseif _norm(∇fₖ₊₁) < bfgs.gtol
             # Zero(ish) gradient. Return what must be a local maxima.
-            # println("             local_imprv: zero gradient with gradient $(_norm(∇fₖ₊₁)) and evals: $(evals[])")
+            println("             local_imprv: zero gradient with gradient $(_norm(∇fₖ₊₁)) and evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
         elseif evals[] <= 0
             # We have evaluated the function too many times. Return our current
             # best.
-            # println("             local_imprv: termination with number of lg dual evals: $(evals[])")
+            println("             local_imprv: termination with number of lg dual evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
         elseif curr_gap < bfgs.gaptol
-            #println("termination due to gap")
+            println("             local_imprv: termination due to gap")
             return fₖ₊₁, xₖ + αₖ * pₖ
         elseif time_left !== nothing && time() - start_time > time_left
+            println("             local_imprv: hit the time limit")
             return fₖ₊₁, xₖ + αₖ * pₖ
         end
         # BFGS update.
