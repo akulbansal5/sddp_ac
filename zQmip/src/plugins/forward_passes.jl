@@ -581,7 +581,7 @@ function forward_pass(
             end
             # println("       subproblem successfully solved inside the forward pass")
             stage_OBJ             = subproblem_results.stage_objective
-            upper_bound          += upper_bound + stage_OBJ*scen_node.cum_prob
+            upper_bound           = upper_bound + stage_OBJ*scen_node.cum_prob
 
             # Set the outgoing state value as the incoming state value for the *next* #node.
             incoming_state_value = copy(subproblem_results.state)
