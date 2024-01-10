@@ -507,6 +507,7 @@ function sample_scenario(
     function sample_scenario_multiple
     """
 
+    println("             sampling scenario")
     max_depth = min(sampling_scheme.max_depth, sampling_scheme.rollout_limit())
 
     # Storage for multiple scenarios. Each tuple (part of values (lists) in dict) is (node_index, noise.term).
@@ -518,7 +519,7 @@ function sample_scenario(
     path_len             = Dict(i => 0 for i in 1:M)
     noise_tree           = NoiseTree()
     
-
+    root_node = nothing
     for i in 1:M
         # Begin by sampling a node from the children of the root node.
         node_index = something(
@@ -527,7 +528,7 @@ function sample_scenario(
         )::T
         
         parent_node = nothing
-        root_node = nothing
+        
         current_probs = Float64[]
 
         while true
