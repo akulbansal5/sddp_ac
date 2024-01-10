@@ -566,7 +566,7 @@ function sample_scenario(
             
             elseif path_len[i] == 1
 
-                parent_node == root_node
+                parent_node = root_node
                 push!(parent_node.paths_on, i)
                 
             elseif !haskey(parent_node.child_ids, noiseid)
