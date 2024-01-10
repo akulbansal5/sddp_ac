@@ -596,7 +596,7 @@ function sample_scenario(
             # Termination conditions:
             if length(children) == 0
                 noise_tree.depth = max(noise_tree.depth, node_index)
-                scenario_paths_prob[m] = foldl(*, current_probs)
+                scenario_paths_prob[i] = foldl(*, current_probs)
                 # 1. Our node has no children, i.e., we are at a leaf node.
                 break
             elseif 0 < sampling_scheme.max_depth <= length(scenario_paths[i])
