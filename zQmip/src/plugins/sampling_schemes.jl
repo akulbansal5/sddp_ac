@@ -532,6 +532,7 @@ function sample_scenario(
         current_probs = Float64[]
 
         while true
+            println("node_index: $(node_index)")
             node           = graph[node_index]
             noise_terms    = get_noise_terms(sampling_scheme, node, node_index)
             children       = get_children(sampling_scheme, node, node_index)
