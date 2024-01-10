@@ -421,7 +421,7 @@ function sample_noise_extra(noise_terms::Vector{<:Noise})
     for noise in noise_terms
         rnd -= noise.probability
         if rnd <= 0.0
-            return noise.term, noise.id
+            return noise.term, noise.id, noise.probability
         end
     end
     return error(
@@ -502,18 +502,22 @@ function sample_scenario(
     M::Int,
 ) where {T}
 
-
+    """
+    Criterion for sampling multiple points
+    function sample_scenario_multiple
+    """
 
     max_depth = min(sampling_scheme.max_depth, sampling_scheme.rollout_limit())
 
     # Storage for multiple scenarios. Each tuple (part of values (lists) in dict) is (node_index, noise.term).
-    scenario_paths = Dict(i => Tuple{T,Any}[] for i in 1:M)
-    scenario_paths_noises = Dict(i => [] for i in 1:M)
+    scenario_paths         = Dict(i => Tuple{T,Any}[] for i in 1:M)
+    scenario_paths_noises  = Dict(i => [] for i in 1:M)
+    scenario_paths_prob    = Dict{Int, Float64}()
 
     #NO INITIALIZATION FOR VISITED NODES -> ASSUMES NO CYCLES
-
+    path_len             = Dict(i => 0 for i in 1:M)
+    noise_tree           = NoiseTree()
     
-    path_len = Dict(i => 0 for i in 1:M)
 
     for i in 1:M
         # Begin by sampling a node from the children of the root node.
@@ -522,26 +526,76 @@ function sample_scenario(
             sample_noise(get_root_children(sampling_scheme, graph)),
         )::T
         
-        
+        parent_node = nothing
+        root_node = nothing
+        current_probs = Float64[]
+
         while true
             node           = graph[node_index]
             noise_terms    = get_noise_terms(sampling_scheme, node, node_index)
             children       = get_children(sampling_scheme, node, node_index)
-            noise, noiseid = sample_noise_extra(noise_terms)
+            noise, noiseid, noiseprob = sample_noise_extra(noise_terms)
+
+            push!(current_probs, noiseprob)
 
             # println("The sampled noise:     $(noise)")
             # println("Type of sampled noise: $(typeof(noise))")
 
             push!(scenario_paths[i], (node_index, noise))
             push!(scenario_paths_noises[i], noiseid)
-
             path_len[i] = path_len[i] + 1
+
+
+            if i == 1 & path_len[i] == 1
+
+                noise_child          = ScenarioNode(node_index, noise, noiseprob, noiseid)
+                noise_child.parent   = parent_node
+                noise_child.cum_prob = noiseprob
+
+                if !haskey(noise_tree.stageNodes, node_index)
+                    noise_tree.stageNodes[node_index] = ScenarioNode[]
+                end
+                
+                push!(noise_tree.stageNodes[node_index], noise_child)
+                noise_tree.pathNodes[(m, node_index)] = noise_child
+                root_node = noise_child
+                parent_node = root_node
+            
+            elseif path_len[i] == 1
+
+                parent_node == root_node
+                
+            elseif !haskey(parent_node.child_ids, noiseid)
+                
+                noise_child          = ScenarioNode(node_index, noise, noiseprob, noiseid)
+                noise_child.parent   = parent_node
+                noise_child.cum_prob = noiseprob*parent_node.cum_prob
+
+                push!(parent_node.children, noise_child)
+
+                if !haskey(noise_tree.stageNodes, node_index)
+                    noise_tree.stageNodes[node_index] = ScenarioNode[]
+                end
+
+                parent_node.child_ids[noise_id] = noise_child
+                push!(noise_tree.stageNodes[node_index], noise_child)
+                noise_tree.pathNodes[(m, node_index)] = noise_child
+                parent_node = noise_child
+            
+            else
+                parent_node = parent_node.child_ids[noiseid]
+            end
+                
+            
 
             # Termination conditions:
             if length(children) == 0
+                noise_tree.depth = max(noise_tree.depth, node_index)
+                scenario_paths_prob[m] = foldl(*, current_probs)
                 # 1. Our node has no children, i.e., we are at a leaf node.
                 break
             elseif 0 < sampling_scheme.max_depth <= length(scenario_paths[i])
+                #NOTE: by default we set the sampling_scheme.max_depth value to 0 so we are stuck
                 # 3. max_depth > 0 and we have explored max_depth number of nodes.
                 break
             elseif sampling_scheme.terminate_on_dummy_leaf &&
@@ -571,7 +625,7 @@ function sample_scenario(
     # println("======== scenario sampled successfully =========")
     
 
-    return scenario_paths, scenario_paths_noises, false
+    return scenario_paths, scenario_paths_noises, scenario_paths_prob, noise_tree
 end
 
 
@@ -604,7 +658,7 @@ function sample_scenario_ver2(
             node           = graph[node_index]
             noise_terms    = get_noise_terms(sampling_scheme, node, node_index)
             children       = get_children(sampling_scheme, node, node_index)
-            noise, noiseid = sample_noise_extra(noise_terms)
+            noise, noiseid, noiseprob = sample_noise_extra(noise_terms)
 
             # println("The sampled noise:     $(noise)")
             # println("Type of sampled noise: $(typeof(noise))")
@@ -668,6 +722,7 @@ function sample_scenario(
 
     # println("       sampling scenario ...")
     max_depth = min(sampling_scheme.max_depth, sampling_scheme.rollout_limit())
+
     
 
     #get the root node

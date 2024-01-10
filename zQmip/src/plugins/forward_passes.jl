@@ -159,8 +159,9 @@ cycle (if there are multiple possibilities).
 
 struct DefaultMultiForwardPass <: AbstractForwardPass
     include_last_node::Bool
-    function DefaultMultiForwardPass(; include_last_node::Bool = true)
-        return new(include_last_node)
+    best_bd::Union{Float64, Nothing}
+    function DefaultMultiForwardPass(; include_last_node::Bool = true,best_bd::Union{Float64, Nothing} = nothing)
+        return new(include_last_node, best_bd)
     end
 end
 
@@ -175,19 +176,19 @@ function forward_pass(
 
    # println("==========forward pass=============")
     TimerOutputs.@timeit model.timer_output "sample_scenario" begin
-        scenario_paths, scenario_paths_noises, terminated_due_to_cycle =
+        scenario_paths, scenario_paths_noises, scenario_paths_prob, noise_tree =
             sample_scenario(model, options.sampling_scheme, options.M)
     end
 
     # NOTE: No termination due to cycle over here
 
     #number of scenario paths
-    M = length(scenario_paths)
+    M              = length(scenario_paths)
     path_len       = length(scenario_paths[1])
     # Storage for the list of outgoing states that we visit on the forward pass.
     sampled_states = Dict{Tuple{T,Int}, Dict{Symbol,Float64}}()
     #storage for objective function on forward pass
-    costtogo = Dict(i => Dict{Int, Float64}() for i in 1:path_len)
+    costtogo       = Dict(i => Dict{Int, Float64}() for i in 1:path_len)
     #for each node_index, noise_id, record the scenario from root node to (node_index, noise_id)
     scenario_trajectory = Dict{Tuple{T,Int}, Vector{Tuple{T, Any}}}()
 
@@ -195,10 +196,146 @@ function forward_pass(
     belief_states = Dict(i => Tuple{Int,Dict{T,Float64}}[] for i in 1:M)
 
     # A cumulator for the stage-objectives.
-    cumulative_values = Dict(i => 0.0 for i in 1:M)
+    # cumulative_values = Dict(i => 0.0 for i in 1:M)
+
+    upper_bound = 0
 
     # NOTE: No objective state interpolation here
-    items = ForwardPassItems(T)
+    # items = ForwardPassItems(T)
+
+    objective_states = NTuple{0,Float64}[]
+
+    #Iterate down the scenario paths
+    for stage in 1:noise_tree.depth
+        stage_nodes    = noise_tree.stageNodes[stage]
+        scen_node_count = 1
+        for scen_node in stage_nodes
+            node_index = scen_node.node_index
+            depth      = node_index
+
+            # print("     node index is $(node_index)")
+            if node_index == 1        
+                incoming_state_value = copy(options.initial_state)
+            else
+                incoming_state_value = scen_node.parent.sampled_states
+            end
+
+            scenario_path_dummy  = Tuple{T, Any}[]
+                
+            node    = model[node_index]
+            noiseid = scen_node.noise_id
+            noise   = scen_node.noise_term
+
+            # NOTE: No objective state interpolation here
+            # NOTE: No update in belief state etc.
+            # NOTE: No infinite horizon problem here
+            # NOTE: No termination due to cycle over here
+
+            old_noise_id = 0
+            
+            if depth > 1
+                old_noise_id = scen_node.parent.noise_id
+            end
+            # println("       solving the subproblem")
+            # println("       typeof incoming state: $(typeof(incoming_state_value))")
+            # println()
+
+            TimerOutputs.@timeit model.timer_output "solve_subproblem" begin
+                subproblem_results = solve_subproblem(
+                    model,
+                    node,
+                    incoming_state_value,
+                    noise,
+                    scenario_path_dummy,
+                    duality_handler = nothing,
+                    incoming_noise_id = old_noise_id,
+                    current_noise_id = noiseid,
+                    current_node_index = node_index,
+                    write_sub = false, 
+                    write_string = "forward_$(iterations)_",
+                )
+            end
+            # println("       subproblem successfully solved inside the forward pass")
+            stage_OBJ             = subproblem_results.stage_objective
+            upper_bound           = upper_bound + stage_OBJ*scen_node.cum_prob
+
+            # Set the outgoing state value as the incoming state value for the *next* #node.
+            incoming_state_value = copy(subproblem_results.state)
+            scen_node.sampled_states = incoming_state_value
+            scen_node.cost_to_go = JuMP.value(node.bellman_function.global_theta.theta)
+            scenario_trajectory[(node_index, noiseid)] = scenario_path_dummy
+
+            println("           node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid)")
+            println("           state: $(incoming_state_value)")
+            println("           FP: scen_node: $(scen_node_count), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cum_prb: $(scen_node.cum_prob), cost-to-go: $(scen_node.cost_to_go)")
+            # println("       path: $(i), cumm_value: $(cumulative_values[i])")
+            scen_node_count += 1
+        end
+    end
+    
+    if pass.best_bd === nothing
+        pass.best_bd = upper_bound
+    else
+        if options.sense_signal == 1
+            pass.best_bd     =  min(upper_bound, pass.best_bd)
+        else
+            #upper_bound in this case is a lower bound
+            pass.best_bd     = max(pass.best_bd, upper_bound)
+        end
+    end
+    model.curr_bound = pass.best_bd
+    # println("       new ub: $(pass.best_bd)")
+
+    return (
+        scenario_paths   = scenario_paths,
+        sampled_states   = sampled_states,
+        objective_states = objective_states,
+        belief_states    = belief_states,
+        cumulative_value = pass.best_bd,
+        costtogo         = costtogo,
+        scenario_trajectory = scenario_trajectory,
+        std_dev             = 0.0,
+        M                   = M,
+        noise_tree          = noise_tree
+    )
+end
+
+function forward_pass_ver2(
+    model::PolicyGraph{T},
+    options::Options,
+    pass::DefaultMultiForwardPass,
+) where {T}
+
+    #ver2: old version of sddip algo
+
+   # println("==========forward pass=============")
+    TimerOutputs.@timeit model.timer_output "sample_scenario" begin
+        scenario_paths, scenario_paths_noises, scenario_paths_prob, noise_tree =
+            sample_scenario(model, options.sampling_scheme, options.M)
+    end
+
+    # NOTE: No termination due to cycle over here
+
+    #number of scenario paths
+    M              = length(scenario_paths)
+    path_len       = length(scenario_paths[1])
+    # Storage for the list of outgoing states that we visit on the forward pass.
+    sampled_states = Dict{Tuple{T,Int}, Dict{Symbol,Float64}}()
+    #storage for objective function on forward pass
+    costtogo       = Dict(i => Dict{Int, Float64}() for i in 1:path_len)
+    #for each node_index, noise_id, record the scenario from root node to (node_index, noise_id)
+    scenario_trajectory = Dict{Tuple{T,Int}, Vector{Tuple{T, Any}}}()
+
+    # Storage for the belief states: partition index and the belief dictionary.
+    belief_states = Dict(i => Tuple{Int,Dict{T,Float64}}[] for i in 1:M)
+
+    # A cumulator for the stage-objectives.
+    # cumulative_values = Dict(i => 0.0 for i in 1:M)
+
+    upper_bound = 0
+
+    # NOTE: No objective state interpolation here
+    # items = ForwardPassItems(T)
 
     objective_states = NTuple{0,Float64}[]
 
@@ -281,8 +418,6 @@ end
 
 
 
-
-
 # ==================================================================================== #
 """
     DefaultNestedForwardPass(; include_last_node::Bool = true)
@@ -297,8 +432,8 @@ cycle (if there are multiple possibilities).
 
 mutable struct DefaultNestedForwardPass <: AbstractForwardPass
     include_last_node::Bool
-    best_bd::Float64
-    function DefaultNestedForwardPass(; include_last_node::Bool = true, best_bd::Float64 = typemax(Float64))
+    best_bd::Union{Float64, Nothing}
+    function DefaultNestedForwardPass(; include_last_node::Bool = true, best_bd::Union{Float64, Nothing} = nothing)
         return new(include_last_node, best_bd)
     end
 end
@@ -471,6 +606,7 @@ function forward_pass(
     """
     The main output required from the forward pass is sampled states and upper bound
     Sampled states is now captured as scenario node attributes in the scenario tree
+    this version also outputs the noise_tree
     """
 
     # println("==========forward pass=============")
@@ -597,7 +733,17 @@ function forward_pass(
         end
     end
     
-    pass.best_bd     =  min(upper_bound, pass.best_bd)
+    if pass.best_bd === nothing
+        pass.best_bd = upper_bound
+    else
+        if options.sense_signal == 1
+            pass.best_bd     =  min(upper_bound, pass.best_bd)
+        else
+            #upper_bound in this case is a lower bound
+            pass.best_bd     = max(pass.best_bd, upper_bound)
+        end
+    end
+
     model.curr_bound = pass.best_bd
     # println("       new ub: $(pass.best_bd)")
 

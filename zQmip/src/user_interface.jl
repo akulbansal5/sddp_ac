@@ -10,6 +10,7 @@ mutable struct ScenarioNode
     noise_probability::Float64
     noise_id::Int
     children::Union{Vector{ScenarioNode}, Nothing}
+    child_ids::Union{Dict{Int, ScenarioNode}, Nothing}
     sampled_states::Union{Dict{Symbol,Float64}, Nothing}
     cost_to_go::Union{Float64, Nothing}
     parent::Union{ScenarioNode, Nothing}
@@ -17,11 +18,12 @@ mutable struct ScenarioNode
 
     function ScenarioNode(node_index::Int, noise_term::Any, noise_probability::Float64, noise_id::Int,
         children::Union{Vector{ScenarioNode}, Nothing} = ScenarioNode[],
+        child_ids::Union{Vector{Int}, Nothing} = Int[]
         sampled_states::Union{Dict{Symbol,Float64}, Nothing} = nothing,
         cost_to_go::Union{Float64, Nothing} = nothing,
         parent::Union{ScenarioNode, Nothing} = nothing,
         cum_prob::Union{Float64, Nothing} = nothing)
-        new(node_index, noise_term, noise_probability, noise_id, children, sampled_states, cost_to_go, parent, cum_prob)
+        new(node_index, noise_term, noise_probability, noise_id, children, child_ids, sampled_states, cost_to_go, parent, cum_prob)
     end
 end
 
@@ -610,7 +612,7 @@ end
 An atom of a discrete random variable at the point of support `support` and
 associated probability `probability`.
 """
-struct Noise{T}
+mutable struct Noise{T}
     # The noise term.
     term::T
     # The probability of sampling the noise term.
@@ -1037,6 +1039,7 @@ function PolicyGraph(
     end
     # Initialize nodes.
     # println("   ==== adding details to nodes")
+    node_uid = 1
     for (node_index, children) in graph.nodes
         # println("   ==== initialization for node $(node_index)")
         if node_index == graph.root_node
@@ -1084,6 +1087,14 @@ function PolicyGraph(
         node.has_integrality =
             (JuMP.VariableRef, MOI.Integer) in ctypes ||
             (JuMP.VariableRef, MOI.ZeroOne) in ctypes
+
+
+        #Changes the uid (unique id attribute of noises)
+        # for noise_object in node.noise_terms
+        #     noise_object.uid = node_uid
+        #     node_uid        += 1
+        # end
+
 
         # for (i, (key, state)) in enumerate(node.states)    
             

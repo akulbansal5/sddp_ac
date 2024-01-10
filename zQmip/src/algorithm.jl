@@ -1061,7 +1061,7 @@ function calculate_bound(
                 noise.term,
                 Tuple{T,Any}[(child.term, noise.term)],
                 duality_handler = nothing,
-                write_sub = true,
+                write_sub = false,
                 write_string = "root_iter_$(iter_temp)_",
             )
 
