@@ -220,7 +220,7 @@ function forward_pass(
             else
                 incoming_state_value = scen_node.parent.sampled_states
                 if incoming_state_value === nothing
-                    println("              current_stage: $(current_stage), parent_stage: $(scen_node.parent.node_index)")
+                    println("              current_stage: $(node_index), parent_stage: $(scen_node.parent.node_index)")
                 end
             end
 
