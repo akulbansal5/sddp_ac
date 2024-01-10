@@ -18,7 +18,7 @@ mutable struct ScenarioNode
 
     function ScenarioNode(node_index::Int, noise_term::Any, noise_probability::Float64, noise_id::Int,
         children::Union{Vector{ScenarioNode}, Nothing} = ScenarioNode[],
-        child_ids::Union{Vector{Int}, Nothing} = Int[]
+        child_ids::Union{Vector{Int}, Nothing} = Int[],
         sampled_states::Union{Dict{Symbol,Float64}, Nothing} = nothing,
         cost_to_go::Union{Float64, Nothing} = nothing,
         parent::Union{ScenarioNode, Nothing} = nothing,
