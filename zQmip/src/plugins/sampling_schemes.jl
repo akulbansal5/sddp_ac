@@ -573,6 +573,11 @@ function sample_scenario(
                 
                 noise_child          = ScenarioNode(node_index, noise, noiseprob, noiseid)
                 noise_child.parent   = parent_node
+
+                if noise_child.node_index < parent_node.node_index
+                    println("WARNING: child parent mismatch")
+                end
+
                 noise_child.cum_prob = noiseprob*parent_node.cum_prob
                 push!(noise_child.paths_on, i)
 
