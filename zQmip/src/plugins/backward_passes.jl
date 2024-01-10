@@ -1364,7 +1364,7 @@ function backward_pass(
                     objective_state,
                     outgoing_state,
                     options.backward_sampling_scheme,
-                    scenario_trajectory[(node_index, noise_id)],                      
+                    scenario_trajectory[(node_index, noise_node.noise_id)],                      
                     options.duality_handler,
                     options.mipgap,
                     noise_node.noise_id,
