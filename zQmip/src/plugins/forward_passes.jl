@@ -221,6 +221,7 @@ function forward_pass(
                 incoming_state_value = scen_node.parent.sampled_states
                 if incoming_state_value === nothing
                     println("              current_stage: $(current_stage), parent_stage: $(scen_node.parent.node_index)")
+                end
             end
 
             scenario_path_dummy  = Tuple{T, Any}[]
