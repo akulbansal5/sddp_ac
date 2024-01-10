@@ -173,7 +173,7 @@ function forward_pass(
 ) where {T}
 
 
-
+    iterations = length(options.log)
    # println("==========forward pass=============")
     TimerOutputs.@timeit model.timer_output "sample_scenario" begin
         scenario_paths, scenario_paths_noises, scenario_paths_prob, noise_tree =
