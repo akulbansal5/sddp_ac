@@ -551,6 +551,7 @@ function sample_scenario(
                 noise_child          = ScenarioNode(node_index, noise, noiseprob, noiseid)
                 noise_child.parent   = parent_node
                 noise_child.cum_prob = noiseprob
+                push!(noise_child.paths_on, i)
 
                 if !haskey(noise_tree.stageNodes, node_index)
                     noise_tree.stageNodes[node_index] = ScenarioNode[]
@@ -561,15 +562,18 @@ function sample_scenario(
                 root_node = noise_child
                 parent_node = root_node
             
+            
             elseif path_len[i] == 1
 
                 parent_node == root_node
+                push!(parent_node.paths_on, i)
                 
             elseif !haskey(parent_node.child_ids, noiseid)
                 
                 noise_child          = ScenarioNode(node_index, noise, noiseprob, noiseid)
                 noise_child.parent   = parent_node
                 noise_child.cum_prob = noiseprob*parent_node.cum_prob
+                push!(noise_child.paths_on, i)
 
                 push!(parent_node.children, noise_child)
 
@@ -584,6 +588,7 @@ function sample_scenario(
             
             else
                 parent_node = parent_node.child_ids[noiseid]
+                push!(parent_node.paths_on, i)
             end
                 
             

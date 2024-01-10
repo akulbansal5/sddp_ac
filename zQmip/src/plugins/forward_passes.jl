@@ -196,7 +196,7 @@ function forward_pass(
     belief_states = Dict(i => Tuple{Int,Dict{T,Float64}}[] for i in 1:M)
 
     # A cumulator for the stage-objectives.
-    # cumulative_values = Dict(i => 0.0 for i in 1:M)
+    cumulative_values = Dict(i => 0.0 for i in 1:M)
 
     upper_bound = 0
 
@@ -258,6 +258,9 @@ function forward_pass(
             # println("       subproblem successfully solved inside the forward pass")
             stage_OBJ             = subproblem_results.stage_objective
             upper_bound           = upper_bound + stage_OBJ*scen_node.cum_prob
+            for paths_pass in scen_node.paths_on
+                cumulative_values[paths_pass] = cumulative_values[paths_pass] + stage_OBJ
+            end
 
             # Set the outgoing state value as the incoming state value for the *next* #node.
             incoming_state_value = copy(subproblem_results.state)
@@ -283,18 +286,22 @@ function forward_pass(
             pass.best_bd     = max(pass.best_bd, upper_bound)
         end
     end
-    model.curr_bound = pass.best_bd
+    model.curr_bound = nothing
     # println("       new ub: $(pass.best_bd)")
+
+    cum_paths =  [cumulative_values[i] for i in 1:M]
+    std_cost  =  Statistics.std(cum_paths)
+    avg_cost  =  Statistics.mean(cum_paths)
 
     return (
         scenario_paths   = scenario_paths,
         sampled_states   = sampled_states,
         objective_states = objective_states,
         belief_states    = belief_states,
-        cumulative_value = pass.best_bd,
+        cumulative_value = avg_cost,
         costtogo         = costtogo,
         scenario_trajectory = scenario_trajectory,
-        std_dev             = 0.0,
+        std_dev             = std_cost,
         M                   = M,
         noise_tree          = noise_tree
     )

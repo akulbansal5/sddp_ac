@@ -15,15 +15,17 @@ mutable struct ScenarioNode
     cost_to_go::Union{Float64, Nothing}
     parent::Union{ScenarioNode, Nothing}
     cum_prob::Union{Float64, Nothing}
+    paths_on::Vector{Int}
 
     function ScenarioNode(node_index::Int, noise_term::Any, noise_probability::Float64, noise_id::Int,
         children::Union{Vector{ScenarioNode}, Nothing} = ScenarioNode[],
-        child_ids::Union{Vector{Int}, Nothing} = Int[],
+        child_ids::Union{Dict{Int, ScenarioNode}, Nothing} = Dict{Int, ScenarioNode}(),
         sampled_states::Union{Dict{Symbol,Float64}, Nothing} = nothing,
         cost_to_go::Union{Float64, Nothing} = nothing,
         parent::Union{ScenarioNode, Nothing} = nothing,
-        cum_prob::Union{Float64, Nothing} = nothing)
-        new(node_index, noise_term, noise_probability, noise_id, children, child_ids, sampled_states, cost_to_go, parent, cum_prob)
+        cum_prob::Union{Float64, Nothing} = nothing,
+        paths_on::Vector{Int} = Int[])
+        new(node_index, noise_term, noise_probability, noise_id, children, child_ids, sampled_states, cost_to_go, parent, cum_prob, paths_on)
     end
 end
 
