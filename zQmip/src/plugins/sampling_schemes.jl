@@ -576,7 +576,7 @@ function sample_scenario(
                 noise_child.parent   = parent_node
 
                 if noise_child.node_index < parent_node.node_index
-                    println("WARNING: child parent mismatch")
+                    println("WARNING: child parent mismatch, c_index: $(noise_child.node_index),  p_index: $(parent_node.node_index)")
                 end
 
                 noise_child.cum_prob = noiseprob*parent_node.cum_prob
