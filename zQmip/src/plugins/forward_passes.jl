@@ -157,7 +157,7 @@ set when training, but it comes at the cost of not knowing which node formed the
 cycle (if there are multiple possibilities).
 """
 
-struct DefaultMultiForwardPass <: AbstractForwardPass
+mutable struct DefaultMultiForwardPass <: AbstractForwardPass
     include_last_node::Bool
     best_bd::Union{Float64, Nothing}
     function DefaultMultiForwardPass(; include_last_node::Bool = true,best_bd::Union{Float64, Nothing} = nothing)
