@@ -210,6 +210,7 @@ function forward_pass(
         stage_nodes    = noise_tree.stageNodes[stage]
         scen_node_count = 1
         for scen_node in stage_nodes
+            println("               solving for the scenario node with node_index $(scen_node.node_index), $(scen_node.noise_id)")
             node_index = scen_node.node_index
             depth      = node_index
 
@@ -218,6 +219,8 @@ function forward_pass(
                 incoming_state_value = copy(options.initial_state)
             else
                 incoming_state_value = scen_node.parent.sampled_states
+                if incoming_state_value === nothing
+                    println("              current_stage: $(current_stage), parent_stage: $(scen_node.parent.node_index)")
             end
 
             scenario_path_dummy  = Tuple{T, Any}[]
