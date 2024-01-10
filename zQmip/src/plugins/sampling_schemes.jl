@@ -581,7 +581,7 @@ function sample_scenario(
                     noise_tree.stageNodes[node_index] = ScenarioNode[]
                 end
 
-                parent_node.child_ids[noise_id] = noise_child
+                parent_node.child_ids[noiseid] = noise_child
                 push!(noise_tree.stageNodes[node_index], noise_child)
                 noise_tree.pathNodes[(i, node_index)] = noise_child
                 parent_node = noise_child
