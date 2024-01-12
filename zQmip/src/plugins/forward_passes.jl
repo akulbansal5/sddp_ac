@@ -795,7 +795,7 @@ end
 function forward_pass(
     model::PolicyGraph{T},
     options::Options,
-    pass::FinaltNestedForwardPass,
+    pass::FinalNestedForwardPass,
 ) where {T}
 
     """
