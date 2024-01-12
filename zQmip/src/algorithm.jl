@@ -1451,6 +1451,7 @@ function train(
     mipgap::Float64 = 1e-4,
     iter_pass::Number = 0,
     M::Int = 1,
+    final_run::Bool = false
 )
 
     # duals   = [SDDP.LagrangianDuality(), SDDP.LaporteLouveauxDuality()]
@@ -1630,6 +1631,16 @@ function train(
         dashboard_callback(nothing, true)
     end
 
+    ub_final = nothing
+    if final_run
+        fpass = DefaultNestedForwardPass(final_run = final_run)
+        TimerOutputs.@timeit model.timer_output "forward_pass" begin
+            forward_trajectory = forward_pass(model, options, fpass)
+            options.forward_pass_callback(forward_trajectory)
+        end
+        ub_final = forward_trajectory.cumulative_value
+    end 
+
 
     output_results = []
     iterations = length(options.log)
@@ -1676,7 +1687,6 @@ function train(
                 recCount += 1
             end
             index += 1
-
         end
     end
 
@@ -1690,7 +1700,7 @@ function train(
         cuts_std = sum(map(l -> l.cuts_std, training_results.log))
         cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log))
         push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, ub = upper_bound, low = μ-σ, high = μ+σ, cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes, 
-        bound_list = bound_list, cumm_list = cumm_list, time_list = time_list, cs_list = cuts_std_list, cns_list = cuts_nonstd_list))
+        bound_list = bound_list, cumm_list = cumm_list, time_list = time_list, cs_list = cuts_std_list, cns_list = cuts_nonstd_list, ub_final = ub_final))
 
     end
     # println("relevant info recorded on termination")

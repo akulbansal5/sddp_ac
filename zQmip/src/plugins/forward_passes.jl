@@ -444,8 +444,10 @@ cycle (if there are multiple possibilities).
 mutable struct DefaultNestedForwardPass <: AbstractForwardPass
     include_last_node::Bool
     best_bd::Union{Float64, Nothing}
-    function DefaultNestedForwardPass(; include_last_node::Bool = true, best_bd::Union{Float64, Nothing} = nothing)
-        return new(include_last_node, best_bd)
+    final_run::Bool
+    function DefaultNestedForwardPass(; include_last_node::Bool = true, best_bd::Union{Float64, Nothing} = nothing, final_run::Bool = false)
+        #final run = true means that in sddip code we traverse the entire scenario tree to compute a deterministic bound
+        return new(include_last_node, best_bd, final_run)
     end
 end
 
@@ -625,7 +627,7 @@ function forward_pass(
 
     TimerOutputs.@timeit model.timer_output "sample_scenario" begin
         
-        if iterations < 1
+        if iterations < 1 || pass.final_run
             scenario_paths, scenario_paths_noises, scenario_paths_prob, noise_tree =
                 sample_scenario(model, options.sampling_scheme)
 
@@ -747,15 +749,18 @@ function forward_pass(
     if pass.best_bd === nothing
         pass.best_bd = upper_bound
     else
+        #the problem is a min problem
         if options.sense_signal == 1
             pass.best_bd     =  min(upper_bound, pass.best_bd)
         else
-            #upper_bound in this case is a lower bound
-            pass.best_bd     = max(pass.best_bd, upper_bound)
+            #the problem is a max problem
+            #upper_bound in this case is a lower bound, so higher the better
+            pass.best_bd     =  max(pass.best_bd, upper_bound)
         end
     end
 
-    model.curr_bound = pass.best_bd
+    
+    model.curr_bound         = pass.best_bd
     # println("       new ub: $(pass.best_bd)")
 
     return (
