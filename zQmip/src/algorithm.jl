@@ -975,7 +975,7 @@ function solve_all_children(
                     length(items.duals)
             end
             #BP denotes backward pass
-            println("           BP: child_index: $(child_node.index), old_noise_id: $(incoming_noise_id), noise_id: $(noise.id), orig_obj: $(orig_obj), obj: $(sub_obj), st_obj: $(st_obj)")
+            # println("           BP: child_index: $(child_node.index), old_noise_id: $(incoming_noise_id), noise_id: $(noise.id), orig_obj: $(orig_obj), obj: $(sub_obj), st_obj: $(st_obj)")
         end
     end
     if length(scenario_path) == length_scenario_path
@@ -1159,13 +1159,13 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         
         # println("===> starting iteration: $(iter_count) <===")
 
-        println("=========== start forward pass ===============")
+        # println("=========== start forward pass ===============")
         TimerOutputs.@timeit model.timer_output "forward_pass" begin
             forward_trajectory = forward_pass(model, options, options.forward_pass)
             options.forward_pass_callback(forward_trajectory)
         end
                 
-        println("=================== start backward pass ==============")
+        # println("=================== start backward pass ==============")
         TimerOutputs.@timeit model.timer_output "backward_pass" begin
             cuts, cuts_std, cuts_nonstd = backward_pass(
                 model,
@@ -1198,11 +1198,11 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
 
         
 
-        println("======================== calculate bound ==============")
+        # println("======================== calculate bound ==============")
         TimerOutputs.@timeit model.timer_output "calculate_bound" begin
             bound = calculate_bound(model)
             # println("Iter: $(iterations), lower_bound: $(bound)")
-            println("   lower bound: $(bound)")
+            # println("   lower bound: $(bound)")
         end
 
         
@@ -1213,7 +1213,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         #     end
         # end
 
-        println("======================== record in the log ==============")
+        # println("======================== record in the log ==============")
         push!(
             options.log,
             Log(
@@ -1257,10 +1257,10 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         #     ),
         # )
 
-        println("count the changes in first stage solution")
+        # println("count the changes in first stage solution")
         iterations = length(options.log)
         count_changes = count_first_stage_changes(options.log)
-        println("Iter: $(iterations), First stage changes: $(count_changes), LBound: $(bound), UBound: $(forward_trajectory.cumulative_value)")
+        # println("Iter: $(iterations), First stage changes: $(count_changes), LBound: $(bound), UBound: $(forward_trajectory.cumulative_value)")
 
         
 
@@ -1459,7 +1459,7 @@ function train(
     # spass   = [SDDP.InSampleMonteCarloMultiple(), SDDP.AllSampleMonteCarloMultiple()]
     
     # duality_handler
-    println("entered the function train")
+    # println("entered the function train")
     function log_frequency_f(log::Vector{Log})
         if mod(length(log), log_frequency) != 0
             return false

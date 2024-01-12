@@ -507,7 +507,7 @@ function sample_scenario(
     function sample_scenario_multiple
     """
 
-    println("             sampling scenario")
+    # println("             sampling scenario")
     max_depth = min(sampling_scheme.max_depth, sampling_scheme.rollout_limit())
 
     # Storage for multiple scenarios. Each tuple (part of values (lists) in dict) is (node_index, noise.term).
@@ -532,7 +532,7 @@ function sample_scenario(
         current_probs = Float64[]
 
         while true
-            println("node_index: $(node_index)")
+            # println("node_index: $(node_index)")
             node           = graph[node_index]
             noise_terms    = get_noise_terms(sampling_scheme, node, node_index)
             children       = get_children(sampling_scheme, node, node_index)
@@ -563,14 +563,14 @@ function sample_scenario(
                 noise_tree.pathNodes[(i, node_index)] = noise_child
                 root_node = noise_child
                 parent_node = root_node
-                println("Path: $(i), Pathlen: $(path_len[i]), parent_node: nothing, child_node: $(noise_child.node_index)")
+                # println("Path: $(i), Pathlen: $(path_len[i]), parent_node: nothing, child_node: $(noise_child.node_index)")
             
             
             elseif path_len[i] == 1
 
                 parent_node = root_node
                 push!(parent_node.paths_on, i)
-                println("Path: $(i), Pathlen: $(path_len[i]), parent_node: $(parent_node.node_index)")
+                # println("Path: $(i), Pathlen: $(path_len[i]), parent_node: $(parent_node.node_index)")
                 
             elseif !haskey(parent_node.child_ids, noiseid)
                 
@@ -581,7 +581,7 @@ function sample_scenario(
                     println("WARNING: child parent mismatch, c_index: $(noise_child.node_index),  p_index: $(parent_node.node_index)")
                 end
 
-                println("Path: $(i), Pathlen: $(path_len[i]), parent_node: $(parent_node.node_index), child_node: $(noise_child.node_index)")
+                # println("Path: $(i), Pathlen: $(path_len[i]), parent_node: $(parent_node.node_index), child_node: $(noise_child.node_index)")
 
                 noise_child.cum_prob = noiseprob*parent_node.cum_prob
                 push!(noise_child.paths_on, i)
@@ -601,7 +601,7 @@ function sample_scenario(
             
             else
                 noise_child = parent_node.child_ids[noiseid]
-                println("Path: $(i), Pathlen: $(path_len[i]), parent_node: $(parent_node.node_index), child_node: $(noise_child.node_index)")
+                # println("Path: $(i), Pathlen: $(path_len[i]), parent_node: $(parent_node.node_index), child_node: $(noise_child.node_index)")
                 parent_node = noise_child
                 push!(parent_node.paths_on, i)
             end
@@ -628,7 +628,7 @@ function sample_scenario(
             end
             # Sample a new node to transition to.
             node_index = sample_noise(children)::T
-            println("Node index sampled: $(node_index)")
+            # println("Node index sampled: $(node_index)")
         end
 
         # Throw an error because we should never end up here.

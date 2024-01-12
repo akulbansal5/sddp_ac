@@ -174,7 +174,7 @@ function forward_pass(
 
 
     iterations = length(options.log)
-   println("==========forward pass=============")
+#    println("==========forward pass=============")
     TimerOutputs.@timeit model.timer_output "sample_scenario" begin
         scenario_paths, scenario_paths_noises, scenario_paths_prob, noise_tree =
             sample_scenario(model, options.sampling_scheme, options.M)
@@ -210,7 +210,7 @@ function forward_pass(
         stage_nodes    = noise_tree.stageNodes[stage]
         scen_node_count = 1
         for scen_node in stage_nodes
-            println("               solving for the scenario node with node_index $(scen_node.node_index), $(scen_node.noise_id)")
+            # println("               solving for the scenario node with node_index $(scen_node.node_index), $(scen_node.noise_id)")
             node_index = scen_node.node_index
             depth      = node_index
 
@@ -219,9 +219,9 @@ function forward_pass(
                 incoming_state_value = copy(options.initial_state)
             else
                 incoming_state_value = scen_node.parent.sampled_states
-                if incoming_state_value === nothing
-                    println("              current_stage: $(node_index), parent_stage: $(scen_node.parent.node_index)")
-                end
+                # if incoming_state_value === nothing
+                #     println("              current_stage: $(node_index), parent_stage: $(scen_node.parent.node_index)")
+                # end
             end
 
             scenario_path_dummy  = Tuple{T, Any}[]
@@ -272,9 +272,9 @@ function forward_pass(
             scen_node.cost_to_go = JuMP.value(node.bellman_function.global_theta.theta)
             scenario_trajectory[(node_index, noiseid)] = scenario_path_dummy
 
-            println("           node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid)")
-            println("           state: $(incoming_state_value)")
-            println("           FP: scen_node: $(scen_node_count), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cum_prb: $(scen_node.cum_prob), cost-to-go: $(scen_node.cost_to_go)")
+            # println("           node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid)")
+            # println("           state: $(incoming_state_value)")
+            # println("           FP: scen_node: $(scen_node_count), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cum_prb: $(scen_node.cum_prob), cost-to-go: $(scen_node.cost_to_go)")
             # println("       path: $(i), cumm_value: $(cumulative_values[i])")
             scen_node_count += 1
         end
@@ -583,9 +583,9 @@ function forward_pass_ver2(
             items.cached_solutions[(node_index, noiseid)] = length(items.stage_objective)
             
             #FP denotes forward pass
-            println("           node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid)")
-            println("           state: $(incoming_state_value)")
-            println("           FP: path: $(i), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), isHash: $(isHash)")
+            # println("           node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid)")
+            # println("           state: $(incoming_state_value)")
+            # println("           FP: path: $(i), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), isHash: $(isHash)")
         end
         # println("       path: $(i), cumm_value: $(cumulative_values[i])")
     end
@@ -736,9 +736,9 @@ function forward_pass(
             scen_node.cost_to_go = JuMP.value(node.bellman_function.global_theta.theta)
             scenario_trajectory[(node_index, noiseid)] = scenario_path_dummy
 
-            println("           node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid)")
-            println("           state: $(incoming_state_value)")
-            println("           FP: scen_node: $(scen_node_count), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cum_prb: $(scen_node.cum_prob), cost-to-go: $(scen_node.cost_to_go)")
+            # println("           node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid)")
+            # println("           state: $(incoming_state_value)")
+            # println("           FP: scen_node: $(scen_node_count), stage: $(depth), node: $(node_index), old_noise: $(old_noise_id), noise: $(noiseid), st_obj: $(stage_OBJ), cum_prb: $(scen_node.cum_prob), cost-to-go: $(scen_node.cost_to_go)")
             # println("       path: $(i), cumm_value: $(cumulative_values[i])")
             scen_node_count += 1
         end
