@@ -14,8 +14,9 @@ function minimize(f::Function, x₀::Vector{Float64})
 end
 
 ###
-### BFGS
 ###
+###
+
 mutable struct BFGS <: AbstractSearchMethod
     evaluation_limit::Int
     ftol::Float64
