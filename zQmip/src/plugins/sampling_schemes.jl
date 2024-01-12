@@ -546,7 +546,7 @@ function sample_scenario(
             push!(scenario_paths[i], (node_index, noise))
             push!(scenario_paths_noises[i], noiseid)
             path_len[i] = path_len[i] + 1
-
+    
 
             if i == 1 & path_len[i] == 1
 
@@ -563,12 +563,14 @@ function sample_scenario(
                 noise_tree.pathNodes[(i, node_index)] = noise_child
                 root_node = noise_child
                 parent_node = root_node
+                println("Path: $(i), Pathlen: $(path_len[i]), parent_node: nothing, child_node: $(noise_child.node_index)")
             
             
             elseif path_len[i] == 1
 
                 parent_node = root_node
                 push!(parent_node.paths_on, i)
+                println("Path: $(i), Pathlen: $(path_len[i]), parent_node: $(parent_node.node_index)")
                 
             elseif !haskey(parent_node.child_ids, noiseid)
                 
@@ -578,6 +580,8 @@ function sample_scenario(
                 if noise_child.node_index < parent_node.node_index
                     println("WARNING: child parent mismatch, c_index: $(noise_child.node_index),  p_index: $(parent_node.node_index)")
                 end
+
+                println("Path: $(i), Pathlen: $(path_len[i]), parent_node: $(parent_node.node_index), child_node: $(noise_child.node_index)")
 
                 noise_child.cum_prob = noiseprob*parent_node.cum_prob
                 push!(noise_child.paths_on, i)
@@ -592,12 +596,18 @@ function sample_scenario(
                 push!(noise_tree.stageNodes[node_index], noise_child)
                 noise_tree.pathNodes[(i, node_index)] = noise_child
                 parent_node = noise_child
+
+                
             
             else
-                parent_node = parent_node.child_ids[noiseid]
+                noise_child = parent_node.child_ids[noiseid]
+                println("Path: $(i), Pathlen: $(path_len[i]), parent_node: $(parent_node.node_index), child_node: $(noise_child.node_index)")
+                parent_node = noise_child
                 push!(parent_node.paths_on, i)
             end
-                
+            
+            
+            
             
 
             # Termination conditions:
@@ -618,6 +628,7 @@ function sample_scenario(
             end
             # Sample a new node to transition to.
             node_index = sample_noise(children)::T
+            println("Node index sampled: $(node_index)")
         end
 
         # Throw an error because we should never end up here.
