@@ -1638,10 +1638,10 @@ function train(
     if final_run
         fpass = DefaultNestedForwardPass(final_run = final_run)
         # TimerOutputs.@timeit model.timer_output "forward_pass" begin
-        forward_trajectory = forward_pass(model, options, fpass)
-        options.forward_pass_callback(forward_trajectory)
-        # end
-        ub_final = forward_trajectory.cumulative_value
+        # forward_trajectory = forward_pass(model, options, fpass)
+        # options.forward_pass_callback(forward_trajectory)
+        # # end
+        # ub_final = forward_trajectory.cumulative_value
     end 
 
     #=====================================================================#
