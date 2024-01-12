@@ -548,7 +548,7 @@ function sample_scenario(
             path_len[i] = path_len[i] + 1
     
 
-            if i == 1 & path_len[i] == 1
+            if path_len[i] == 1 && i == 1  
 
                 noise_child          = ScenarioNode(node_index, noise, noiseprob, noiseid)
                 noise_child.parent   = parent_node
