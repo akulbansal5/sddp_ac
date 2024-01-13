@@ -1678,7 +1678,7 @@ function train(
     # #=====================================================================#
 
     ub_final = final_forward_pass(model, options, final_run)
-
+    println("Deterministic upper bound: $(ub_final)")
 
     output_results = []
     iterations = length(options.log)
