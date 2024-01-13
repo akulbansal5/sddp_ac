@@ -1337,6 +1337,37 @@ end
 
 
 
+"""
+final_forward_pass: does the forward pass on the entire scenario tree one more time to get the deterministic bounds
+"""
+
+
+function final_forward_pass(
+    model::PolicyGraph{T},
+    options::Options,
+    final_run::Bool
+) where {T}
+
+    #======================== doing final run==============================#
+    # println("starting the final run")
+    ub_final = "nan"
+    if final_run
+        fpass = FinalNestedForwardPass(final_run = final_run)
+        TimerOutputs.@timeit model.timer_output "forward_pass" begin
+        # print("forward pass ", forward_pass)
+        forward_trajectory = forward_pass(model, options, fpass)
+        options.forward_pass_callback(forward_trajectory)
+        end
+        ub_final = forward_trajectory.cumulative_value
+    end 
+
+    # print("ending the final run")
+    #=====================================================================#
+
+    return ub_final
+end
+
+
 
 """
     SDDP.train(model::PolicyGraph; kwargs...)
@@ -1631,19 +1662,23 @@ function train(
     end
 
     
-    #======================== doing final run==============================#
-    println("starting the final run")
-    ub_final = "nan"
-    if final_run
-        fpass = FinalNestedForwardPass(final_run = final_run)
-        # TimerOutputs.@timeit model.timer_output "forward_pass" begin
-        forward_trajectory = forward_pass(model, options, fpass)
-        # options.forward_pass_callback(forward_trajectory)
-        # # end
-        ub_final = forward_trajectory.cumulative_value
-    end 
-    print("ending the final run")
-    #=====================================================================#
+    # #======================== doing final run==============================#
+    # println("starting the final run")
+    # ub_final = "nan"
+    # if final_run
+    #     fpass = FinalNestedForwardPass(final_run = final_run)
+    #     # TimerOutputs.@timeit model.timer_output "forward_pass" begin
+    #     print("forward pass ", forward_pass)
+    #     forward_trajectory = forward_pass(model, options, fpass)
+    #     # options.forward_pass_callback(forward_trajectory)
+    #     # # end
+    #     ub_final = forward_trajectory.cumulative_value
+    # end 
+    # print("ending the final run")
+    # #=====================================================================#
+
+    ub_final = final_forward_pass(model, options, final_run)
+
 
     output_results = []
     iterations = length(options.log)
