@@ -466,6 +466,19 @@ end
 # ========================== Homem-De-Mello Stopping Criterion ========================== #
 
 
+
+"""
+
+type1_prob = \nu(1-alpha) = \phi^-1 (1-alpha) where \alpha is the worst-case probability of type 1 error
+type2_prob = \nu(1-gamma) where \gamma is the probability of type 2 error
+
+Ideally we want alpha and gamma to be as less as possible
+Making them too small will prevent algorithm from converging faster
+Making them too large will keep the algorithm running
+
+gap: delta value on page 13, equation (10) in the tito's paper
+"""
+
 struct TitoStalling <: AbstractStoppingRule
     type1_prob::Float64
     type2_prob::Float64
@@ -475,7 +488,7 @@ end
 stopping_rule_status(::TitoStalling) = :tito_stalling
 
 function convergence_test(
-    ::PolicyGraph{T},
+    model::PolicyGraph{T},
     log::Vector{Log},
     rule::TitoStalling,
 ) where {T}
@@ -485,22 +498,45 @@ function convergence_test(
     end
 
     last_log = log[end]
-    std = last_log.std_dev
-    lb  = last_log.bound
+    std      = last_log.std_dev
+    lb       = last_log.bound
     stat_ub  = last_log.simulation_value
-    ratio = stat_ub/lb
+    ratio    = stat_ub/lb
 
-    rho = ratio - rule.type1_prob*std/(lb*sqrt(last_log.M))
+    if model.objective_sense == MOI.MIN_SENSE
 
-    if rho > 1
+        rho      = ratio - rule.type1_prob*std/(lb*sqrt(last_log.M))
+
+        if rho > 1
+            return false
+        end
+        
+        delta_prime    = (rule.type1_prob +rule.type2_prob)*std/(lb*sqrt(last_log.M))
+
+        delta = delta_prime/(1+delta_prime)
+
+        if delta < rule.gap
+            return true
+        end
+
         return false
-    end
-    
-    delta = (rule.type1_prob +rule.type2_prob)*std/(lb*sqrt(last_log.M))
 
-    if delta < rule.gap
-        return true
-    end
+    else
 
-    return false
+        rho = ratio + rule.type1_prob*std/(lb*sqrt(last_log.M))
+
+        if rho < 1
+            return false
+        end
+
+        delta = (rule.type1_prob +rule.type2_prob)*std/(lb*sqrt(last_log.M))
+
+        if delta < rule.gap
+            return true
+        end
+
+        return false
+
 end
+
+
