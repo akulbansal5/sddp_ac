@@ -469,8 +469,8 @@ end
 
 """
 
-type1_prob = \nu(1-alpha) = \phi^-1 (1-alpha) where \alpha is the worst-case probability of type 1 error
-type2_prob = \nu(1-gamma) where \gamma is the probability of type 2 error
+type1_prob = nu(1-alpha) = phi^-1 (1-alpha) where alpha is the worst-case probability of type 1 error
+type2_prob = nu(1-gamma) where gamma is the probability of type 2 error
 
 Ideally we want alpha and gamma to be as less as possible
 Making them too small will prevent algorithm from converging faster
