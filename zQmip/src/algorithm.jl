@@ -1482,7 +1482,8 @@ function train(
     mipgap::Float64 = 1e-4,
     iter_pass::Number = 0,
     M::Int = 1,
-    final_run::Bool = false
+    final_run::Bool = false,
+    seed::Union{Nothing, Int64} = nothing
 )
 
     # duals   = [SDDP.LagrangianDuality(), SDDP.LaporteLouveauxDuality()]
@@ -1643,6 +1644,15 @@ function train(
         M,
         time_limit
     )
+
+    #======= set seed =========#
+
+    if seed !== nothing
+        Random.seed!(seed)
+    end
+    
+
+    #==========================#
 
     
     status = :not_solved
