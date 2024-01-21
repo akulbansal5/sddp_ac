@@ -1648,6 +1648,7 @@ function train(
     #======= set seed =========#
 
     if seed !== nothing
+        println(" ------> seed has been set <--------")
         Random.seed!(seed)
     end
     
