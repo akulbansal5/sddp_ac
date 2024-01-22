@@ -513,9 +513,14 @@ function convergence_test(
         
         delta_prime    = (rule.type1_prob +rule.type2_prob)*std/(lb*sqrt(last_log.M))
 
-        delta = delta_prime/(1+delta_prime)
+        delta = delta_prime/(1+delta_prime) #tranformation is made so the delta can be interpreted as gap in the mip sense
 
         if delta < rule.gap
+
+            println("       termination delta: $(delta)")
+            println("       termination std_dev: $(std)")
+            println("       termination M: $(last_log.M)")
+
             return true
         end
 
@@ -532,11 +537,15 @@ function convergence_test(
         delta = (rule.type1_prob +rule.type2_prob)*std/(lb*sqrt(last_log.M))
 
         if delta < rule.gap
+
+            println("       termination delta: $(delta)")
+            println("       termination std_dev: $(std)")
+            println("       termination M: $(last_log.M)")
+
             return true
         end
 
         return false
-
     end
 
 end
