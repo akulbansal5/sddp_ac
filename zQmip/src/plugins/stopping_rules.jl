@@ -509,6 +509,7 @@ function convergence_test(
         rho      = ratio - rule.type1_prob*std/(lb*sqrt(last_log.M))
 
         if rho > 1
+            println("       Termination: rho > 1: $(rho)")
             return false
         end
         
@@ -535,6 +536,7 @@ function convergence_test(
         rho = ratio + rule.type1_prob*std/(lb*sqrt(last_log.M))
 
         if rho < 1
+            println("       Termination: rho < 1: $(rho)")
             return false
         end
 
