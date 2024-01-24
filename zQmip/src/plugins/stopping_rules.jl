@@ -502,6 +502,7 @@ function convergence_test(
     lb       = last_log.bound
     stat_ub  = last_log.simulation_value
     ratio    = stat_ub/lb
+    iteration = length(log)
 
     if model.objective_sense == MOI.MIN_SENSE
 
@@ -514,6 +515,9 @@ function convergence_test(
         
         delta_prime    = (rule.type1_prob +rule.type2_prob)*std/(lb*sqrt(last_log.M))
         delta          = delta_prime/(1+delta_prime) #tranformation is made so the delta can be interpreted as gap in the mip sense
+
+        println("       Termination: $(iteration), bound: $(lb), std: $(std), delta: $(delta), rho: $(rho)")
+
 
         if delta < rule.gap
             println("       termination delta_prime: $(delta_prime)")
@@ -535,6 +539,8 @@ function convergence_test(
         end
 
         delta = (rule.type1_prob +rule.type2_prob)*std/(lb*sqrt(last_log.M))
+
+        println("       Termination: $(iteration), bound: $(lb), std: $(std), delta: $(delta), rho: $(rho)")
 
         if delta < rule.gap
 
