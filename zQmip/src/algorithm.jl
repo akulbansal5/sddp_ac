@@ -1778,7 +1778,19 @@ function train(
     return output_results
 end
 
-
+# return _simulate(
+#     model,
+#     parallel_scheme,
+#     number_replications,
+#     variables,
+#     sim_time;
+#     sampling_scheme = sampling_scheme,
+#     custom_recorders = custom_recorders,
+#     duality_handler = duality_handler,
+#     skip_undefined_variables = skip_undefined_variables,
+#     incoming_state = Dict(Symbol(k) => v for (k, v) in incoming_state),
+#     set_sim_seed,
+# )
 
 
 # Internal function: helper to conduct a single simulation. Users should use the
@@ -2000,7 +2012,12 @@ function simulate(
     skip_undefined_variables::Bool = false,
     parallel_scheme::AbstractParallelScheme = Serial(),
     incoming_state::Dict{String,Float64} = _initial_state(model),
+    set_sim_seed::Bool = false,
 )
+    if set_sim_seed
+        println(" ------> seed has been set in simulation<--------")
+        Random.seed!(123)
+    end
 
     return _simulate(
         model,
