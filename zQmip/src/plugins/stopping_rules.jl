@@ -509,7 +509,7 @@ function convergence_test(
         rho      = ratio - rule.type1_prob*std/(lb*sqrt(last_log.M))
 
         if rho > 1
-            println("       Termination: rho > 1: $(rho)")
+            # println("       Termination: rho > 1: $(rho)")
             return false
         end
         
@@ -517,15 +517,14 @@ function convergence_test(
         delta_prime    = (rule.type1_prob +rule.type2_prob)*std/(lb*sqrt(last_log.M))
         delta          = delta_prime/(1+delta_prime) #tranformation is made so the delta can be interpreted as gap in the mip sense
 
-        println("       Termination: $(iteration), bound: $(lb), std: $(std), delta: $(delta), rho: $(rho)")
+        # println("       Termination: $(iteration), bound: $(lb), std: $(std), delta: $(delta), rho: $(rho)")
 
 
         if delta < rule.gap
-            println("       termination delta_prime: $(delta_prime)")
-            println("       termination delta: $(delta)")
-            println("       termination std_dev: $(std)")
-            println("       termination M: $(last_log.M)")
-
+            # println("       termination delta_prime: $(delta_prime)")
+            # println("       termination delta: $(delta)")
+            # println("       termination std_dev: $(std)")
+            # println("       termination M: $(last_log.M)")
             return true
         end
 
@@ -536,19 +535,19 @@ function convergence_test(
         rho = ratio + rule.type1_prob*std/(lb*sqrt(last_log.M))
 
         if rho < 1
-            println("       Termination: rho < 1: $(rho)")
+            # println("       Termination: rho < 1: $(rho)")
             return false
         end
 
         delta = (rule.type1_prob +rule.type2_prob)*std/(lb*sqrt(last_log.M))
 
-        println("       Termination: $(iteration), bound: $(lb), std: $(std), delta: $(delta), rho: $(rho)")
+        # println("       Termination: $(iteration), bound: $(lb), std: $(std), delta: $(delta), rho: $(rho)")
 
         if delta < rule.gap
 
-            println("       termination delta: $(delta)")
-            println("       termination std_dev: $(std)")
-            println("       termination M: $(last_log.M)")
+            # println("       termination delta: $(delta)")
+            # println("       termination std_dev: $(std)")
+            # println("       termination M: $(last_log.M)")
 
             return true
         end

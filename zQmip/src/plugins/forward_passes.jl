@@ -296,7 +296,7 @@ function forward_pass(
     cum_paths =  [cumulative_values[i] for i in 1:M]
     std_cost  =  Statistics.std(cum_paths)
     avg_cost  =  Statistics.mean(cum_paths)
-    println("       Forward Pass: $(iterations), Sampled costs: $(cum_paths), Average: $(avg_cost)")
+    # println("       Forward Pass: $(iterations), Sampled costs: $(cum_paths), Average: $(avg_cost)")
 
     return (
         scenario_paths   = scenario_paths,
