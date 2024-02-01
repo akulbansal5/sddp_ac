@@ -2015,7 +2015,7 @@ function simulate(
     set_sim_seed::Bool = false,
 )
     if set_sim_seed
-        println(" ------> seed has been set in simulation<--------")
+        # println(" ------> seed has been set in simulation<--------")
         Random.seed!(123)
     end
 
