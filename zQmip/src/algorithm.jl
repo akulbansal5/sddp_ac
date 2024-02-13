@@ -2013,10 +2013,11 @@ function simulate(
     parallel_scheme::AbstractParallelScheme = Serial(),
     incoming_state::Dict{String,Float64} = _initial_state(model),
     set_sim_seed::Bool = false,
+    sim_seed::Number = 123,
 )
     if set_sim_seed
         # println(" ------> seed has been set in simulation<--------")
-        Random.seed!(123)
+        Random.seed!(sim_seed)
     end
 
     return _simulate(
