@@ -23,6 +23,8 @@ import TimerOutputs
 using RecipesBase
 export @stageobjective
 
+#NOTE: The order in which files are included matters
+
 # Modelling interface.
 include("user_interface.jl")
 include("modeling_aids.jl")
@@ -41,69 +43,44 @@ include("print.jl")
 # The core SDDP code.
 include("algorithm.jl")
 
-# println(">>>>>>>>>>>>>>>>>> algorithm.jl included")
-
 # Specific plugins.
 include("plugins/risk_measures.jl")
-# println(">>>>>>>>>>>>>>>>>> risk_measures.jl included")
 
 include("plugins/sampling_schemes.jl")
-# println(">>>>>>>>>>>>>>>>>> sampling_schemes.jl included")
 
 include("plugins/stopping_rules.jl")
-# println(">>>>>>>>>>>>>>>>>> stopping_rules.jl included")
 
 include("plugins/local_improvement_search.jl")
-# println(">>>>>>>>>>>>>>>>>> local_improvement_search.jl included")
 
 include("plugins/duality_handlers.jl")
-# println(">>>>>>>>>>>>>>>>>> duality_handlers.jl included")
 
-# include("plugins/duality_specific.jl")
 include("plugins/bellman_functions.jl")
-#println(">>>>>>>>>>>>>>>>>> bellman_functions.jl included")
-
 
 include("plugins/parallel_schemes.jl")
-#println(">>>>>>>>>>>>>>>>>> parallel_schemes.jl included")
 
 include("plugins/backward_sampling_schemes.jl")
-#println(">>>>>>>>>>>>>>>>>> backward_sampling_schemes.jl included")
-
 
 include("plugins/forward_passes.jl")
-#println(">>>>>>>>>>>>>>>>>> forward_passes.jl included")
-
 
 include("plugins/backward_passes.jl")
-#println(">>>>>>>>>>>>>>>>>> backward_passes.jl included")
 
 # Visualization related code.
 include("visualization/publication_plot.jl")
-#println(">>>>>>>>>>>>>>>>>> publication_plot.jl included")
 
 include("visualization/spaghetti_plot.jl")
-#println(">>>>>>>>>>>>>>>>>> spaghetti_plot.jl included")
 
 include("visualization/dashboard.jl")
-#println(">>>>>>>>>>>>>>>>>> dashboard.jl included")
 
 include("visualization/value_functions.jl")
-#println(">>>>>>>>>>>>>>>>>> value_functions.jl included")
 
 include("deterministic_equivalent.jl")
-#println(">>>>>>>>>>>>>>>>>> deterministic_equivalent.jl included")
 
 include("biobjective.jl")
-#println(">>>>>>>>>>>>>>>>>> biobjective.jl included")
 
 include("alternative_forward.jl")
-#println(">>>>>>>>>>>>>>>>>> alternative_forward.jl included")
 
 include("Experimental.jl")
-#println(">>>>>>>>>>>>>>>>>> Experimental.jl included")
 
 include("MSPFormat.jl")
-#println(">>>>>>>>>>>>>>>>>> MSPFormat.jl included")
 
 end

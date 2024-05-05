@@ -18,29 +18,29 @@ function backward_pass(
     costtogo::Dict{Int64, Float64},
 ) where {T,NoiseType,N}
 
-    # println("--starting backward pass--")
+    
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
         restore_duality =
             prepare_backward_pass(model, options.duality_handler, options)
     end
     # TODO(odow): improve storage type.
     cuts = Dict{T,Vector{Any}}(index => Any[] for index in keys(model.nodes))
-    # println("starting for loop")
+    
 
 
     cuts_std    = 0            #standard Benders cuts
     cuts_nonstd = 0            #cuts other than the Benders cuts
 
     for index in length(scenario_path):-1:1
-        # println("       Index in scenario_path $index")
+        
         outgoing_state = sampled_states[index]
-        # println("step 1")
+       
         objective_state = get(objective_states, index, nothing)
-        # println("step 2")
+        
         partition_index, belief_state = get(belief_states, index, (0, nothing))
-        # println("step 3")
+        
         items = BackwardPassItems(T, Noise)
-        # println("formalities finished in for loop")
+        
 
         if belief_state !== nothing
             # Update the cost-to-go function for partially observable model.
@@ -93,7 +93,7 @@ function backward_pass(
             end
             
             
-            # println("solving all children")
+            
             solve_all_children(
                 model,
                 node,
@@ -107,23 +107,10 @@ function backward_pass(
                 options.duality_handler,
                 options.mipgap,
             )
-            # println("finished solving all children")
-            # objofchildren = dot(items.probability, items.objectives)
-            # println("At node: $node_index objective: $objofchildren")
-            # println("adding cuts")
 
-            # println("dual variables: ", items.duals)
-            #note this may not necessarily be a 
-            # objofchildren_lp = dot(items.probability, items.objectives)
             objofchildren_lp = bounds_on_actual_costtogo(items, options.duality_handler)
 
-            # println("refine bellman function")
-            # println("obj of node $(node_index)'s children: $(objofchildren_lp)")
-
-            # println("       node: $(node_index), costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
-
             if options.sense_signal*(costtogo[node_index] -  objofchildren_lp) < 0
-                # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
                 new_cuts = refine_bellman_function(
                     model,
                     node,
@@ -141,9 +128,6 @@ function backward_pass(
                 push!(cuts[node_index], new_cuts)
 
                 iter = length(options.log)
-                # JuMP.write_to_file(node.subproblem, "subprob_mpo_$(node.index)_$(iter).lp")
-                # println("   printed backward subproblem at node $(node.index) and iteration $(iter).")
-                
 
                 if options.refine_at_similar_nodes
                     # Refine the bellman function at other nodes with the same
@@ -203,12 +187,12 @@ function backward_pass(
     cuts_nonstd = 0         #cuts other than the Benders cuts
 
     for index in length(scenario_path):-1:1
-        # println("       Index of scenario path: $index")
+        
         outgoing_state = sampled_states[index]
         objective_state = get(objective_states, index, nothing)
         partition_index, belief_state = get(belief_states, index, (0, nothing))
         items = BackwardPassItems(T, Noise)
-        if belief_state !== nothing                                             #TODO (akul) : note in belief state we are not preparing the backward pass
+        if belief_state !== nothing                                            
             # Update the cost-to-go function for partially observable model.    
             for (node_index, belief) in belief_state
                 if iszero(belief)
@@ -256,14 +240,13 @@ function backward_pass(
             if length(node.children) == 0
                 continue
             end
-            # println("       prepare backward pass")
+            
             TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
                 #only relaxes subproblems for children node
-                # println("       prepare backward pass")
                 restore_duality = prepare_backward_pass_node(model, node, continuous_duality, options) 
             end
+
             #duality handler changed to continuous duality
-            # println("       solve all children at node: $(node.index), path index: $(index) ")
             solve_all_children(
                 model,
                 node,
@@ -277,25 +260,19 @@ function backward_pass(
                 continuous_duality,
                 options.mipgap,
             )
-            # objofchildren_lp = dot(items.probability, items.objectives)
+            
             objofchildren_lp = bounds_on_actual_costtogo(items, continuous_duality)
             
-            # println("       solved all children")
+            
             TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
                 #restores integer/binary constraints for all children subproblems
                 restore_duality()
             end
 
-
             #main step of Angulo et al's alternate cutting plane criterion
-            # println(" check if benders cut can be applied")
-            # println("       costtogo: $(costtogo[node_index]), obj of children: $(objofchildren_lp)")
-
-            flag = 0 #indicates no cut
+            flag = 0                                                            #indicates no cut
             objofchildren_mip = nothing
             if options.sense_signal*(costtogo[node_index] -  objofchildren_lp) < 0
-                # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
-                # println("       adding standard Benders cut")
                 new_cuts = refine_bellman_function(
                     model,
                     node,                               #continuous conic duality from lp subproblems
@@ -315,7 +292,6 @@ function backward_pass(
                 #reinitiate items for loading new information
                 items = BackwardPassItems(T, Noise)                           
 
-                # println("       solving MIP subproblems--")
                 solve_all_children(
                     model,
                     node,
@@ -330,15 +306,10 @@ function backward_pass(
                     options.mipgap
                     )
                 
-                
-                # objofchildren_mip = dot(items.probability, items.objectives)
                 objofchildren_mip = bounds_on_actual_costtogo(items, options.duality_handler)
 
-                # println("       At scenario path index: $index MIP objective: $objofchildren_mip")
-                # println("       costtogo: $(costtogo[node_index]), obj of children mip: $(objofchildren_mip)")
                 if options.sense_signal*(costtogo[node_index] - objofchildren_mip) < 0
-                    # println("       costtogo: $(costtogo[node_index]), obj of children mip: $(objofchildren_mip)")
-                    # println("       add LapLov cut/Lag cut procedure")
+
                     new_cuts = refine_bellman_function(
                         model,
                         node,
@@ -411,8 +382,6 @@ function backward_pass(
     return cuts, cuts_std, cuts_nonstd
 end
 
-
-
 function backward_pass(
     model::PolicyGraph{T},
     options::Options,
@@ -436,12 +405,11 @@ function backward_pass(
     cuts_nonstd = 0         #cuts other than the Benders cuts
 
     for index in length(scenario_path):-1:1
-        # println("       Index of scenario path: $index")
         outgoing_state = sampled_states[index]
         objective_state = get(objective_states, index, nothing)
         partition_index, belief_state = get(belief_states, index, (0, nothing))
         items = BackwardPassItems(T, Noise)
-        if belief_state !== nothing                                             #TODO (akul) : note in belief state we are not preparing the backward pass
+        if belief_state !== nothing
             # Update the cost-to-go function for partially observable model.    
             for (node_index, belief) in belief_state
                 if iszero(belief)
@@ -489,14 +457,12 @@ function backward_pass(
             if length(node.children) == 0
                 continue
             end
-            # println("       prepare backward pass")
+            
             TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
-                #only relaxes subproblems for children node
-                # println("       prepare backward pass")
                 restore_duality = prepare_backward_pass_node(model, node, str_continuous_duality, options) 
             end
             #duality handler changed to continuous duality
-            # println("       solve all children at node: $(node.index), path index: $(index) ")
+            
             solve_all_children(
                 model,
                 node,
@@ -510,10 +476,10 @@ function backward_pass(
                 str_continuous_duality,
                 options.mipgap,
             )
-            # objofchildren_lp = dot(items.probability, items.objectives)
+            
             objofchildren_lp = bounds_on_actual_costtogo(items, str_continuous_duality)
             
-            # println("       solved all children")
+            
             TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
                 #in strenghthened conic duality restore function will return nothing
                 restore_duality()
@@ -521,14 +487,10 @@ function backward_pass(
 
 
             #main step of Angulo et al's alternate cutting plane criterion
-            # println(" check if benders cut can be applied")
-            # println("       costtogo: $(costtogo[node_index]), obj of children: $(objofchildren_lp)")
-
-            flag = 0 #indicates no cut
+            flag = 0                                                                #indicates no cut
             objofchildren_mip = nothing
             if options.sense_signal*(costtogo[node_index] -  objofchildren_lp) < 0
-                # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
-                # println("       adding standard Benders cut")
+
                 new_cuts = refine_bellman_function(
                     model,
                     node,                               #continuous conic duality from lp subproblems
@@ -548,7 +510,7 @@ function backward_pass(
                 #reinitiate items for loading new information
                 items = BackwardPassItems(T, Noise)                           
 
-                # println("       solving MIP subproblems--")
+                #solving mip subproblems
                 solve_all_children(
                     model,
                     node,
@@ -564,14 +526,10 @@ function backward_pass(
                     )
                 
                 
-                # objofchildren_mip = dot(items.probability, items.objectives)
                 objofchildren_mip = bounds_on_actual_costtogo(items, options.duality_handler)
 
-                # println("       At scenario path index: $index MIP objective: $objofchildren_mip")
-                # println("       costtogo: $(costtogo[node_index]), obj of children mip: $(objofchildren_mip)")
                 if options.sense_signal*(costtogo[node_index] - objofchildren_mip) < 0
-                    # println("       costtogo: $(costtogo[node_index]), obj of children mip: $(objofchildren_mip)")
-                    # println("       add LapLov cut/Lag cut procedure")
+
                     new_cuts = refine_bellman_function(
                         model,
                         node,
@@ -644,9 +602,6 @@ function backward_pass(
     return cuts, cuts_std, cuts_nonstd
 end
 
-
-
-
 function backward_pass(
     model::PolicyGraph{T},
     options::Options,
@@ -662,7 +617,6 @@ function backward_pass(
 
 
     iterations = length(options.log)
-    # println("   >>starting backward pass at iteration: $(iterations)")
 
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
         restore_duality =
@@ -670,7 +624,8 @@ function backward_pass(
     end
 
     # TODO(odow): improve storage type.
-    # println("creating cuts object for storing cuts")
+
+    # creating cuts object for storing cuts
     cuts = Dict{T,Vector{Any}}(index => Any[] for index in keys(model.nodes))
     
 
@@ -710,7 +665,6 @@ function backward_pass(
                 end
                 
                 if visited_flag == true
-                    # println("       node_index: $(node_index), noise_id: $(noise_id) already cached")
                     continue
                 else
                     states_visited[noise_id] = outgoing_state
@@ -722,10 +676,9 @@ function backward_pass(
             partition_index, belief_state = (0, nothing)
             items = BackwardPassItems(T, Noise)
 
-
-            # log[end].time
             time_left = length(options.log) > 0 ? options.time_limit - options.log[end].time : nothing
             
+            #based on duality_handler mip or lp subproblems are solved below
             solve_all_children(
                 model,
                 node,
@@ -746,16 +699,10 @@ function backward_pass(
 
 
             
-
             objofchildren_lp = bounds_on_actual_costtogo(items, options.duality_handler)
             cost_to_go       = costtogo[node_index][noise_id]
 
-            # println("       node: $(node_index), costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)"
-            # println("       node_index: $(node_index), noise_id: $(noise_id), costtogo: $(cost_to_go), objofchilds: $(objofchildren_lp)")
-            
             if options.sense_signal*(cost_to_go -  objofchildren_lp) < -tolerance
-                # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
-
                 TimerOutputs.@timeit model.timer_output "cut_addition" begin
                     new_cuts = refine_bellman_function(
                         model,
@@ -772,11 +719,6 @@ function backward_pass(
                     )
                     cuts_std += 1                     
                     push!(cuts[node_index], new_cuts)
-
-                    
-                    # JuMP.write_to_file(node.subproblem, "subprob_mpo_$(node.index)_$(iter).lp")
-                    # println("   printed backward subproblem at node $(node.index) and iteration $(iter).")
-                    
 
                     if options.refine_at_similar_nodes
                         # Refine the bellman function at other nodes with the same
@@ -814,12 +756,10 @@ function backward_pass(
         restore_duality()
     end
 
-    # println("   number of cuts added: $(cuts_std)")
-    # println("=============== finished backward pass ================== ")
     return cuts, cuts_std, cuts_nonstd
 end
 
-
+#also takes noise_tree as an argument
 function backward_pass(
     model::PolicyGraph{T},
     options::Options,
@@ -836,7 +776,6 @@ function backward_pass(
 
 
     iterations = length(options.log)
-    # println("   >>starting backward pass at iteration: $(iterations)")
 
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
         restore_duality =
@@ -844,7 +783,6 @@ function backward_pass(
     end
 
     # TODO(odow): improve storage type.
-    # println("creating cuts object for storing cuts")
     cuts = Dict{T,Vector{Any}}(index => Any[] for index in keys(model.nodes))
     
 
@@ -886,7 +824,6 @@ function backward_pass(
                 end
                 
                 if visited_flag == true
-                    # println("       node_index: $(node_index), noise_id: $(noise_id) already cached")
                     continue
                 else
                     states_visited[noise_node_counter] = outgoing_state
@@ -898,16 +835,12 @@ function backward_pass(
             partition_index, belief_state = (0, nothing)
             items = BackwardPassItems(T, Noise)
             
-
-            
-            # log[end].time
             time_left = length(options.log) > 0 ? options.time_limit - options.log[end].time : nothing
             
 
 
             #NOTE: In the scenario trajectory each value is just a dummy empty vector of tuples representing scenario path Tuple{T, Any}[]
             #we do this because the scenario path argument has no use in the solve_all_children and later in solve_subproblem
-            # println("       solving all children")
             solve_all_children(
                 model,
                 node,
@@ -926,20 +859,12 @@ function backward_pass(
                 time_left
             )
 
-            # println("       successfully solved all children")
-
             
-
             objofchildren_lp = bounds_on_actual_costtogo(items, options.duality_handler)
             cost_to_go       = noise_node.cost_to_go
 
-            # println("       node: $(node_index), costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)"
-            # println("       node_index: $(node_index), noise_id: $(noise_id), costtogo: $(cost_to_go), objofchilds: $(objofchildren_lp)")
-            
             if options.sense_signal*(cost_to_go -  objofchildren_lp) < -tolerance
-                # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
 
-                # println("   refining bellman function")
                 TimerOutputs.@timeit model.timer_output "cut_addition" begin
                     new_cuts = refine_bellman_function(
                         model,
@@ -956,11 +881,7 @@ function backward_pass(
                     )
                     cuts_std += 1                     
                     push!(cuts[node_index], new_cuts)
-                    # println("   refined bellman function")
-                    
-                    # JuMP.write_to_file(node.subproblem, "subprob_mpo_$(node.index)_$(iter).lp")
-                    # println("   printed backward subproblem at node $(node.index) and iteration $(iter).")
-                    
+
                     
                     if options.refine_at_similar_nodes
                         # Refine the bellman function at other nodes with the same
@@ -998,13 +919,8 @@ function backward_pass(
         restore_duality()
     end
 
-    # println("   number of cuts added: $(cuts_std)")
-    # println("=============== finished backward pass ================== ")
     return cuts, cuts_std, cuts_nonstd
 end
-
-
-
 
 function backward_pass(
     model::PolicyGraph{T},
@@ -1019,7 +935,7 @@ function backward_pass(
     tolerance::Float64 = 1e-3,
 ) where {T,N}
 
-    # println("--starting backward pass--")
+    
     continuous_duality = SDDP.ContinuousConicDuality()
 
     # TODO(odow): improve storage type.
@@ -1076,7 +992,7 @@ function backward_pass(
                 restore_duality = prepare_backward_pass_node(model, node, continuous_duality, options) 
             end
 
-            # log[end].time
+            
             
 
             solve_all_children(
@@ -1101,12 +1017,9 @@ function backward_pass(
                 restore_duality()
             end
 
-            # println("       node: $(node_index), costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
-            
             flag              = 0
             objofchildren_mip = nothing
             if options.sense_signal*(cost_to_go -  objofchildren_lp) < -tolerance
-                # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
                 TimerOutputs.@timeit model.timer_output "benders_cut_addition" begin
                     new_cuts = refine_bellman_function(
                         model,
@@ -1149,13 +1062,8 @@ function backward_pass(
                 
                 objofchildren_mip = bounds_on_actual_costtogo(items, options.duality_handler)
 
-
-                # JuMP.write_to_file(node.subproblem, "subprob_mpo_$(node.index)_$(iter).lp")
-                # println("   printed backward subproblem at node $(node.index) and iteration $(iter).")
-                
                 if options.sense_signal*(cost_to_go - objofchildren_mip) < -tolerance
-                    # println("       costtogo: $(costtogo[node_index]), obj of children mip: $(objofchildren_mip)")
-                    # println("       add LapLov cut/Lag cut procedure")
+
                     TimerOutputs.@timeit model.timer_output "tight_cut_addition" begin
                         new_cuts = refine_bellman_function(
                             model,
@@ -1230,6 +1138,7 @@ function backward_pass(
     return cuts, cuts_std, cuts_nonstd
 end
 
+#also takes noise_tree as an argument
 function backward_pass(
     model::PolicyGraph{T},
     options::Options,
@@ -1245,7 +1154,7 @@ function backward_pass(
 ) where {T,N}
 
     iterations = length(options.log)
-    # println("--starting backward pass--")
+    
     continuous_duality = SDDP.ContinuousConicDuality()
 
     # TODO(odow): improve storage type.
@@ -1304,7 +1213,7 @@ function backward_pass(
                 restore_duality = prepare_backward_pass_node(model, node, continuous_duality, options) 
             end
 
-            # log[end].time
+            
             solve_all_children(
                 model,
                 node,
@@ -1327,13 +1236,10 @@ function backward_pass(
                 #restores integer/binary constraints for all children subproblems
                 restore_duality()
             end
-
-            # println("       node: $(node_index), costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
             
             flag              = 0
             objofchildren_mip = nothing
             if options.sense_signal*(cost_to_go -  objofchildren_lp) < -tolerance
-                # println("       costtogo: $(costtogo[node_index]), obj of children lp: $(objofchildren_lp)")
                 TimerOutputs.@timeit model.timer_output "benders_cut_addition" begin
                     new_cuts = refine_bellman_function(
                         model,
@@ -1377,12 +1283,8 @@ function backward_pass(
                 objofchildren_mip = bounds_on_actual_costtogo(items, options.duality_handler)
 
 
-                # JuMP.write_to_file(node.subproblem, "subprob_mpo_$(node.index)_$(iter).lp")
-                # println("   printed backward subproblem at node $(node.index) and iteration $(iter).")
-                
                 if options.sense_signal*(cost_to_go - objofchildren_mip) < -tolerance
-                    # println("       costtogo: $(costtogo[node_index]), obj of children mip: $(objofchildren_mip)")
-                    # println("       add LapLov cut/Lag cut procedure")
+
                     TimerOutputs.@timeit model.timer_output "tight_cut_addition" begin
                         new_cuts = refine_bellman_function(
                             model,

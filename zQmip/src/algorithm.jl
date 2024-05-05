@@ -244,7 +244,7 @@ end
 # Internal function: overload for the case where JuMP.value fails on a
 # Real number.
 stage_objective_value(stage_objective::Real) = stage_objective
-stage_objective_value(stage_objective) = JuMP.value(stage_objective)
+stage_objective_value(stage_objective)       = JuMP.value(stage_objective)
 
 """
     write_subproblem_to_file(
@@ -323,32 +323,6 @@ function attempt_numerical_recovery(model::PolicyGraph, node::Node)
     end
     return
 end
-
-
-
-
-# """
-#     _add_mipgap_solver(node::Node; duality_handler::Union{Nothing,ContinuousConicDuality}, mipgap::Number)
-
-# Adds the mipgap to the node subproblem if the
-
-
-# """
-# function _add_mipgap_solver(node::Node; duality_handler::Union{Nothing,ContinuousConicDuality}, mipgap::Number)
-# end
-
-
-# """
-#     _add_mipgap_solver(node::Node; mipgap::Number)
-
-# Adds the mipgap to the node subproblem if the
-
-
-# """
-# function _add_mipgap_solver(node::Node; duality_handler::Union{LaporteLouveauxDuality,LagrangianDuality}, mipgap::Number)
-#     #set the solver gap here
-#     set_optimizer_attribute(node.subproblem, "mip_gap", mipgap)
-# end
 
 
 """
@@ -486,7 +460,7 @@ function solve_subproblem(
     time_left::Union{Number,Nothing} = nothing,
 ) where {T,S}
 
-    # println("   =========== solve subproblem =========== ")
+    
     _initialize_solver(node; throw_error = false)
 
     if model.solver_threads !== nothing
@@ -514,9 +488,6 @@ function solve_subproblem(
     else
         nothing
     end
-    # unset_silent(node.subproblem)
-    # println("""GET ATTRIBUTE: SOLVER THREADS = $(get_attribute(node.subproblem, "Threads"))""")
-    
 
     JuMP.optimize!(node.subproblem)
     orig_obj = JuMP.objective_value(node.subproblem)
@@ -583,7 +554,7 @@ function solve_subproblem_extra(
     mipgap::Number = 1e-4,
 ) where {T,S,H}
 
-    # println("   =========== solve subproblem =========== ")
+    
     _initialize_solver(node; throw_error = false)
 
     if model.solver_threads !== nothing
@@ -610,8 +581,8 @@ function solve_subproblem_extra(
     else
         nothing
     end
-    # unset_silent(node.subproblem)
-    # println("""GET ATTRIBUTE: SOLVER THREADS = $(get_attribute(node.subproblem, "Threads"))""")
+
+
     JuMP.optimize!(node.subproblem)
     if haskey(model.ext, :total_solves)
         model.ext[:total_solves] += 1
@@ -702,131 +673,7 @@ function inf_norm(x::Dict{Symbol,Float64}, y::Dict{Symbol,Float64})
     return norm
 end
 
-# Internal function: perform a backward pass of the SDDP algorithm along the
-# scenario_path, refining the bellman function at sampled_states. Assumes that
-# scenario_path does not end in a leaf node (i.e., the forward pass was solved
-# with include_last_node = false)
-# function backward_pass(
-#     model::PolicyGraph{T},
-#     options::Options,
-#     scenario_path::Vector{Tuple{T,NoiseType}},
-#     sampled_states::Vector{Dict{Symbol,Float64}},
-#     objective_states::Vector{NTuple{N,Float64}},
-#     belief_states::Vector{Tuple{Int,Dict{T,Float64}}},
-# ) where {T,NoiseType,N}
-#     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
-#         restore_duality =
-#             prepare_backward_pass(model, options.duality_handler, options)
-#     end
-#     # TODO(odow): improve storage type.
-#     cuts = Dict{T,Vector{Any}}(index => Any[] for index in keys(model.nodes))
-#     for index in length(scenario_path):-1:1
-#         outgoing_state = sampled_states[index]
-#         objective_state = get(objective_states, index, nothing)
-#         partition_index, belief_state = get(belief_states, index, (0, nothing))
-#         items = BackwardPassItems(T, Noise)
-#         if belief_state !== nothing
-#             # Update the cost-to-go function for partially observable model.
-#             for (node_index, belief) in belief_state
-#                 if iszero(belief)
-#                     continue
-#                 end
-#                 solve_all_children(
-#                     model,
-#                     model[node_index],
-#                     items,
-#                     belief,
-#                     belief_state,
-#                     objective_state,
-#                     outgoing_state,
-#                     options.backward_sampling_scheme,
-#                     scenario_path[1:index],
-#                     options.duality_handler,
-#                 )
-#             end
-#             # We need to refine our estimate at all nodes in the partition.
-#             for node_index in model.belief_partition[partition_index]
-#                 node = model[node_index]
-#                 # Update belief state, etc.
-#                 current_belief = node.belief_state::BeliefState{T}
-#                 for (idx, belief) in belief_state
-#                     current_belief.belief[idx] = belief
-#                 end
-#                 new_cuts = refine_bellman_function(
-#                     model,
-#                     node,
-#                     node.bellman_function,
-#                     options.risk_measures[node_index],
-#                     outgoing_state,
-#                     items.duals,
-#                     items.supports,
-#                     items.probability .* items.belief,
-#                     items.objectives,
-#                 )
-#                 push!(cuts[node_index], new_cuts)
-#             end
-#         else
-#             node_index, _ = scenario_path[index]
-#             node = model[node_index]
-#             if length(node.children) == 0
-#                 continue
-#             end
-#             solve_all_children(
-#                 model,
-#                 node,
-#                 items,
-#                 1.0,
-#                 belief_state,
-#                 objective_state,
-#                 outgoing_state,
-#                 options.backward_sampling_scheme,
-#                 scenario_path[1:index],
-#                 options.duality_handler,
-#             )
-#             new_cuts = refine_bellman_function(
-#                 model,
-#                 node,
-#                 node.bellman_function,
-#                 options.risk_measures[node_index],
-#                 outgoing_state,
-#                 items.duals,
-#                 items.supports,
-#                 items.probability,
-#                 items.objectives,
-#             )
-#             push!(cuts[node_index], new_cuts)
-#             if options.refine_at_similar_nodes
-#                 # Refine the bellman function at other nodes with the same
-#                 # children, e.g., in the same stage of a Markovian policy graph.
-#                 for other_index in options.similar_children[node_index]
-#                     copied_probability = similar(items.probability)
-#                     other_node = model[other_index]
-#                     for (idx, child_index) in enumerate(items.nodes)
-#                         copied_probability[idx] =
-#                             get(options.Φ, (other_index, child_index), 0.0) *
-#                             items.supports[idx].probability
-#                     end
-#                     new_cuts = refine_bellman_function(
-#                         model,
-#                         other_node,
-#                         other_node.bellman_function,
-#                         options.risk_measures[other_index],
-#                         outgoing_state,
-#                         items.duals,
-#                         items.supports,
-#                         copied_probability,
-#                         items.objectives,
-#                     )
-#                     push!(cuts[other_index], new_cuts)
-#                 end
-#             end
-#         end
-#     end
-#     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
-#         restore_duality()
-#     end
-#     return cuts
-# end
+
 
 struct BackwardPassItems{T,U}
     "Given a (node, noise) tuple, index the element in the array."
@@ -974,7 +821,7 @@ function solve_all_children(
                 items.cached_solutions[(child.term, noise.term)] =
                     length(items.duals)
             end
-            #BP denotes backward pass
+            
             # println("           BP: child_index: $(child_node.index), old_noise_id: $(incoming_noise_id), noise_id: $(noise.id), orig_obj: $(orig_obj), obj: $(sub_obj), st_obj: $(st_obj)")
         end
     end
@@ -986,22 +833,6 @@ function solve_all_children(
     end
     return
 end
-
-# """
-#     Computes the lower bound on  actual cost to go by solving the problems exactly of with gap
-# """
-# function bounds_on_actual_costtogo(items::BackwardPassItems, duality_handler::Union{ContinuousConicDuality, LagrangianDuality, StrengthenedConicDuality, Nothing})
-
-#     return dot(items.probability, items.objectives)
-
-# end
-
-
-# function bounds_on_actual_costtogo(items::BackwardPassItems, duality_handler::LaporteLouveauxDuality)
-
-#     return dot(items.probability, items.bounds)
-
-# end
 
 """
     SDDP.calculate_bound(
@@ -1156,16 +987,11 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         model.ext[:numerical_issue] = false
         iter_count = length(options.log)
 
-        
-        # println("===> starting iteration: $(iter_count) <===")
-
-        # println("=========== start forward pass ===============")
         TimerOutputs.@timeit model.timer_output "forward_pass" begin
             forward_trajectory = forward_pass(model, options, options.forward_pass)
             options.forward_pass_callback(forward_trajectory)
         end
-                
-        # println("=================== start backward pass ==============")
+
         TimerOutputs.@timeit model.timer_output "backward_pass" begin
             cuts, cuts_std, cuts_nonstd = backward_pass(
                 model,
@@ -1180,40 +1006,11 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
                 forward_trajectory.noise_tree
             )
         end
-
-        # TimerOutputs.@timeit model.timer_output "backward_pass" begin
-        # cuts, cuts_std, cuts_nonstd = backward_pass(
-        #     model,
-        #     options,
-        #     options.backward_pass,
-        #     forward_trajectory.scenario_paths,
-        #     forward_trajectory.sampled_states,
-        #     forward_trajectory.objective_states,
-        #     forward_trajectory.belief_states,
-        #     forward_trajectory.costtogo,
-        #     forward_trajectory.scenario_trajectory
-        # )
-    # end
-
-
         
-
-        # println("======================== calculate bound ==============")
         TimerOutputs.@timeit model.timer_output "calculate_bound" begin
             bound = calculate_bound(model)
-            # println("Iter: $(iterations), lower_bound: $(bound)")
-            # println("   lower bound: $(bound)")
         end
 
-        
-
-        # if iter_count > 2
-        #     if isequal(forward_trajectory.sampled_states, options.log[end].sampled_states)
-        #         println("   paths in iter $(iter_count) and $(iter_count+1) are same")
-        #     end
-        # end
-
-        # println("======================== record in the log ==============")
         push!(
             options.log,
             Log(
@@ -1235,45 +1032,13 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         )
 
         
-
-        
-        # push!(
-        #     options.log,
-        #     Log(
-        #         length(options.log) + 1,
-        #         bound,
-        #         forward_trajectory.cumulative_value,
-        #         forward_trajectory.sampled_states[(1,1)],
-        #         time() - options.start_time,
-        #         Distributed.myid(),
-        #         model.ext[:total_solves],
-        #         duality_log_key(options.duality_handler),
-        #         model.ext[:numerical_issue],
-        #         cuts_std,
-        #         cuts_nonstd,
-        #         forward_trajectory.sampled_states,
-        #         forward_trajectory.std_dev,
-        #         forward_trajectory.M
-        #     ),
-        # )
-
-        # println("count the changes in first stage solution")
         iterations = length(options.log)
         count_changes = count_first_stage_changes(options.log)
-        # println("Iter: $(iterations), First stage changes: $(count_changes), LBound: $(bound), UBound: $(forward_trajectory.cumulative_value)")
-
-        
-
-        # println("====== pushed into log")
-        # if length(options.log) > 1
-        #     println("Iter: $(length(options.log)), bound: $(bound), ub: {forward_trajectory.cumulative_value}, changes: $(count_first_stage_changes(options.log))")
-        # end
 
         has_converged, status =
             convergence_test(model, options.log, options.stopping_rules)
 
         model.most_recent_training_results = TrainingResults(status, options.log)
-        # println("====== convergence test =======")
 
         return IterationResult(
             Distributed.myid(),
@@ -1317,20 +1082,9 @@ function count_first_stage_changes(log_vector::Vector{Log})
         old_int     = Dict(key => round(Int, value) for (key, value) in old)
         current_int = Dict(key => round(Int, value) for (key, value) in current)
 
-        
-        # println("local iter: $(i), old master solution: $(old_int)")
-        # println("local iter: $(i), current master solution: $(current_int)")
-
         if (old_int != current_int)
             count += 1
         end
-
-        # if i == length(log_vector)
-        #     println("old master solution real: $(old)")
-        #     println("current master solution real: $(current)")
-        #     println("old master solution: $(old_int)")
-        #     println("current master solution: $(current_int)")
-        # end
     end
     return count
 end
@@ -1338,7 +1092,8 @@ end
 
 
 """
-final_forward_pass: does the forward pass on the entire scenario tree one more time to get the deterministic bounds
+final_forward_pass: does the forward pass on the entire scenario tree 
+                    one more time to get the deterministic bounds
 """
 
 
@@ -1348,21 +1103,15 @@ function final_forward_pass(
     final_run::Bool
 ) where {T}
 
-    #======================== doing final run==============================#
-    # println("starting the final run")
     ub_final = "nan"
     if final_run
         fpass = FinalNestedForwardPass(final_run = final_run)
         TimerOutputs.@timeit model.timer_output "forward_pass" begin
-        # print("forward pass ", forward_pass)
         forward_trajectory = forward_pass(model, options, fpass)
         options.forward_pass_callback(forward_trajectory)
         end
         ub_final = forward_trajectory.cumulative_value
     end 
-
-    # print("ending the final run")
-    #=====================================================================#
 
     return ub_final
 end
@@ -1491,8 +1240,7 @@ function train(
     # fpass   = [SDDP.DefaultMultiForwardPass(), SDDP.DefaultNestedForwardPass()]
     # spass   = [SDDP.InSampleMonteCarloMultiple(), SDDP.AllSampleMonteCarloMultiple()]
     
-    # duality_handler
-    # println("entered the function train")
+
     function log_frequency_f(log::Vector{Log})
         if mod(length(log), log_frequency) != 0
             return false
@@ -1516,7 +1264,7 @@ function train(
         return log[end].time - log[last].time >= seconds
     end
 
-    # println("============inside train function")
+    
     if !add_to_existing_cuts && model.most_recent_training_results !== nothing
         @warn("""
         Re-training a model with existing cuts!
@@ -1571,12 +1319,10 @@ function train(
     if print_level > 0
         print_helper(print_iteration_header, log_file_handle)
     end
-    # Convert the vector to an AbstractStoppingRule. Otherwise if the user gives
-    # something like stopping_rules = [SDDP.IterationLimit(100)], the vector
-    # will be concretely typed and we can't add a TimeLimit.
+
+
     stopping_rules = convert(Vector{AbstractStoppingRule}, stopping_rules)
-    # Add the limits as stopping rules. An IterationLimit or TimeLimit may
-    # already exist in stopping_rules, but that doesn't matter.
+
     if iteration_limit !== nothing
         push!(stopping_rules, IterationLimit(iteration_limit))
     end
@@ -1585,7 +1331,6 @@ function train(
     else
         for rule in stopping_rules
             if isa(rule, TimeLimit)
-                # println("yes there is a timelimit in rules")
                 time_limit = rule.limit
             end
         end
@@ -1618,6 +1363,7 @@ function train(
     else
         sense_signal = -1.0
     end
+
     options = Options(
         model,
         model.initial_root_state;
@@ -1646,13 +1392,9 @@ function train(
     )
 
     #======= set seed =========#
-
     if seed !== nothing
-        # println(" ------> seed has been set <--------")
         Random.seed!(seed)
     end
-    
-
     #==========================#
 
     
@@ -1672,37 +1414,18 @@ function train(
         dashboard_callback(nothing, true)
     end
 
-    
-    # #======================== doing final run==============================#
-    # println("starting the final run")
-    # ub_final = "nan"
-    # if final_run
-    #     fpass = FinalNestedForwardPass(final_run = final_run)
-    #     # TimerOutputs.@timeit model.timer_output "forward_pass" begin
-    #     print("forward pass ", forward_pass)
-    #     forward_trajectory = forward_pass(model, options, fpass)
-    #     # options.forward_pass_callback(forward_trajectory)
-    #     # # end
-    #     ub_final = forward_trajectory.cumulative_value
-    # end 
-    # print("ending the final run")
-    # #=====================================================================#
-
+    #deterministic upper bound
     ub_final = final_forward_pass(model, options, final_run)
-    # println("Deterministic upper bound: $(ub_final)")
+
 
     output_results = []
     iterations = length(options.log)
 
-    # println("count first stage changes")
     stage1_state_changes = 0
     if length(options.log) > 1
         stage1_state_changes = count_first_stage_changes(options.log)
     end
 
-    
-
-    # println("number of enteries in log: $(iterations)")
     
     training_results = TrainingResults(status, log)
 
@@ -1711,8 +1434,6 @@ function train(
     time_list        = [training_results.log[i].time for i in 1:iterations]
     cuts_std_list    = [training_results.log[i].cuts_std for i in 1:iterations]
     cuts_nonstd_list = [training_results.log[i].cuts_nonstd for i in 1:iterations]
-
-    # println("relevant info collected on termination")
 
 
     log_count = training_results.log[end].time
@@ -1741,7 +1462,7 @@ function train(
 
 
     if record_every_seconds === nothing || length(output_results) < log_count
-        # println("GOOD: entering the if statement")
+        
         model.most_recent_training_results = training_results
         best_bound = training_results.log[end].bound
         upper_bound = training_results.log[end].simulation_value
@@ -1752,7 +1473,7 @@ function train(
         bound_list = bound_list, cumm_list = cumm_list, time_list = time_list, cs_list = cuts_std_list, cns_list = cuts_nonstd_list, ub_final = ub_final))
 
     end
-    # println("relevant info recorded on termination")
+    
     
     
 
@@ -1772,25 +1493,11 @@ function train(
     end
 
     close(log_file_handle)
-    # println("print threshold crossed")
 
-    # return best_bound, μ - σ, μ + σ, cuts_std, cuts_nonstd, length(options.log)
     return output_results
 end
 
-# return _simulate(
-#     model,
-#     parallel_scheme,
-#     number_replications,
-#     variables,
-#     sim_time;
-#     sampling_scheme = sampling_scheme,
-#     custom_recorders = custom_recorders,
-#     duality_handler = duality_handler,
-#     skip_undefined_variables = skip_undefined_variables,
-#     incoming_state = Dict(Symbol(k) => v for (k, v) in incoming_state),
-#     set_sim_seed,
-# )
+
 
 
 # Internal function: helper to conduct a single simulation. Users should use the
@@ -2016,7 +1723,6 @@ function simulate(
     sim_seed::Number = 123,
 )
     if set_sim_seed
-        # println(" ------> seed has been set in simulation<--------")
         Random.seed!(sim_seed)
     end
 
@@ -2083,10 +1789,6 @@ function benders_simulate(
 
             else
                 old_noise_id = 0
-                # if depth > 1
-                #     old_noise_id = scenario_path_noises[depth-1]
-                # end
-
 
                 TimerOutputs.@timeit model.timer_output "solve_subproblem" begin
                     subproblem_results = solve_subproblem(
@@ -2109,17 +1811,9 @@ function benders_simulate(
             
                 # Set the outgoing state value as the incoming state value for the *next* #node.
                 incoming_state_value = copy(subproblem_results.state)
-
-                # Add the outgoing state variable to the list of states we have sampled
-                # on this forward pass.
-                # sampled_states[(node_index, noiseid)] = incoming_state_value
-                # cost_to_go                            = JuMP.value(node.bellman_function.global_theta.theta)
-                # costtogo[node_index][noiseid]         = cost_to_go
-                # scenario_trajectory[(node_index, noiseid)] = scenario_path[1:depth]
                 
                 push!(items.stage_objective, stage_OBJ)
                 push!(items.incoming_state_value, incoming_state_value)
-                # push!(items.costtogo, cost_to_go)
                 items.cached_solutions[(node_index, noiseid)] = length(items.stage_objective)
             end
             # println("           path: $(i), stage: $(depth), node: $(node_index), noise: $(noiseid), st_obj: $(stage_OBJ), cost-to-go: $(costtogo[node_index][noiseid]), prob: $(scenario_paths_prob[i])")

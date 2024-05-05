@@ -882,11 +882,11 @@ Node indices: 1, 2
 ```
 """
 function LinearPolicyGraph(builder::Function; stages::Int, kwargs...)
-    # println("Creating Linear Graph")
+    
     if stages < 1
         error("You must create a LinearPolicyGraph with `stages >= 1`.")
     end
-    # println("building Linear policy graph")
+    
     return PolicyGraph(builder, LinearGraph(stages); kwargs...)
 end
 
@@ -1017,7 +1017,7 @@ function PolicyGraph(
     # Construct a basic policy graph. We will add to it in the remainder of this
     # function.
     policy_graph = PolicyGraph(sense, graph.root_node, solver_threads)
-    # println("created policy graph object")
+    
 
 
     # Create a Bellman function if one is not given.
@@ -1040,10 +1040,10 @@ function PolicyGraph(
         end
     end
     # Initialize nodes.
-    # println("   ==== adding details to nodes")
+    
     node_uid = 1
     for (node_index, children) in graph.nodes
-        # println("   ==== initialization for node $(node_index)")
+        
         if node_index == graph.root_node
             continue
         end
@@ -1080,7 +1080,7 @@ function PolicyGraph(
         
         builder(subproblem, node_index)
 
-        # println("   ==== built for node $(node_index)")
+        
         # Add a dummy noise here so that all nodes have at least one noise term.
         if length(node.noise_terms) == 0
             push!(node.noise_terms, Noise(nothing, 1.0))
@@ -1090,33 +1090,8 @@ function PolicyGraph(
             (JuMP.VariableRef, MOI.Integer) in ctypes ||
             (JuMP.VariableRef, MOI.ZeroOne) in ctypes
 
-
-        #Changes the uid (unique id attribute of noises)
-        # for noise_object in node.noise_terms
-        #     noise_object.uid = node_uid
-        #     node_uid        += 1
-        # end
-
-
-        # for (i, (key, state)) in enumerate(node.states)    
-            
-        #     if JuMP.is_binary(state.out)
-        #         JuMP.set_upper_bound(state.in, 1.0)
-        #         JuMP.set_lower_bound(state.in, 0.0)
-        #     else
-        #         if JuMP.has_lower_bound(state.out)
-        #             JuMP.set_lower_bound(state.in, JuMP.lower_bound(state.out))
-        #         end
-
-        #         if JuMP.has_upper_bound(state.out)
-        #             JuMP.set_upper_bound(state.in, JuMP.lower_bound(state.out))
-        #         end
-        #     end
-        #     # x_in_value[i] = JuMP.fix_value(state.in) 
-        # end
     end
 
-    # println("   ==== looping back through node childs")
     # Loop back through and add the arcs/children.
     for (node_index, children) in graph.nodes
         if node_index == graph.root_node
@@ -1132,9 +1107,6 @@ function PolicyGraph(
     end
 
 
-
-
-    # println("   ==== adding root nodes")
     # Add root nodes
     for (child, probability) in graph.nodes[graph.root_node]
         push!(policy_graph.root_children, Noise(child, probability))
@@ -1150,7 +1122,6 @@ function PolicyGraph(
         end
     end
 
-    # print(" ===== final leg")
     # Initialize belief states.
     if length(graph.belief_partition) > 0
         initialize_belief_states(policy_graph, graph)
@@ -1280,7 +1251,7 @@ function parameterize(
 
     #Note Noise object also contains id
     #we assume each noise is unique
-    #id is a convenient way to access which noise we are talking about
+    #id is a convenient way to access the noise 
     for (realization, prob) in zip(realizations, probability)
         id = id + 1
         push!(node.noise_terms, Noise(realization, prob, id))

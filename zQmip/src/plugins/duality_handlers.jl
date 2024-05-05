@@ -174,6 +174,8 @@ function prepare_backward_pass(node::Node, ::ContinuousConicDuality, ::Options)
 end
 
 duality_log_key(::ContinuousConicDuality) = " "
+
+
 # ========================= Angulo Duality =======================================================
 
 # struct AnguloDuality <: AbstractDualityHandler end
@@ -181,7 +183,7 @@ struct LaporteLouveauxDuality <: AbstractDualityHandler end
 
 
 function get_dual_solution(node::Node, ::LaporteLouveauxDuality, timer_out::Union{TimerOutputs.TimerOutput, Nothing} = nothing, time_left::Union{Number, Nothing} = nothing, curr_bound::Union{Number, Nothing} = nothing)
-    #TODO (akul): unlike other functions perform feasibility checks 
+    
     λ = Dict{Symbol,Float64}()
     return objective_value(node.subproblem), λ, JuMP.objective_bound(node.subproblem)
 end
@@ -189,6 +191,8 @@ end
 
 
 duality_log_key(::LaporteLouveauxDuality) = "LL"
+
+
 # =========================== LagrangianDuality ============================== #
 
 """
@@ -248,8 +252,6 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality, timer_out::U
         undo_relax()
     end
 
-    # filename = "/home/akul/sddp_comp/data/"
-    # JuMP.write_to_file(node.subproblem, filename*"primal.lp")
 
     #now we solve the problem (4.3) and (4.4) mentioned in Zou/Ahmed et al SDDiP paper
 
@@ -263,12 +265,11 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality, timer_out::U
     TimerOutputs.@timeit timer_out "setting_bound" begin
         for (i, (key, state)) in enumerate(node.states)                                                                        
             x_in_value[i] = JuMP.fix_value(state.in)                                    #query the value to which state.in has been fixed to
-            h_expr[i] = @expression(node.subproblem, state.in - x_in_value[i])          #seems like the expression z_n - x_{a(n)}^{i}
+            h_expr[i] = @expression(node.subproblem, state.in - x_in_value[i])          #expression z_n - x_{a(n)}^{i}
             JuMP.unfix(state.in)                                                        #relaxing the copy constraints in the dual
 
                 
             if JuMP.is_binary(state.out)
-                # println("               inside lagrn: state variables are indeed binary")
                 JuMP.set_upper_bound(state.in, 1.0)
                 JuMP.set_lower_bound(state.in, 0.0)
             else
@@ -285,10 +286,6 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality, timer_out::U
             λ_star[i] = conic_dual[key]                                                 #initial choice of lagrangian
         end
     end
-
-    # filename    = "/home/akul/sddp_comp/data/"
-    # JuMP.write_to_file(node.subproblem, filename*"lagrn_pre.lp")
-
 
 
     # Check that the conic dual is feasible for the subproblem. Sometimes it
@@ -344,16 +341,9 @@ function _solve_primal_problem(
                                                                 #primal_obj - λ' * h_expr  = - λ' * (z_n - x_{a(n)}^{i})
 
 
-
-    # filename    = "/home/akul/sddp_comp/data/"
-    # JuMP.write_to_file(model, filename*"lagrn.lp")
     JuMP.optimize!(model)                                       
 
-    if JuMP.termination_status(model) != MOI.OPTIMAL 
-        # println("               termination status lagrn problem: $(JuMP.termination_status(model))")
-        
-        # filename    = "/home/akul/sddp_comp/data/"
-        # JuMP.write_to_file(model, filename*"lagrn.lp")
+    if JuMP.termination_status(model) != MOI.OPTIMAL
         JuMP.set_objective_function(model, primal_obj)          #set the original objective if the problem is infeasible
         return nothing
     end

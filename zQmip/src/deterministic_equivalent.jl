@@ -234,7 +234,6 @@ function deterministic_equivalent(
         )
     end
     # Step 2: create a extensive-form JuMP model and add subproblems.
-    # model = optimizer === nothing ? JuMP.Model() : JuMP.Model(optimizer_with_attributes(optimizer,  "Threads" => solver_threads))
     model = optimizer === nothing ? JuMP.Model() : JuMP.Model(optimizer)
     try
         JuMP.set_attribute(model, "Threads", solver_threads)

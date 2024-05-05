@@ -437,20 +437,16 @@ function convergence_test(
     end
 
     last_log = log[end]
-    # println("last sim: $(last_log.simulation_value)")
-    # println("last bound: $(last_log.bound)")
+
     gap = abs(last_log.simulation_value - last_log.bound)/(abs(last_log.simulation_value) + 1e-11)
-    # println("gap is $(gap)")
-    # println("tol is $(rule.atol)")
-    # println("inside convergence test")
+
 
     if gap < rule.atol
-        # println("gap $(gap) is less then tol $(rule.atol)")
+        
         return true
     else
         if model.objective_sense == MOI.MIN_SENSE
             if last_log.simulation_value < last_log.bound - 1e-6
-                # println("bounds reversed ub: $(last_log.simulation_value), lb: $(last_log.bound)")
                 return true
             end
         end
@@ -476,7 +472,7 @@ Ideally we want alpha and gamma to be as less as possible
 Making them too small will prevent algorithm from converging faster
 Making them too large will keep the algorithm running
 
-gap: delta value on page 13, equation (10) in the tito's paper
+gap: delta value on page 13, equation (10) in the Tito's paper
 """
 
 struct TitoStalling <: AbstractStoppingRule
@@ -509,22 +505,15 @@ function convergence_test(
         rho      = ratio - rule.type1_prob*std/(lb*sqrt(last_log.M))
 
         if rho > 1
-            # println("       Termination: rho > 1: $(rho)")
             return false
         end
         
         
         delta_prime    = (rule.type1_prob +rule.type2_prob)*std/(lb*sqrt(last_log.M))
-        delta          = delta_prime/(1+delta_prime) #tranformation is made so the delta can be interpreted as gap in the mip sense
-
-        # println("       Termination: $(iteration), bound: $(lb), std: $(std), delta: $(delta), rho: $(rho)")
-
+        delta          = delta_prime/(1+delta_prime) 
+        #tranformation is made so the delta can be interpreted as gap in the mip sense
 
         if delta < rule.gap
-            # println("       termination delta_prime: $(delta_prime)")
-            # println("       termination delta: $(delta)")
-            # println("       termination std_dev: $(std)")
-            # println("       termination M: $(last_log.M)")
             return true
         end
 
@@ -535,19 +524,12 @@ function convergence_test(
         rho = ratio + rule.type1_prob*std/(lb*sqrt(last_log.M))
 
         if rho < 1
-            # println("       Termination: rho < 1: $(rho)")
             return false
         end
 
         delta = (rule.type1_prob +rule.type2_prob)*std/(lb*sqrt(last_log.M))
 
-        # println("       Termination: $(iteration), bound: $(lb), std: $(std), delta: $(delta), rho: $(rho)")
-
         if delta < rule.gap
-
-            # println("       termination delta: $(delta)")
-            # println("       termination std_dev: $(std)")
-            # println("       termination M: $(last_log.M)")
 
             return true
         end

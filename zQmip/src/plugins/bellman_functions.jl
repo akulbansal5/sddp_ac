@@ -437,7 +437,7 @@ function refine_bellman_function(
             dual_variables,
             offset,
         )
-    else  # Add a multi-cut
+    else  # Add a multi-cut version, maintains \theta variable for each scenario
         @assert bellman_function.cut_type == MULTI_CUT
         _add_locals_if_necessary(node, bellman_function, length(dual_variables))
         return _add_multi_cut(
@@ -468,7 +468,7 @@ function refine_bellman_function(
     ones = []
     zeros = []
 
-    # println("inside the refine bellman function")
+    
     for (name, value) in outgoing_state
         if isapprox(value, 1.0, atol = 1e-6)
             push!(ones, name)
@@ -477,23 +477,23 @@ function refine_bellman_function(
         end
     end
 
-    # println("Get lower/upper bound procedure")
+    
     model_theta = JuMP.owner_model(node.bellman_function.global_theta.theta)
-    # println("checking the objective sense of the problem: min or max")
+
+    # checking the objective sense of the problem: min or max
     if JuMP.objective_sense(model_theta) == MOI.MIN_SENSE
         L = JuMP.lower_bound(node.bellman_function.global_theta.theta)
     else
         L = JuMP.upper_bound(node.bellman_function.global_theta.theta)          
     end
 
-    # println("Compute the cut")
+    # compute the cut
     if bellman_function.cut_type == SINGLE_CUT
         return _add_laplou_average_cut(bellman_function.global_theta, node, outgoing_state, objofchildren, L, ones, zeros)
     else
         @assert bellman_function.cut_type == MULTI_CUT
         _add_locals_if_necessary(node, bellman_function, length(objective_realizations))                #assumes that number of scenarios = number of childs*number of noise terms
-        # println("***adding multi-cut version of Angulo***")                                             
-        # readline()
+        # adding multi-cut version of Angulo                                          
         return _add_laplou_multi_cut(
             node,
             outgoing_state,
@@ -539,25 +539,13 @@ function _add_laplou_average_cut(
     outgoing_state::Dict{Symbol,Float64},
     objofchildren::Float64,
     L::Float64,
-    ones::Vector{Any},          #TODO (akul): using Vector{Symbol} does not work.
+    ones::Vector{Any},
     zeros::Vector{Any},              
 ) where{T}
 
-
-    # println("inside laplou average cut function")
     model = JuMP.owner_model(node.bellman_function.global_theta.theta)
 
 
-    # if JuMP.objective_sense(model) == MOI.MIN_SENSE
-    #     L = JuMP.lower_bound(node.bellman_function.global_theta.theta)
-    # else
-    #     L = JuMP.upper_bound(node.bellman_function.global_theta.theta)
-    # end
-
-    #determine which variables are equal to one and which variables are not equal to one
-
-
-    # println("step 1")
     coeff1   = objofchildren - L
     πᵏ = Dict{Symbol, Float64}()
 
@@ -565,41 +553,36 @@ function _add_laplou_average_cut(
         πᵏ[name] = -coeff1
     end
 
-    # println("step 2")
+
     for name in zeros
-        # println("name", name)
         πᵏ[name] =  coeff1
     end
     
 
 
-    # println("step 3")
-    #add an Angulo's cut
     onecount = length(ones)
     constant = objofchildren - coeff1*onecount
     yᵀμ = JuMP.AffExpr(0.0)
 
     
-    # println("step 4")
+
     expr = @expression(model, global_theta.theta + yᵀμ - sum(coeff1*node.states[name].out for name in ones) + sum(coeff1*node.states[name].out for name in zeros))
 
     if JuMP.objective_sense(model) == MOI.MIN_SENSE
         # theta >= (Q(x*) - L)(\sum_{ones} x_i - \sum_{nonones} x_i - |#ones| + Q(x*))
-        # println("   *****ADDING Angulo's cut to the problem*****")
         @constraint(model, expr >= constant)
     else
-        # println("   *****ADDING Angulo's cut to the problem*****")
         @constraint(model, expr <= constant)
     end
 
 
-    # println("step 5")
+    
     obj_y =
     node.objective_state === nothing ? nothing : node.objective_state.state
     belief_y =
     node.belief_state === nothing ? nothing : node.belief_state.belief
 
-    # println("starting return statement")
+    
     return (
         theta = constant,
         pi    = πᵏ,                                 # includes x coefficients when x appears on lhs

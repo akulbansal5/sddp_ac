@@ -13,10 +13,6 @@ function minimize(f::Function, x₀::Vector{Float64})
     return minimize(f, BFGS(1000), x₀)
 end
 
-###
-###
-###
-
 mutable struct BFGS <: AbstractSearchMethod
     evaluation_limit::Int
     ftol::Float64
@@ -64,25 +60,21 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}, time_left::Union{Numb
 
     # We assume that the initial iterate is feasible
     xₖ = x₀
-    fₖ, ∇fₖ = f(xₖ)::Tuple{Float64,Vector{Float64}}                             #the gradient comes through f(x_k)
-    # println("               local_improv: gradient of the function $(∇fₖ)")    
+    fₖ, ∇fₖ = f(xₖ)::Tuple{Float64,Vector{Float64}}  #the gradient comes through f(x_k)
+       
     
     # Initial step-length
     αₖ = 1.0
+
     # Evaluation counter
     # evals = Ref(0)
     evals = Ref(bfgs.evaluation_limit)
-    # println("               local_imprv: allowed number of evals: $(bfgs.evaluation_limit)")
     curr_gap = 1
     while true
-        # Search direction. We could be clever here and maintain B⁻¹, but we're
-        # only ever going to be solving this for very small |x| << 100 problems,
-        # so taking the linear solve every time is okay. (The MIP solve is much
-        # more of a bottleneck.)
         pₖ = B \ -∇fₖ
         # Run line search in direction `pₖ`
         αₖ, fₖ₊₁, ∇fₖ₊₁ = _line_search(f, fₖ, ∇fₖ, xₖ, pₖ, αₖ, evals)
-        # println("                           local imprv iter: $(evals[]), total: $(evals)")
+        
         norm_value     = _norm(αₖ * pₖ)
         step           = norm_value / max(1.0, _norm(xₖ))
 
@@ -94,15 +86,6 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}, time_left::Union{Numb
         if step < bfgs.ftol
             # Small steps! Probably at the edge of the feasible region.
             # Return the current iterate.
-            #
-            # Note that "1e-3" isn't thaaaat small. But we hit a very annoying
-            # feature of solvers: their feasibility checks are only approximate.
-            # This tolerance is needed to pass the `test_kelleys_ip_xxx` tests.
-            # Decreasing the tolerance leads to a _worse_ estimate for the dual,
-            # because we abuse the solvers feasibility tolerance, and end up
-            # returning a solution that is on the edge of numerical dual
-            # feasibility.
-            # println("             local_imprv: at edge with # of lg dual evals: $(evals[]), ftol: $(bfgs.ftol), step: $(step), alpha_k: $(αₖ), norm_value: $(norm_value)")
             return fₖ, xₖ
         elseif _norm(∇fₖ₊₁) < bfgs.gtol
             # Zero(ish) gradient. Return what must be a local maxima.
@@ -111,13 +94,12 @@ function minimize(f::F, bfgs::BFGS, x₀::Vector{Float64}, time_left::Union{Numb
         elseif evals[] <= 0
             # We have evaluated the function too many times. Return our current
             # best.
-            # println("             local_imprv: termination with number of lg dual evals: $(evals[])")
             return fₖ₊₁, xₖ + αₖ * pₖ
         elseif curr_gap < bfgs.gaptol
-            # println("             local_imprv: termination due to gap")
+            # termination due to gap
             return fₖ₊₁, xₖ + αₖ * pₖ
         elseif time_left !== nothing && time() - start_time > time_left
-            # println("             local_imprv: hit the time limit")
+            # hit the time limit
             return fₖ₊₁, xₖ + αₖ * pₖ
         end
         # BFGS update.
@@ -146,12 +128,12 @@ function _line_search(
     α::Float64,
     evals::Ref{Int},
 ) where {F<:Function}
-    #TODO: check what is the apt value here instead of 1e-6?
+    
     while _norm(α * p) > 1e-6 * max(1.0, _norm(x))
         xₖ = x + α * p
         ret = f(xₖ)
         evals[] -= 1
-        # println("             line search: $(evals[]), alpha value: $(α), ret: $(ret), p_k: $(p)")
+        
         if ret === nothing
             α /= 2  # Infeasible. So take a smaller step
             continue
@@ -159,18 +141,18 @@ function _line_search(
         fₖ₊₁, ∇fₖ₊₁ = ret
         if p' * ∇fₖ₊₁ < 1e-6
             # Still a descent direction, so take a step.
-            # println("           line search: termination but still a descent direction")
+            
             return α, fₖ₊₁, ∇fₖ₊₁
         elseif isapprox(fₖ + α * p' * ∇fₖ, fₖ₊₁; atol = 1e-8)
             # Step is onto a kink
-            # println("           line search: termination by entering into a kink")
+            
             return α, fₖ₊₁, ∇fₖ₊₁
         end
         #  Step is an ascent, so use Newton's method to find the intersection
         α = (fₖ₊₁ - fₖ - p' * ∇fₖ₊₁ * α) / (p' * ∇fₖ - p' * ∇fₖ₊₁)
         
     end
-    # println("       line search: termination due to tolerance")
+    #termination due to tolerance
     return 0.0, fₖ, ∇fₖ
 end
 
