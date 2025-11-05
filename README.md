@@ -9,6 +9,10 @@
 convex multistage stochastic programming problems using stochastic dual dynamic
 programming.
 
+# Updates
+
+We modify SDDP code to implement the alternating cut generation framework proposed by Angulo et al.
+
 ## License
 
 `SDDP.jl` is licensed under the [MPL 2.0 license](https://github.com/odow/SDDP.jl/blob/master/LICENSE.md).
