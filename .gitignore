@@ -1,0 +1,14 @@
+.vscode/*
+docs/build/*
+docs/src/examples/*.md
+docs/src/explanation/*.md
+docs/src/tutorial/*.md
+docs/src/release_notes.md
+test/*.js
+*.DS_Store
+*.log
+Manifest.toml
+docs/src/tutorial/*.json
+docs/src/*/*.ipynb
+docs/src/tutorial/spaghetti_plot.html
+convex.cuts.json

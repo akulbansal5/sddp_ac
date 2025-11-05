@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Dowson"
+  given-names: "Oscar"
+  orcid: "https://orcid.org/0000-0003-1575-668X"
+- family-names: "Kapelevich"
+  given-names: "Lea"
+title: "SDDP.jl: a Julia package for stochastic dual dynamic programming"
+version: 0.4.3
+date-released: 2021-08-31
+url: "https://github.com/odow/SDDP.jl"
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Dowson"
+    given-names: "Oscar"
+    orcid: "https://orcid.org/0000-0003-1575-668X"
+  - family-names: "Kapelevich"
+    given-names: "Lea"
+  doi: "10.1287/ijoc.2020.0987"
+  journal: "INFORMS Journal on Computing"
+  month: 8
+  start: 27
+  end: 33
+  title: "SDDP.jl: a Julia package for stochastic dual dynamic programming"
+  issue: 1
+  volume: 33
+  year: 2020
