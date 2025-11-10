@@ -117,7 +117,7 @@ struct Options{T}
         backward_sampling_scheme::AbstractBackwardSamplingScheme = CompleteSampler(),
         risk_measures = Expectation(),
         cycle_discretization_delta::Float64 = 0.0,
-        refine_at_similar_nodes::Bool = true,
+        refine_at_similar_nodes::Bool = false,
         stopping_rules::Vector{AbstractStoppingRule} = SDDP.AbstractStoppingRule[],
         dashboard_callback::Function = (a, b) -> nothing,
         print_level::Int = 0,
@@ -335,10 +335,20 @@ the code on a remote server.
 author: Akul
 """
 function _add_threads_solver(node::Node; threads::Int64)
+    # Idempotent guard: check if threads are already set to the desired value
+    try
+        current_threads = JuMP.get_attribute(node.subproblem, "Threads")
+        if current_threads == threads
+            return  # Already set to desired value, no need to change
+        end
+    catch
+        # Attribute might not exist or might not be gettable, continue to set it
+    end
+    
     try
         JuMP.set_attribute(node.subproblem, "Threads", threads)
     catch e
-        # println("Warning: unable to set the threads due to error $(e)")
+        @warn("Unable to set threads to $(threads) for node $(node.index) due to error: $(e). Continuing without thread configuration for this node.")
     end
     return
 end
@@ -358,7 +368,7 @@ function _add_threads_solver(model::PolicyGraph; threads::Number)
             _add_threads_solver(node, threads = Int64(threads))
         end
     catch e
-        # println("Warning: unable to set the threads due to error $(e)")
+        @warn("Unable to set the threads due to error: $(e). Continuing without thread configuration.")
     end
     return
 end
@@ -460,14 +470,16 @@ function solve_subproblem(
     time_left::Union{Number,Nothing} = nothing,
 ) where {T,S}
 
-    
+    #TODO: remove solver initialization from here and make it central (eg. in master loop)
     _initialize_solver(node; throw_error = false)
 
+
+    #TODO: remove thread intialization from here and make it central (eg. in master loop)
     if model.solver_threads !== nothing
         _add_threads_solver(node, threads = model.solver_threads)
     end
 
-
+    #TODO: remove mipgap intialization from here and make it central (eg. in master loop)
     _add_mipgap_solver(node, mipgap, duality_handler)
 
 
@@ -476,6 +488,8 @@ function solve_subproblem(
     # set the objective.
     set_incoming_state(node, state)
     parameterize(node, noise)
+
+    #by default node.pre_optimize_hook = nothing
     pre_optimize_ret = if node.pre_optimize_hook !== nothing
         node.pre_optimize_hook(
             model,
@@ -523,6 +537,9 @@ function solve_subproblem(
     end
     
     state = get_outgoing_state(node)
+    # stage_objective is the immediate stage cost only, while orig_obj (line 505) is the full 
+    # objective value including the cost-to-go approximation (theta). stage_objective excludes 
+    # the bellman_term, objective_state_component, and belief_state_component.
     stage_objective = stage_objective_value(node.stage_objective)
 
     
@@ -736,40 +753,40 @@ function solve_all_children(
     iterations::Number = 1,
     time_left::Union{Number, Nothing} = nothing
 ) where {T}
-    length_scenario_path = length(scenario_path)
+    # Track whether we extended the scenario_path for cleanup
+    path_was_extended = false
     for child in node.children
         if isapprox(child.probability, 0.0, atol = 1e-6)
             continue
         end
         child_node = model[child.term]
-        sub_obj = nothing
-        sub_bound = nothing
-        st_obj = nothing
-        orig_obj = nothing
+        # Initialize variables to store subproblem results (see comments below for details)
+        sub_obj = nothing      # Objective from duality handler (for cut generation)
+        sub_bound = nothing    # Best bound from solver (for convergence tracking)
+        st_obj = nothing       # Stage objective only (immediate stage cost)
+        orig_obj = nothing     # Full objective value (reference value)
 
 
-        for noise in
-            sample_backward_noise_terms(backward_sampling_scheme, child_node)
-            if length(scenario_path) == length_scenario_path
+        for noise in sample_backward_noise_terms(backward_sampling_scheme, child_node)
+
+            # Extend path on first iteration, update last element on subsequent iterations
+            if !path_was_extended
                 push!(scenario_path, (child.term, noise.term))
+                path_was_extended = true
             else
                 scenario_path[end] = (child.term, noise.term)
             end
+            
             if haskey(items.cached_solutions, (child.term, noise.term))
                 sol_index = items.cached_solutions[(child.term, noise.term)]
                 push!(items.duals, items.duals[sol_index])
                 push!(items.supports, items.supports[sol_index])
                 push!(items.nodes, child_node.index)
                 push!(items.probability, items.probability[sol_index])
-
-                st_obj = items.st_objs[sol_index]
-                push!(items.st_objs, st_obj)
-
-                sub_obj = items.objectives[sol_index]
-                push!(items.objectives, sub_obj)
+                push!(items.st_objs, items.st_objs[sol_index])
+                push!(items.objectives, items.objectives[sol_index])
                 push!(items.belief, belief)
-                sub_bound = items.bounds[sol_index]
-                push!(items.bounds, sub_bound)
+                push!(items.bounds, items.bounds[sol_index])
             else
                 # Update belief state, etc.
                 if belief_state !== nothing
@@ -810,10 +827,25 @@ function solve_all_children(
                 push!(items.supports, noise)
                 push!(items.nodes, child_node.index)
                 push!(items.probability, child.probability * noise.probability)
+                
+                # Objective value from duality handler (used for cut generation).
+                # Usually equals orig_obj, but may differ for advanced duality handlers
+                # (e.g., LagrangianDuality, StrengthenedConicDuality).
                 sub_obj = subproblem_results.objective
+                
+                # Best bound from the solver (used for bound tracking and convergence).
+                # For most handlers, equals objective; for some handlers (e.g., 
+                # LaporteLouveauxDuality), returns the solver's best bound.
                 sub_bound = subproblem_results.bound
-                st_obj    = subproblem_results.stage_objective
-                orig_obj  = subproblem_results.orig_obj
+                
+                # Immediate stage cost only (excludes theta, objective_state, belief_state).
+                # Represents the cost for the current stage/decision period.
+                st_obj = subproblem_results.stage_objective
+                
+                # Full objective value from the solved subproblem (reference value).
+                # Includes: stage_objective + objective_state + belief_state + theta.
+                orig_obj = subproblem_results.orig_obj
+                
                 push!(items.objectives, sub_obj)
                 push!(items.belief, belief)
                 push!(items.bounds, sub_bound)
@@ -825,10 +857,9 @@ function solve_all_children(
             # println("           BP: child_index: $(child_node.index), old_noise_id: $(incoming_noise_id), noise_id: $(noise.id), orig_obj: $(orig_obj), obj: $(sub_obj), st_obj: $(st_obj)")
         end
     end
-    if length(scenario_path) == length_scenario_path
-        # No-op. There weren't any children to solve.
-    else
-        # Drop the last element (i.e., the one we added).
+    
+    # Restore scenario_path to its original state
+    if path_was_extended
         pop!(scenario_path)
     end
     return
@@ -988,11 +1019,13 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
         iter_count = length(options.log)
 
         TimerOutputs.@timeit model.timer_output "forward_pass" begin
+            #forward_pass here is different than forward_pass above
             forward_trajectory = forward_pass(model, options, options.forward_pass)
             options.forward_pass_callback(forward_trajectory)
         end
 
         TimerOutputs.@timeit model.timer_output "backward_pass" begin
+            #backward_pass here is different than backward_pass above
             cuts, cuts_std, cuts_nonstd = backward_pass(
                 model,
                 options,
@@ -1006,6 +1039,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
                 forward_trajectory.noise_tree
             )
         end
+        
         
         TimerOutputs.@timeit model.timer_output "calculate_bound" begin
             bound = calculate_bound(model)
@@ -1155,7 +1189,8 @@ Train the policy for `model`.
     deleting  cuts from the subproblem. The impact on performance is solver
     specific; however, smaller values result in smaller subproblems (and
     therefore quicker solves), at the expense of more time spent performing cut
-    selection.
+    selection. Defaults to `-1`, which disables cut deletion. Set to a positive
+    value (e.g., `1`) to enable cut deletion.
 
  - `risk_measure`: the risk measure to use at each node. Defaults to
    [`Expectation`](@ref).
@@ -1192,8 +1227,21 @@ Train the policy for `model`.
    `post_iteration_callback(::IterationResult)` that is evaluated after each
    iteration of the algorithm.
 
- - 'record_every_seconds::Union{Float64, Nothing}': records the output after these many seconds 
+ - `mipgap::Float64`: MIP gap tolerance for solving subproblems. Defaults to `1e-4`.
+
+ - `iter_pass::Number`: algorithm variant. `0` (default) uses standard SDDP with
+   single path per iteration. `1` uses Nested Benders/SDDiP with multiple paths.
+
+ - `final_run::Bool`: if `true`, performs a final forward pass to compute
+   deterministic upper bound after training. Defaults to `false`.
+
+ - `seed::Union{Nothing,Int64}`: random seed for reproducibility. If not `nothing`,
+   sets the random seed before training. Defaults to `nothing`.
+
+ - `record_every_seconds::Union{Float64, Nothing}`: records the output after these many seconds 
     Output includes bounds, confidence intervals cuts etc. computes after all iterations terminate.
+
+ - `M::Int`: Number of paths sampled in the SDDP algorithm
 
 There is also a special option for infinite horizon problems
 
@@ -1215,8 +1263,8 @@ function train(
     sampling_scheme = SDDP.InSampleMonteCarlo(),
     cut_type = SDDP.SINGLE_CUT,
     cycle_discretization_delta::Float64 = 0.0,
-    refine_at_similar_nodes::Bool = true,
-    cut_deletion_minimum::Int = 1,
+    refine_at_similar_nodes::Bool = false,
+    cut_deletion_minimum::Int = -1,
     backward_sampling_scheme::AbstractBackwardSamplingScheme = SDDP.CompleteSampler(),
     dashboard::Bool = false,
     parallel_scheme::AbstractParallelScheme = Serial(),
@@ -1239,8 +1287,10 @@ function train(
     # bpass   = [SDDP.DefaultMultiBackwardPass(), SDDP.AnguloMultiBackwardPass()]
     # fpass   = [SDDP.DefaultMultiForwardPass(), SDDP.DefaultNestedForwardPass()]
     # spass   = [SDDP.InSampleMonteCarloMultiple(), SDDP.AllSampleMonteCarloMultiple()]
-    
 
+
+    #This function decides whether to log the current iteration 
+    #based on iteration count and elapsed time.
     function log_frequency_f(log::Vector{Log})
         if mod(length(log), log_frequency) != 0
             return false
@@ -1263,7 +1313,6 @@ function train(
         end
         return log[end].time - log[last].time >= seconds
     end
-
     
     if !add_to_existing_cuts && model.most_recent_training_results !== nothing
         @warn("""
@@ -1282,6 +1331,8 @@ function train(
         In a future release, this warning may turn into an error.
         """)
     end
+
+    #This feature will not be used in our experiments
     if forward_pass_resampling_probability !== nothing
         forward_pass = RiskAdjustedForwardPass(
             forward_pass = forward_pass,
@@ -1289,11 +1340,14 @@ function train(
             resampling_probability = forward_pass_resampling_probability,
         )
     end
+
     # Reset the TimerOutput.
     TimerOutputs.reset_timer!(model.timer_output)
     log_file_handle = open(log_file, "a")
     log = Log[]
 
+    # Write a header/problem statistics 
+    # (eg. number of nodes, state variable count, total scenarios, existing cuts are present)
     if print_level > 0
         print_helper(print_banner, log_file_handle)
         print_helper(
@@ -1306,6 +1360,9 @@ function train(
             sampling_scheme,
         )
     end
+
+    # Runs a pre-training check to detect scaling issues (very large or very small coefficients) 
+    #that could cause numerical problems. The report is printed to the console and log file when enabled.
     if run_numerical_stability_report
         report = sprint(
             io -> numerical_stability_report(
@@ -1316,16 +1373,21 @@ function train(
         )
         print_helper(print, log_file_handle, report)
     end
+
+    #Prints the column header for the iteration log table, 
+    #so users know what each column represents when iteration data is printed during training. 
+    #The header is printed to both the console and the log file.
     if print_level > 0
         print_helper(print_iteration_header, log_file_handle)
     end
 
-
+    #Sets up stopping rules
     stopping_rules = convert(Vector{AbstractStoppingRule}, stopping_rules)
-
     if iteration_limit !== nothing
         push!(stopping_rules, IterationLimit(iteration_limit))
     end
+
+    #Allows collecting time limit rule set directly or via stopping rules
     if time_limit !== nothing
         push!(stopping_rules, TimeLimit(time_limit))
     else
@@ -1339,6 +1401,8 @@ function train(
     if isempty(stopping_rules)
         push!(stopping_rules, SimulationStoppingRule())
     end
+
+
     # Update the nodes with the selected cut type (SINGLE_CUT or MULTI_CUT)
     # and the cut deletion minimum.
     if cut_deletion_minimum < 0
@@ -1352,6 +1416,7 @@ function train(
             oracle.deletion_minimum = cut_deletion_minimum
         end
     end
+
     dashboard_callback = if dashboard
         launch_dashboard()
     else
@@ -1417,62 +1482,93 @@ function train(
     #deterministic upper bound
     ub_final = final_forward_pass(model, options, final_run)
 
-
     output_results = []
     iterations = length(options.log)
-
-    stage1_state_changes = 0
-    if length(options.log) > 1
-        stage1_state_changes = count_first_stage_changes(options.log)
-    end
-
-    
     training_results = TrainingResults(status, log)
 
-    bound_list       = [training_results.log[i].bound for i in 1:iterations]
-    cumm_list        = [training_results.log[i].simulation_value for i in 1:iterations]
-    time_list        = [training_results.log[i].time for i in 1:iterations]
-    cuts_std_list    = [training_results.log[i].cuts_std for i in 1:iterations]
-    cuts_nonstd_list = [training_results.log[i].cuts_nonstd for i in 1:iterations]
+    # ========== OLD CODE: Commented out for simplified output ==========
+
+    # stage1_state_changes = 0
+    # if length(options.log) > 1
+    #     stage1_state_changes = count_first_stage_changes(options.log)
+    # end
+
+    # bound_list       = [training_results.log[i].bound for i in 1:iterations]
+    # cumm_list        = [training_results.log[i].simulation_value for i in 1:iterations]
+    # time_list        = [training_results.log[i].time for i in 1:iterations]
+    # cuts_std_list    = [training_results.log[i].cuts_std for i in 1:iterations]
+    # cuts_nonstd_list = [training_results.log[i].cuts_nonstd for i in 1:iterations]
 
 
-    log_count = training_results.log[end].time
+    # log_count = training_results.log[end].time
 
-    if record_every_seconds !== nothing
-        println("WARNING: record is not Nothing")
-        log_count  = max(1, ceil(training_results.log[end].time/record_every_seconds))
+    # if record_every_seconds !== nothing
+    #     println("WARNING: record is not Nothing")
+    #     log_count  = max(1, ceil(training_results.log[end].time/record_every_seconds))
         
-        recCount = 1
-        index = 1
-        while recCount <= log_count && index <= iterations
-            print 
-            iter_end_time = training_results.log[index].time 
-            if (iter_end_time > recCount*record_every_seconds && iter_end_time < (recCount+1)*record_every_seconds) || index == iterations
-                best_bound_index = training_results.log[index].bound
-                μ_index, σ_index = confidence_interval(map(l -> l.simulation_value, training_results.log[1:index]))
-                cuts_std = sum(map(l -> l.cuts_std, training_results.log[1:index]))
-                cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log[1:index]))
-                push!(output_results, (iter = index, time = iter_end_time, bb = best_bound_index, low = μ_index - σ_index, high = μ_index + σ_index, 
-                cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes))
-                recCount += 1
-            end
-            index += 1
-        end
-    end
+    #     recCount = 1
+    #     index = 1
+    #     while recCount <= log_count && index <= iterations
+    #         iter_end_time = training_results.log[index].time 
+    #         if (iter_end_time > recCount*record_every_seconds && iter_end_time < (recCount+1)*record_every_seconds) || index == iterations
+    #             best_bound_index = training_results.log[index].bound
+    #             μ_index, σ_index = confidence_interval(map(l -> l.simulation_value, training_results.log[1:index]))
+    #             cuts_std = sum(map(l -> l.cuts_std, training_results.log[1:index]))
+    #             cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log[1:index]))
+    #             push!(output_results, (iter = index, time = iter_end_time, bb = best_bound_index, low = μ_index - σ_index, high = μ_index + σ_index, 
+    #             cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes))
+    #             recCount += 1
+    #         end
+    #         index += 1
+    #     end
+    # end
 
 
-    if record_every_seconds === nothing || length(output_results) < log_count
+    # if record_every_seconds === nothing || length(output_results) < log_count
         
-        model.most_recent_training_results = training_results
-        best_bound = training_results.log[end].bound
-        upper_bound = training_results.log[end].simulation_value
-        μ, σ = confidence_interval(map(l -> l.simulation_value, training_results.log))
-        cuts_std = sum(map(l -> l.cuts_std, training_results.log))
-        cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log))
-        push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, ub = upper_bound, low = μ-σ, high = μ+σ, cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes, 
-        bound_list = bound_list, cumm_list = cumm_list, time_list = time_list, cs_list = cuts_std_list, cns_list = cuts_nonstd_list, ub_final = ub_final))
+    #     model.most_recent_training_results = training_results
+    #     best_bound = training_results.log[end].bound
+    #     upper_bound = training_results.log[end].simulation_value
+    #     μ, σ = confidence_interval(map(l -> l.simulation_value, training_results.log))
+    #     cuts_std = sum(map(l -> l.cuts_std, training_results.log))
+    #     cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log))
+    #     push!(output_results, (iter = iterations, time = training_results.log[end].time, bb = best_bound, ub = upper_bound, low = μ-σ, high = μ+σ, cs = cuts_std, cns = cuts_nonstd, changesS = stage1_state_changes, 
+    #     bound_list = bound_list, cumm_list = cumm_list, time_list = time_list, cs_list = cuts_std_list, cns_list = cuts_nonstd_list, ub_final = ub_final))
 
-    end
+    # end
+    # ====================================================================
+
+    # Simplified output: only essential information
+    model.most_recent_training_results = training_results
+    
+    # Total number of iterations
+    total_iterations = iterations
+    
+    # Total time
+    total_time       = training_results.log[end].time
+    
+    # Lower and upper bound with confidence interval
+    lower_bound     = training_results.log[end].bound
+    upper_bound     = training_results.log[end].simulation_value
+    μ, σ            = confidence_interval(map(l -> l.simulation_value, training_results.log))
+    confidence_low  = μ - σ
+    confidence_high = μ + σ
+    
+    # Total number of standard and non-standard cuts added
+    total_cuts_std    = sum(map(l -> l.cuts_std, training_results.log))
+    total_cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log))
+    
+    # Create simplified output
+    push!(output_results, (
+        iter = total_iterations,
+        time = total_time,
+        bb = lower_bound,
+        ub = upper_bound,
+        low = confidence_low,
+        high = confidence_high,
+        cs = total_cuts_std,
+        cns = total_cuts_nonstd
+    ))
     
     
     

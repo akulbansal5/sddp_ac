@@ -252,12 +252,11 @@ function get_dual_solution(node::Node, lagrange::LagrangianDuality, timer_out::U
         undo_relax()
     end
 
-
     #now we solve the problem (4.3) and (4.4) mentioned in Zou/Ahmed et al SDDiP paper
 
-    s = JuMP.objective_sense(node.subproblem) == MOI.MIN_SENSE ? -1 : 1
-    N = length(node.states)
-    x_in_value = zeros(N)                                                           #x_{a(n)}^{i}: this is the incumbent solution from the ancestor node
+    s                   = JuMP.objective_sense(node.subproblem) == MOI.MIN_SENSE ? -1 : 1
+    N                   = length(node.states)
+    x_in_value          = zeros(N)                                                           #x_{a(n)}^{i}: this is the incumbent solution from the ancestor node
     λ_star, h_expr, h_k = zeros(N), Vector{AffExpr}(undef, N), zeros(N)             
 
     
@@ -544,6 +543,16 @@ Adds the mipgap to the node subproblem if the
 
 """
 function _add_mipgap_solver(node::Node, mipgap::Number, ::Union{LaporteLouveauxDuality,LagrangianDuality,StrengthenedConicDuality})
+    # Idempotent guard: check if mip_gap is already set to the desired value
+    try
+        current_gap = JuMP.get_attribute(node.subproblem, "mip_gap")
+        if current_gap == mipgap
+            return  # Already set to desired value, no need to change
+        end
+    catch
+        # Attribute might not exist or might not be gettable, continue to set it
+    end
+    
     #set the solver gap here
     try
         set_optimizer_attribute(node.subproblem, "mip_gap", mipgap)

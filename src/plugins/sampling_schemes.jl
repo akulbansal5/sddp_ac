@@ -510,44 +510,41 @@ function sample_scenario(
     function sample_scenario_multiple
     """
 
-    
+    #With default arguments max_depth will be 0
     max_depth = min(sampling_scheme.max_depth, sampling_scheme.rollout_limit())
 
     # Storage for multiple scenarios. Each tuple (part of values (lists) in dict) is (node_index, noise.term).
     scenario_paths         = Dict(i => Tuple{T,Any}[] for i in 1:M)
     scenario_paths_noises  = Dict(i => [] for i in 1:M)
     scenario_paths_prob    = Dict{Int, Float64}()
-
-    #NO INITIALIZATION FOR VISITED NODES -> ASSUMES NO CYCLES
-    path_len             = Dict(i => 0 for i in 1:M)
-    noise_tree           = NoiseTree()
+    path_len               = Dict(i => 0 for i in 1:M)
+    noise_tree             = NoiseTree()
     
-    root_node = nothing
+    # Begin by sampling a node from the children of the root node.
+    root_node  = nothing
+    root_index = something(
+        sampling_scheme.initial_node,
+        sample_noise(get_root_children(sampling_scheme, graph)),
+    )::T
+    
     for i in 1:M
-        # Begin by sampling a node from the children of the root node.
-        node_index = something(
-            sampling_scheme.initial_node,
-            sample_noise(get_root_children(sampling_scheme, graph)),
-        )::T
-        
-        parent_node = nothing
-        
+
+        node_index    = root_index
+        parent_node   = nothing
         current_probs = Float64[]
 
         while true
             
-            node           = graph[node_index]
-            noise_terms    = get_noise_terms(sampling_scheme, node, node_index)
-            children       = get_children(sampling_scheme, node, node_index)
+            node                      = graph[node_index]
+            noise_terms               = get_noise_terms(sampling_scheme, node, node_index)
+            children                  = get_children(sampling_scheme, node, node_index)
             noise, noiseid, noiseprob = sample_noise_extra(noise_terms)
 
             push!(current_probs, noiseprob)
-
             push!(scenario_paths[i], (node_index, noise))
             push!(scenario_paths_noises[i], noiseid)
             path_len[i] = path_len[i] + 1
     
-
             if path_len[i] == 1 && i == 1  
 
                 noise_child          = ScenarioNode(node_index, noise, noiseprob, noiseid)
@@ -561,13 +558,14 @@ function sample_scenario(
                 
                 push!(noise_tree.stageNodes[node_index], noise_child)
                 noise_tree.pathNodes[(i, node_index)] = noise_child
-                root_node = noise_child
-                parent_node = root_node
+                root_node   = noise_child
+                parent_node = noise_child
 
             elseif path_len[i] == 1
 
                 parent_node = root_node
                 push!(parent_node.paths_on, i)
+                noise_tree.pathNodes[(i, node_index)] = parent_node
 
             elseif !haskey(parent_node.child_ids, noiseid)
                 
@@ -575,7 +573,7 @@ function sample_scenario(
                 noise_child.parent   = parent_node
 
                 if noise_child.node_index < parent_node.node_index
-                    println("WARNING: child parent mismatch, c_index: $(noise_child.node_index),  p_index: $(parent_node.node_index)")
+                    error("sampling error: child parent mismatch, c_index: $(noise_child.node_index),  p_index: $(parent_node.node_index)")
                 end
 
                 noise_child.cum_prob = noiseprob*parent_node.cum_prob
@@ -608,16 +606,18 @@ function sample_scenario(
                 scenario_paths_prob[i] = foldl(*, current_probs)
                 # 1. Our node has no children, i.e., we are at a leaf node.
                 break
-            elseif 0 < sampling_scheme.max_depth <= length(scenario_paths[i])
+            elseif 0 < max_depth <= length(scenario_paths[i])
                 #NOTE: by default we set the sampling_scheme.max_depth value to 0
                 # 3. max_depth > 0 and we have explored max_depth number of nodes.
                 break
             elseif sampling_scheme.terminate_on_dummy_leaf &&
                 rand() < 1 - sum(child.probability for child in children)
+                error("At node index $node_index, the probabilities of children sum to $(sum(child.probability for child in children)).")
                 # 4. we sample a "dummy" leaf node in the next step due to the
                 # probability of the child nodes summing to less than one.
                 break
             end
+            
             # Sample a new node to transition to.
             node_index = sample_noise(children)::T
             

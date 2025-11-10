@@ -511,7 +511,12 @@ function convergence_test(
         
         delta_prime    = (rule.type1_prob +rule.type2_prob)*std/(lb*sqrt(last_log.M))
         delta          = delta_prime/(1+delta_prime) 
+        
         #tranformation is made so the delta can be interpreted as gap in the mip sense
+        #the authors consider z_U/z_L > 1 + delta which is measuring the gap in a wuth lower bound in denominator
+        #this constrasts with the traditional gap where upper bound is in the denominator
+
+
 
         if delta < rule.gap
             return true

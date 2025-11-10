@@ -1042,12 +1042,18 @@ function PolicyGraph(
     # Initialize nodes.
     
     node_uid = 1
+
+    #Note in LinearPolicyGraph scenarios are captured as noise in the code
+
     for (node_index, children) in graph.nodes
         
         if node_index == graph.root_node
             continue
         end
+
+        #For direct_mode = false, returns a empty JuMP.Model()
         subproblem = construct_subproblem(optimizer, direct_mode)
+
         node = Node(
             node_index,
             subproblem,
@@ -1073,6 +1079,7 @@ function PolicyGraph(
             # The extension dictionary.
             Dict{Symbol,Any}(),
         )
+
         subproblem.ext[:sddp_policy_graph] = policy_graph
         policy_graph.nodes[node_index] = subproblem.ext[:sddp_node] = node
         JuMP.set_objective_sense(subproblem, policy_graph.objective_sense)
@@ -1085,7 +1092,9 @@ function PolicyGraph(
         if length(node.noise_terms) == 0
             push!(node.noise_terms, Noise(nothing, 1.0))
         end
+
         ctypes = JuMP.list_of_constraint_types(subproblem)
+        
         node.has_integrality =
             (JuMP.VariableRef, MOI.Integer) in ctypes ||
             (JuMP.VariableRef, MOI.ZeroOne) in ctypes

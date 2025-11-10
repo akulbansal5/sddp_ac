@@ -774,44 +774,37 @@ function backward_pass(
     tolerance::Float64 = 1e-6,
 ) where {T,N}
 
-
     iterations = length(options.log)
-
     TimerOutputs.@timeit model.timer_output "prepare_backward_pass" begin
         restore_duality =
             prepare_backward_pass(model, options.duality_handler, options)
     end
 
     # TODO(odow): improve storage type.
-    cuts = Dict{T,Vector{Any}}(index => Any[] for index in keys(model.nodes))
-    
-
-    
-    
+    cuts        = Dict{T,Vector{Any}}(index => Any[] for index in keys(model.nodes))    
     path_len    = length(scenario_paths[1])
-    cuts_std    = 0                                        
-    cuts_nonstd = 0
+    cuts_std    = 0                # benders cuts                        
+    cuts_nonstd = 0                # Lagrangian or Integer L-shaped cuts 
     
     for index in path_len:-1:1
 
-        #note node_index is same as index in case of linear policy gtaphs
+        #note node_index is same as index in case of linear policy graphs
+        #TODO: remove hardcoding for linear policy graphs (or stage-wise dependence) 
         node_index = index
-        node = model[node_index]
+        node       = model[node_index]
         if length(node.children) == 0
             continue
         end
 
-
         # unique_outgoing_states
+        #TODO: unique state filtering only works for linear policy graphs (or stage-wise independence)
         states_visited       = Dict{Int, Dict{Symbol,Float64}}()
-        unique_noise_indices = []
-        # noiseids             = keys(costtogo[node_index])
-        noise_nodes = noise_tree.stageNodes[index]
-        noise_node_counter = 1
+        unique_noise_indices = []                                  
+        noise_nodes          = noise_tree.stageNodes[index]         #noise_tree.stageNodes -> Dict{Int, Vector{ScenarioNode}}
+        noise_node_counter   = 1
 
         for noise_node in noise_nodes
             
-
             outgoing_state = noise_node.sampled_states
             
             TimerOutputs.@timeit model.timer_output "hashing" begin
@@ -824,16 +817,19 @@ function backward_pass(
                 end
                 
                 if visited_flag == true
+                    #note with stage-wise independence irrespective of the noise term if the outgoing state is same
+                    #then we do not need to solve again. So we choose to move on in the for loop.
                     continue
                 else
                     states_visited[noise_node_counter] = outgoing_state
                     push!(unique_noise_indices, noise_node_counter)
+                    noise_node_counter   += 1
                 end
             end
 
-            objective_state = nothing
+            objective_state               = nothing
             partition_index, belief_state = (0, nothing)
-            items = BackwardPassItems(T, Noise)
+            items                         = BackwardPassItems(T, Noise)
             
             time_left = length(options.log) > 0 ? options.time_limit - options.log[end].time : nothing
             
@@ -879,7 +875,9 @@ function backward_pass(
                         items.objectives,
                         objofchildren_lp,                           # in order for Laporte and Laouvex cuts to work the input includes mip objective
                     )
-                    cuts_std += 1                     
+
+                    
+                    cuts_nonstd += 1                     
                     push!(cuts[node_index], new_cuts)
 
                     
@@ -907,7 +905,7 @@ function backward_pass(
                                 items.objectives,
                             )
                             push!(cuts[other_index], new_cuts)
-                            cuts_std += 1
+                            cuts_nonstd += 1
                         end
                     end
                 end
@@ -1201,6 +1199,7 @@ function backward_pass(
                 else
                     states_visited[noise_node_counter] = outgoing_state
                     push!(unique_noise_indices, noise_node_counter)
+                    noise_node_counter += 1
                 end
             end
             
