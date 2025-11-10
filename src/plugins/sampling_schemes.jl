@@ -559,7 +559,8 @@ function sample_scenario(
                 push!(noise_tree.stageNodes[node_index], noise_child)
                 noise_tree.pathNodes[(i, node_index)] = noise_child
                 root_node   = noise_child
-                parent_node = noise_child
+                # root_node is now set and should never be reassigned after this point
+                parent_node = root_node  # parent_node references the same object as root_node
 
             elseif path_len[i] == 1
 
