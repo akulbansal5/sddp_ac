@@ -1026,7 +1026,7 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
 
         TimerOutputs.@timeit model.timer_output "backward_pass" begin
             #backward_pass here is different than backward_pass above
-            cuts, cuts_std, cuts_nonstd = backward_pass(
+            backward_result = backward_pass(
                 model,
                 options,
                 options.backward_pass,
@@ -1038,6 +1038,24 @@ function iteration(model::PolicyGraph{T}, options::Options, iter_pass::Number) w
                 forward_trajectory.scenario_trajectory,
                 forward_trajectory.noise_tree
             )
+            # Handle different return signatures
+            if isa(options.backward_pass, ComparisonMultiBackwardPass)
+                cuts, cuts_std, cuts_nonstd, lagrangian_dominant_count, integer_lshaped_dominant_count, incomparable_count = backward_result
+                # Store comparison statistics in model.ext for potential logging/access
+                # Accumulate statistics over iterations
+                if !haskey(model.ext, :cut_comparison_stats)
+                    model.ext[:cut_comparison_stats] = Dict{Symbol, Int}(
+                        :lagrangian_dominant => 0,
+                        :integer_lshaped_dominant => 0,
+                        :incomparable => 0
+                    )
+                end
+                model.ext[:cut_comparison_stats][:lagrangian_dominant] += lagrangian_dominant_count
+                model.ext[:cut_comparison_stats][:integer_lshaped_dominant] += integer_lshaped_dominant_count
+                model.ext[:cut_comparison_stats][:incomparable] += incomparable_count
+            else
+                cuts, cuts_std, cuts_nonstd = backward_result
+            end
         end
         
         
@@ -1558,8 +1576,26 @@ function train(
     total_cuts_std    = sum(map(l -> l.cuts_std, training_results.log))
     total_cuts_nonstd = sum(map(l -> l.cuts_nonstd, training_results.log))
     
+    # Extract backward_pass time from timer_output
+    # Access: timer_output.inner_timers["backward_pass"].accumulated_data.time (in nanoseconds)
+    backward_pass_time = try
+        round(model.timer_output.inner_timers["backward_pass"].accumulated_data.time / 1e9, digits=3)
+    catch
+        0.0
+    end
+    
+    # Extract cut comparison statistics if available (when using ComparisonMultiBackwardPass)
+    lagrangian_dominant_total = 0
+    integer_lshaped_dominant_total = 0
+    incomparable_total = 0
+    if haskey(model.ext, :cut_comparison_stats)
+        lagrangian_dominant_total = model.ext[:cut_comparison_stats][:lagrangian_dominant]
+        integer_lshaped_dominant_total = model.ext[:cut_comparison_stats][:integer_lshaped_dominant]
+        incomparable_total = model.ext[:cut_comparison_stats][:incomparable]
+    end
+    
     # Create simplified output
-    push!(output_results, (
+    output_tuple = (
         iter = total_iterations,
         time = total_time,
         bb = lower_bound,
@@ -1567,8 +1603,14 @@ function train(
         low = confidence_low,
         high = confidence_high,
         cs = total_cuts_std,
-        cns = total_cuts_nonstd
-    ))
+        cns = total_cuts_nonstd,
+        backward_pass_time = backward_pass_time,
+        lagrangian_dominant = lagrangian_dominant_total,
+        integer_lshaped_dominant = integer_lshaped_dominant_total,
+        incomparable = incomparable_total
+    )
+    
+    push!(output_results, output_tuple)
     
     
     

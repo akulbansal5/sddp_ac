@@ -532,6 +532,183 @@ function _add_laplou_multi_cut(
     return
 end 
 
+"""
+    compare_cuts(
+        lagrangian_cut::NamedTuple,
+        integer_lshaped_cut::NamedTuple,
+        sense::MOI.OptimizationSense
+    )::Symbol
+
+Compare Lagrangian cut and Integer L-shaped cut to determine which one dominates.
+
+Returns:
+- `:lagrangian_dominant` if Lagrangian cut strictly dominates Integer L-shaped cut
+- `:integer_lshaped_dominant` if Integer L-shaped cut strictly dominates Lagrangian cut
+- `:incomparable` if neither strictly dominates the other
+
+For minimization problems:
+- A cut dominates if all its coefficients are ≥ the other's AND intercept ≥ the other's (with at least one strict)
+- This means the dominating cut provides a tighter lower bound
+
+For maximization problems:
+- A cut dominates if all its coefficients are ≤ the other's AND intercept ≤ the other's (with at least one strict)
+- This means the dominating cut provides a tighter upper bound
+"""
+function compare_cuts(
+    lagrangian_cut::NamedTuple,
+    integer_lshaped_cut::NamedTuple,
+    sense::MOI.OptimizationSense
+)::Symbol
+    lag_intercept = lagrangian_cut.theta
+    lag_coeffs = lagrangian_cut.pi
+    
+    int_intercept = integer_lshaped_cut.theta
+    int_coeffs = integer_lshaped_cut.pi
+    
+    # Get all state variable names from both cuts
+    all_keys = union(keys(lag_coeffs), keys(int_coeffs))
+    
+    if sense == MOI.MIN_SENSE
+        # For minimization: cut dominates if all coefficients >= and intercept >= (with at least one strict)
+        lag_coeffs_ge = true
+        lag_coeffs_strict = false
+        lag_intercept_ge = lag_intercept >= int_intercept
+        lag_intercept_strict = lag_intercept > int_intercept
+        
+        for key in all_keys
+            lag_val = get(lag_coeffs, key, 0.0)
+            int_val = get(int_coeffs, key, 0.0)
+            if lag_val < int_val
+                lag_coeffs_ge = false
+                break
+            elseif lag_val > int_val
+                lag_coeffs_strict = true
+            end
+        end
+        
+        lag_dominates = lag_coeffs_ge && lag_intercept_ge && (lag_coeffs_strict || lag_intercept_strict)
+        
+        # Check if Integer L-shaped dominates
+        int_coeffs_ge = true
+        int_coeffs_strict = false
+        int_intercept_ge = int_intercept >= lag_intercept
+        int_intercept_strict = int_intercept > lag_intercept
+        
+        for key in all_keys
+            int_val = get(int_coeffs, key, 0.0)
+            lag_val = get(lag_coeffs, key, 0.0)
+            if int_val < lag_val
+                int_coeffs_ge = false
+                break
+            elseif int_val > lag_val
+                int_coeffs_strict = true
+            end
+        end
+        
+        int_dominates = int_coeffs_ge && int_intercept_ge && (int_coeffs_strict || int_intercept_strict)
+        
+    else  # MAX_SENSE
+        # For maximization: cut dominates if all coefficients <= and intercept <= (with at least one strict)
+        lag_coeffs_le = true
+        lag_coeffs_strict = false
+        lag_intercept_le = lag_intercept <= int_intercept
+        lag_intercept_strict = lag_intercept < int_intercept
+        
+        for key in all_keys
+            lag_val = get(lag_coeffs, key, 0.0)
+            int_val = get(int_coeffs, key, 0.0)
+            if lag_val > int_val
+                lag_coeffs_le = false
+                break
+            elseif lag_val < int_val
+                lag_coeffs_strict = true
+            end
+        end
+        
+        lag_dominates = lag_coeffs_le && lag_intercept_le && (lag_coeffs_strict || lag_intercept_strict)
+        
+        # Check if Integer L-shaped dominates
+        int_coeffs_le = true
+        int_coeffs_strict = false
+        int_intercept_le = int_intercept <= lag_intercept
+        int_intercept_strict = int_intercept < lag_intercept
+        
+        for key in all_keys
+            int_val = get(int_coeffs, key, 0.0)
+            lag_val = get(lag_coeffs, key, 0.0)
+            if int_val > lag_val
+                int_coeffs_le = false
+                break
+            elseif int_val < lag_val
+                int_coeffs_strict = true
+            end
+        end
+        
+        int_dominates = int_coeffs_le && int_intercept_le && (int_coeffs_strict || int_intercept_strict)
+    end
+    
+    if lag_dominates
+        return :lagrangian_dominant
+    elseif int_dominates
+        return :integer_lshaped_dominant
+    else
+        return :incomparable
+    end
+end
+
+"""
+    _compute_laplou_average_cut_info(
+        node::Node{T},
+        outgoing_state::Dict{Symbol,Float64},
+        objofchildren::Float64,
+        L::Float64,
+    )::NamedTuple
+
+Compute Integer L-shaped cut information (intercept and coefficients) without adding it to the model.
+This is used for cut comparison purposes.
+"""
+function _compute_laplou_average_cut_info(
+    node::Node{T},
+    outgoing_state::Dict{Symbol,Float64},
+    objofchildren::Float64,
+    L::Float64,
+) where {T}
+    ones = []
+    zeros = []
+    
+    for (name, value) in outgoing_state
+        if isapprox(value, 1.0, atol = 1e-6)
+            push!(ones, name)
+        else
+            push!(zeros, name)
+        end
+    end
+    
+    coeff1 = objofchildren - L
+    πᵏ = Dict{Symbol, Float64}()
+    
+    for name in ones
+        πᵏ[name] = -coeff1
+    end
+    
+    for name in zeros
+        πᵏ[name] = coeff1
+    end
+    
+    onecount = length(ones)
+    constant = objofchildren - coeff1 * onecount
+    
+    obj_y = node.objective_state === nothing ? nothing : node.objective_state.state
+    belief_y = node.belief_state === nothing ? nothing : node.belief_state.belief
+    
+    return (
+        theta = constant,
+        pi = πᵏ,
+        x = outgoing_state,
+        obj_y = obj_y,
+        belief_y = belief_y,
+    )
+end
 
 function _add_laplou_average_cut(
     global_theta::ConvexApproximation,

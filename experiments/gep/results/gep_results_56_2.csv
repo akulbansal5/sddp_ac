@@ -1,0 +1,2 @@
+id,rep,stages,scens,duality_handler,forward_pass,backward_pass,sampling_scheme,fpass_type,mipgap,M,total_time,backward_pass_time,iterations,lower_bound,ci_low,ci_high,gap,std_cuts,nonstd_cuts
+56,1,10,5,Laporte,DefaultMultiForwardPass,Default,InSampleMonteCarloMultiple,1,0.0001,2,10.195471048355103,2.643,5,2000.28807510617,31126.81224928553,31489.72031225333,93.64780615619563,0,79
