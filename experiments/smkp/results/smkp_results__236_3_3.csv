@@ -1,0 +1,2 @@
+id,rows,cols,scens,stages,duality_handler,forward_pass,backward_pass,sampling_scheme,fpass_type,mipgap,M,total_time,backward_pass_time,iterations,lower_bound,ci_low,ci_high,gap,std_cuts,nonstd_cuts,delta,type1_prob,type2_prob,seed,lagrangian_dominant,integer_lshaped_dominant,incomparable
+236,15,40,10,5,Laporte,DefaultMultiForwardPass,Angulo,InSampleMonteCarloMultiple,1,0.001,2,126.3602180480957,9.017,35,713.8920771421324,725.4224747038655,729.4267252961346,2.1297064688293927,241,0,0.01,1.28,1.28,3001,0,0,0
