@@ -23,8 +23,8 @@ const HOURS_PER_YEAR = 8760.0
 const rate = 0.08
 
 #price for natural gas is with unit of 1000 cubic feet
-const price_mean = [9.37000, 9.79257, 10.23477, 10.69770, 11.18226, 11.68951, 12.22057, 12.77657, 13.35693, 13.96636, 14.21, 14.52]
-const price_std = [0.0, 0.9477973, 1.2146955, 1.4957925, 1.7848757, 2.0798978, 2.3814051, 2.6911019, 3.0063683, 3.3382216, 3.56, 3.81]
+const price_mean = [9.37000, 9.79257, 10.23477, 10.69770, 11.18226, 11.68951, 12.22057, 12.77657, 13.35693, 13.96636, 14.21, 14.52, 14.83, 15.14, 15.45, 15.76, 16.07, 16.38, 16.69, 17.00, 17.31, 17.62, 17.93, 18.24, 18.55]
+const price_std = [0.0, 0.9477973, 1.2146955, 1.4957925, 1.7848757, 2.0798978, 2.3814051, 2.6911019, 3.0063683, 3.3382216, 3.56, 3.81, 4.06, 4.31, 4.56, 4.81, 5.06, 5.31, 5.56, 5.81, 6.06, 6.31, 6.56, 6.81, 7.06]
 const D0 = 0.57
 
 #code for scenario tree generation
@@ -97,10 +97,12 @@ end
 
 # num_stages = 3
 # num_scenarios = 3
-folder = joinpath(@__DIR__, "gep_data") * "/"
+folder = joinpath(@__DIR__, "gep_data", "gep_large")
+mkpath(folder)
+folder = folder * "/"
 prefix = "gep"
-csv_file = folder*"gep_instances.csv"
-instGen_csv(csv_file, 58:59, folder, prefix)
+csv_file = joinpath(@__DIR__, "gep_data") * "/gep_instances.csv"
+instGen_csv(csv_file, 60:77, folder, prefix)
 
 
 

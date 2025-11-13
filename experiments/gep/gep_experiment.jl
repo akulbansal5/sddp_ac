@@ -46,10 +46,10 @@ function gep(T::Int64, G::Int64, S::Int64, lb::Number, binCoeff::Number, invCost
     return model
 end
 
-function write_results_to_csv(folder::String, filename::String, id::Int, rep::Int, st::Int, scens::Int, total_time::Float64, backward_pass_time::Float64, iterations::Int, lower_bound::Float64, ci_low::Float64, ci_high::Float64, std_cuts::Int, nonstd_cuts::Int, duality_handler::String, forward_pass::String, backward_pass::String, sampling_scheme::String, fpass_type::Int, mipgap::Float64, M::Int, gap::Float64, delta::Float64, type1_prob::Float64, type2_prob::Float64, lagrangian_dominant::Int = 0, integer_lshaped_dominant::Int = 0, incomparable::Int = 0)
+function write_results_to_csv(folder::String, filename::String, id::Int, rep::Int, st::Int, scens::Int, total_time::Float64, backward_pass_time::Float64, iterations::Int, lower_bound::Float64, ci_low::Float64, ci_high::Float64, std_cuts::Int, nonstd_cuts::Int, duality_handler::String, forward_pass::String, backward_pass::String, sampling_scheme::String, fpass_type::Int, mipgap::Float64, M::Int, gap::Float64, delta::Float64, type1_prob::Float64, type2_prob::Float64, seed::Int, lagrangian_dominant::Int = 0, integer_lshaped_dominant::Int = 0, incomparable::Int = 0)
     mkpath(folder)
     csv_file = joinpath(folder, filename)
-    results_df = DataFrame(id = [id], rep = [rep], stages = [st], scens = [scens], duality_handler = [duality_handler], forward_pass = [forward_pass], backward_pass = [backward_pass], sampling_scheme = [sampling_scheme], fpass_type = [fpass_type], mipgap = [mipgap], M = [M], total_time = [total_time], backward_pass_time = [backward_pass_time], iterations = [iterations], lower_bound = [lower_bound], ci_low = [ci_low], ci_high = [ci_high], gap = [gap], std_cuts = [std_cuts], nonstd_cuts = [nonstd_cuts], delta = [delta], type1_prob = [type1_prob], type2_prob = [type2_prob], lagrangian_dominant = [lagrangian_dominant], integer_lshaped_dominant = [integer_lshaped_dominant], incomparable = [incomparable])
+    results_df = DataFrame(id = [id], rep = [rep], stages = [st], scens = [scens], duality_handler = [duality_handler], forward_pass = [forward_pass], backward_pass = [backward_pass], sampling_scheme = [sampling_scheme], fpass_type = [fpass_type], mipgap = [mipgap], M = [M], total_time = [total_time], backward_pass_time = [backward_pass_time], iterations = [iterations], lower_bound = [lower_bound], ci_low = [ci_low], ci_high = [ci_high], gap = [gap], std_cuts = [std_cuts], nonstd_cuts = [nonstd_cuts], delta = [delta], type1_prob = [type1_prob], type2_prob = [type2_prob], seed = [seed], lagrangian_dominant = [lagrangian_dominant], integer_lshaped_dominant = [integer_lshaped_dominant], incomparable = [incomparable])
     if isfile(csv_file)
         CSV.write(csv_file, results_df, append=true)
     else
@@ -76,10 +76,12 @@ function train_method(model, duality_handler, forward_pass, backward_pass, sampl
     return outputs
 end
 
-id = parse(Int, ARGS[1])
-method_idx = parse(Int, ARGS[2])
+# Parse command-line arguments
+id         = parse(Int, ARGS[1])   # Instance ID
+method_idx = parse(Int, ARGS[2])   # Index for method selection
+seed_arg   = parse(Int, ARGS[3])   # Seed for reproducibility
 
-instance_params = Dict(54 => (10, 3), 56 => (10, 5), 57 => (10, 7), 58 => (11, 3), 59 => (12, 3))
+instance_params = Dict(54 => (10, 3), 56 => (10, 5), 57 => (10, 7), 58 => (11, 3), 59 => (12, 3), 60 => (10, 10), 61 => (10, 10), 62 => (10, 10), 63 => (10, 20), 64 => (10, 20), 65 => (10, 20), 66 => (10, 50), 67 => (10, 50), 68 => (10, 50), 69 => (15, 3), 70 => (15, 3), 71 => (15, 3), 72 => (20, 3), 73 => (20, 3), 74 => (20, 3), 75 => (25, 3), 76 => (25, 3), 77 => (25, 3))
 methods = [
     (SDDP.LagrangianDuality(), SDDP.DefaultMultiBackwardPass(), "Lagrangian", "Default"),
     (SDDP.LagrangianDuality(), SDDP.AnguloMultiBackwardPass(), "Lagrangian", "Angulo"),
@@ -93,6 +95,7 @@ st, scens = instance_params[id]
 duality_handler, backward_pass, duality_name, backward_name = methods[method_idx + 1]
 
 folder = joinpath(@__DIR__, "gep_data")
+instance_folder = id >= 60 ? joinpath(@__DIR__, "gep_data", "gep_large") : folder
 threads = 2
 mipgap = 1e-4
 time_limit = 3600
@@ -109,18 +112,20 @@ iter_pass = 1
 final_run = false
 fpass_type = 1
 postSim = 2000
-simTime = 3600.0
+simTime = 7200.0
 forward_pass = SDDP.DefaultMultiForwardPass()
 sampling_scheme = SDDP.InSampleMonteCarloMultiple()
 
 prefix = "gep"
-fixCost_file = "gep_fixed_cost_jou.csv"
-varCost_file = "gep_varCost_jou.csv"
+fixCost_file = "gep_fixed_cost_jou_25.csv"
+varCost_file = "gep_varCost_jou_25.csv"
 fix_cost_matrix, var_cost_matrix, genMax, genCap, genHeat, genEff, omCost, hours = gep_data_load(folder, fixCost_file, varCost_file)
 
 rep = 1
-seed = id * 1000
-inFile = joinpath(folder, prefix*"_$(id)_$(rep)_$(st)_$(scens).jls")
+
+fixed_offset = 1
+seed = seed_arg * 1000 + fixed_offset
+inFile = joinpath(instance_folder, prefix*"_$(id)_$(rep)_$(st)_$(scens).jls")
 support = open(inFile, "r") do f
     deserialize(f)
 end
@@ -136,11 +141,11 @@ sim_lower = μ - ci
 sim_upper = μ + ci
 gap = sim_upper != 0.0 ? 100.0 * (sim_upper - outputs[1].bb) / sim_upper : NaN
 results_folder = joinpath(@__DIR__, "results")
-csv_filename = "gep_results__$(id)_$(method_idx).csv"
+csv_filename = "gep_results__$(id)_$(method_idx)_$(seed_arg).csv"
 # Extract cut comparison statistics if available
 lagrangian_dominant = hasfield(typeof(outputs[1]), :lagrangian_dominant) ? outputs[1].lagrangian_dominant : 0
 integer_lshaped_dominant = hasfield(typeof(outputs[1]), :integer_lshaped_dominant) ? outputs[1].integer_lshaped_dominant : 0
 incomparable = hasfield(typeof(outputs[1]), :incomparable) ? outputs[1].incomparable : 0
-write_results_to_csv(results_folder, csv_filename, id, rep, st, scens, outputs[1].time, outputs[1].backward_pass_time, outputs[1].iter, outputs[1].bb, sim_lower, sim_upper, outputs[1].cs, outputs[1].cns, duality_name, string(nameof(typeof(forward_pass))), backward_name, string(nameof(typeof(sampling_scheme))), fpass_type, mipgap, M, gap, delta, type1_prob, type2_prob, lagrangian_dominant, integer_lshaped_dominant, incomparable)
+write_results_to_csv(results_folder, csv_filename, id, rep, st, scens, outputs[1].time, outputs[1].backward_pass_time, outputs[1].iter, outputs[1].bb, sim_lower, sim_upper, outputs[1].cs, outputs[1].cns, duality_name, string(nameof(typeof(forward_pass))), backward_name, string(nameof(typeof(sampling_scheme))), fpass_type, mipgap, M, gap, delta, type1_prob, type2_prob, seed, lagrangian_dominant, integer_lshaped_dominant, incomparable)
 
 
